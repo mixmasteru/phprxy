@@ -1,13 +1,13 @@
 <?
 
 #
-# Surrogafier v0.7.5b
+# Surrogafier v0.7.5.1b
 #
 # Author: Brad Cable
 # License: GPL Version 2
 #
 
-define("VERSION","0.7.5b");
+define("VERSION","0.7.5.1b");
 define("COOKIE_SEPARATOR","__surrogafier_sep__");
 
 define("THIS_SCRIPT","http://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}");
@@ -87,7 +87,7 @@ $useragent_array=array(
 <body onload="document.getElementById('url').focus();">
 <div style="font-size: 18pt; font-weight: bold; text-align: center; margin-bottom: 5px">Surrogafier</div>
 <center>
-<form method="post" onsubmit="if(this.<?=COOK_PREF?>_encode_urls.checked) this.<?=COOK_PREF?>_url.value=proxenc_url(document.getElementById('url').value);">
+<form method="post" onsubmit="if(this.<?=COOK_PREF?>_encode_urls.checked) this.<?=COOK_PREF?>_url.value=proxenc_url(document.getElementById('url').value); else this.<?=COOK_PREF?>_url.value=document.getElementById('url').value;">
 <input type="hidden" name="<?=COOK_PREF?>_url" />
 <input type="hidden" name="<?=COOK_PREF?>_set_values" value="1" />
 <table>
