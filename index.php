@@ -1,14 +1,14 @@
 <?
 
 #
-# Surrogafier v0.7.6b
+# Surrogafier v0.7.6.1b
 #
 # Author: Brad Cable
 # License: GPL Version 2
 #
 
 
-define("VERSION","0.7.6b");
+define("VERSION","0.7.6.1b");
 define("COOKIE_SEPARATOR","__surrogafier_sep__");
 
 define("THIS_SCRIPT","http://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}");
@@ -132,7 +132,7 @@ function surrogafy_url(){
 	if(!check_proto(new_url)) new_url=get_proto(new_url,proxy_current_url)+"://"+servername(proxy_current_url)+filepath(url);
 	if(proxy_encode_urls) new_url=proxenc_url(new_url);
 	else new_url=encodeURIComponent(new_url);
-	if(addproxy) new_url=proxy_this_script+"?<?=COOK_PREF?>_url="+new_url;
+	if(addproxy) new_url=proxy_this_script+"?<?=COOK_PREF?>_"+(proxy_encode_urls?"e":"")+"url="+new_url;
 	url=url.replace(/^url\(([^)]*)\)$/i,"\$1");
 	if(resturl!=null) new_url="url("+new_url+resturl;
 	if(urlquote!=null) new_url=urlquote+new_url+urlquote;
@@ -171,7 +171,7 @@ function parse_all_html(html){
 
 function proxy_form_encode(form){
 	if(form.method=='post') return true;
-	action=form.<?=COOK_PREF?>_<?=(!empty($_COOKIE[COOK_PREF.'_encode_urls'])?"e":"")?>url.value;
+	action=(proxy_encode_urls?form.<?=COOK_PREF?>_eurl.value:form.<?=COOK_PREF?>_url.value);
 	for(i=1;i<form.elements.length;i++){
 		if(form.elements[i].disabled || form.elements[i].name=='' || form.elements[i].value=='' || form.elements[i].type=='reset') continue;
 		if(form.elements[i].type=='submit'){
@@ -297,13 +297,18 @@ $ipregexp="/^((?:[0-2]{0,2}[0-9]{1,2}\.){3}[0-2]{0,2}[0-9]{1,2})\:([0-9]{1,5})$/
 <tr><td style="text-align: left">&nbsp;</td><td><input type="checkbox" name="<?=COOK_PREF?>_remove_referer" style="border: 0px" <? if(!empty($_COOKIE[COOK_PREF.'_remove_referer'])) echo "checked=\"checked\" "; ?>/>&nbsp;Remove Referer Field</td></tr>
 <tr><td style="text-align: left">&nbsp;</td><td><input type="checkbox" name="<?=COOK_PREF?>_remove_scripts" style="border: 0px" <? if(!empty($_COOKIE[COOK_PREF.'_remove_scripts'])) echo "checked=\"checked\" "; ?>/>&nbsp;Remove Scripts (JS, VBS, etc)</td></tr>
 <tr><td style="text-align: left">&nbsp;</td><td><input type="checkbox" name="<?=COOK_PREF?>_remove_objects" style="border: 0px" <? if(!empty($_COOKIE[COOK_PREF.'_remove_objects'])) echo "checked=\"checked\" "; ?>/>&nbsp;Remove Objects (Flash, Java, etc)</td></tr>
-<tr><td style="text-align: left">&nbsp;</td><td><input type="checkbox" name="<?=COOK_PREF?>_encode_urls" style="border: 0px" <? if(!empty($_COOKIE[COOK_PREF.'_encode_urls'])) echo "checked=\"checked\" "; ?>/>&nbsp;Encode URLs</td></tr>
+<tr><td style="text-align: left">&nbsp;</td><td><input type="checkbox" name="<?=COOK_PREF?>_encode_urls" style="border: 0px" <? if(!empty($_COOKIE[COOK_PREF.'_encode_urls'])) echo "checked=\"checked\" "; ?>/>&nbsp;Encode URLs<noscript><b>**</b></noscript></td></tr>
 <tr><td colspan="2"><input type="submit" value="Surrogafy" style="width: 100%; background-color: #F0F0F0" /></td></tr>
 </table>
 <br />
 <div style="font-size: 10pt">Surrogafier v<?=VERSION?>
 <br />
 &copy; CopyLeft 2006 <a href="http://bcable.net/">Brad Cable</a></div>
+<noscript>
+<br />
+<b>**</b> Surrogafier has detected that you do not have Javascript enabled. <b>**</b>
+<br />
+<b>**</b> This feature requires Javascript in order to function to its full potential. <b>**</b>
 </form>
 </center>
 </body>
@@ -451,7 +456,7 @@ function header_value($headername){
 
 function getpage($url){
 
-	global $headers,$out,$post_vars,$proxy_variables;
+	global $headers,$out,$post_vars,$proxy_variables,$referer;
 
 	$url=preg_replace("/\;.*$/","",$url);
 	$url=str_replace(" ","+",$url);
@@ -495,9 +500,7 @@ function getpage($url){
 	}
 	if(!empty($http_auth)) $out.="Authorization: $http_auth\r\n";
 
-	$referer=proxdec_url(urldecode(preg_replace("/^([^\?]*)(\?".COOK_PREF."_".URLVAR."=)?/i","",$_SERVER["HTTP_REFERER"])));
-	if(empty($_COOKIE[COOK_PREF."_remove_referer"]) && !empty($referer)) $out.="Referer: $referer\r\n";
-	#if(!empty($post_vars)) $out.="Content-Length: ".strlen($post_vars)."\r\nContent-Type: application/x-www-form-urlencoded\r\n";
+	if(empty($_COOKIE[COOK_PREF."_remove_referer"]) && !empty($referer)) $out.="Referer: ".str_replace(" ","+",$referer)."\r\n";
 	if($_SERVER['REQUEST_METHOD']=="POST") $out.="Content-Length: ".strlen($post_vars)."\r\nContent-Type: application/x-www-form-urlencoded\r\n";
 
 	$cook_prefdomain=servername($url,true);
@@ -518,9 +521,12 @@ function getpage($url){
 		}
 	}
 
-	$out.="Accept-Language: en-us,en;q=0.5\r\n".
+	$out.="Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5\r\n".
+	      "Accept-Language: en-us,en;q=0.5\r\n".
 	      "Accept-Encoding: gzip,deflate\r\n".
 	      "Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.7\r\n".
+	      /*"Keep-Alive: 300\r\n".
+	      "Connection: keep-alive\r\n".*/
 	      "Connection: close\r\n".
 	      "\r\n".$post_vars;
 	fwrite($fp,$out);
@@ -565,6 +571,7 @@ function getpage($url){
 
 	if(substr($response,0,2)=="30"){
 		$redirurl=surrogafy_url(header_value("Location"),true,$url);
+		if(header_value("Connection")=="close") fclose($fp);
 		header("Location: $redirurl");
 		exit();
 	}
@@ -632,7 +639,7 @@ function getpage($url){
 		}
 	}
 
-	#fclose($fp);
+	if(header_value("Connection")=="close") fclose($fp);
 	if(header_value("Content-Encoding")=="gzip") $body=gzinflate(substr($body,10));
 	if($justoutput){
 		if(!$justoutputnow) echo $body;
@@ -646,7 +653,7 @@ function getpage($url){
 ## BEGIN PROXY CODE #
 
 # Deal with cookies for proxy #
-global $proxy_variables,$proxy_varblacklist,$post_vars,$cookies,$curr_url;
+global $proxy_variables,$proxy_varblacklist,$post_vars,$cookies,$curr_url,$referer;
 
 define("URLVAR",((!empty($postandget[COOK_PREF.'_encode_urls']) || !empty($_COOKIE[COOK_PREF.'_encode_urls']))?"e":"")."url");
 if(URLVAR=="eurl" && isset($postandget[COOK_PREF.'_eurl'])) $curr_url=$postandget[COOK_PREF.'_eurl']; elseif(URLVAR=="url" && isset($postandget[COOK_PREF.'_url']) && isset($postandget[COOK_PREF.'_url'])) $curr_url=$postandget[COOK_PREF.'_url'];
@@ -676,9 +683,11 @@ if($postandget[COOK_PREF.'_set_values']){
 # end #
 
 # Deal with GET/POST/COOKIES and the URL #
-$curr_url=stripslashes(urldecode($curr_url));
+while(strstr("%",$curr_url)) $curr_url=urldecode($curr_url);
+$curr_url=stripslashes($curr_url);
 define("ENCODE_URLS",!empty($_COOKIE[COOK_PREF.'_encode_urls']));
 if(ENCODE_URLS) $curr_url=proxdec_url($curr_url);
+$referer=proxdec_url(urldecode(preg_replace("/^([^\?]*)(\?".COOK_PREF."_".URLVAR."=)?/i","",$_SERVER["HTTP_REFERER"])));
 
 $getkeys=array_keys($_GET);
 foreach($getkeys as $getvar){
@@ -734,7 +743,7 @@ $jsattrs="(href|src|location|background|backgroundImage|pluginspage|codebase|img
 $jshtmlattrs="(innerHTML)";
 $jsmethods="(location\.replace)";
 $jslochost="(location\.host(?:name){0,1})";
-$jsrealpage="((?:document\.){0,1}location\.href|window\.location|document\.documentURI|[a-z]+\.referrer)";
+$jsrealpage="((?:(?:document|window)\.){0,1}location(?:(?=[^\.])|\.(?!hash|host|hostname|pathname|port|protocol|search)[a-z]+)|document\.documentURI|[a-z]+\.referrer)";
 
 $anyspace="[\t\r\n ]*";
 $plusspace="[\t\r\n ]+";
