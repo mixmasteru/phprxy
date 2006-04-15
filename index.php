@@ -1,23 +1,36 @@
 <?
 
 #
-# Surrogafier v0.7.6.1b
+# Surrogafier v0.7.7b
 #
 # Author: Brad Cable
 # License: GPL Version 2
 #
 
 
-define("VERSION","0.7.6.1b");
-define("COOKIE_SEPARATOR","__surrogafier_sep__");
+$blocked_addresses=array("10.0.0.0/24","172.0.0.0/24","192.168.0.0/16","127.0.0.0/24");
 
+/*/ Address Blocking Notes \*\
+
+Formats for address blocking are as follows:
+
+  1.2.3.4     - plain IP address
+  1.2.3.4/24  - subnet blocking
+  php.net     - domain blocking
+
+\*\ End Address Blocking Notes /*/
+
+
+// DON'T EDIT ANYTHING AFTER THIS POINT \\
+
+
+define("VERSION","0.7.7b");
 define("THIS_SCRIPT","http://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}");
 
-
 # Randomized cookie prefixes #
-function gen_cookpref(){
+function gen_randstr($len){
 	$chars="";
-	for($i=0;$i<12;$i++){
+	for($i=0;$i<$len;$i++){
 		$char=rand(0,25);
 		$char=chr($char+97);
 		$chars.=$char;
@@ -25,20 +38,31 @@ function gen_cookpref(){
 	return $chars;
 }
 
+session_start();
+if(empty($_SESSION['sesspref'])){
+	$sesspref=gen_randstr(30);
+	$_SESSION["sesspref"]=$sesspref;
+}
+else $sesspref=$_SESSION['sesspref'];
+
 if(empty($_COOKIE['user'])){
-	$cookpref=gen_cookpref();
+	$cookpref=gen_randstr(12);
 	setcookie("user",$cookpref);
 }
 else $cookpref=$_COOKIE['user'];
+
+define("SESS_PREF",$sesspref);
 define("COOK_PREF",$cookpref);
+define("COOKIE_SEPARATOR","__".COOK_PREF."__");
+
 # end #
 
-$js_proxenc="function proxenc_url(url){
+$js_proxenc="function proxenc(url){
 	if(url.substring(0,1)==\"~\" || url.substring(0,3).toLowerCase()==\"%7e\") return url;
 	new_url=\"\";
 	for(i=0;i<url.length;i++){
 		char=String.charCodeAt(url.substring(i,i+1));
-		char+=String.charCodeAt(\"".COOK_PREF."\".substring(i%\"".COOK_PREF."\".length,(i%\"".COOK_PREF."\".length)+1));
+		char+=String.charCodeAt(\"".SESS_PREF."\".substring(i%\"".SESS_PREF."\".length,(i%\"".SESS_PREF."\".length)+1));
 		while(char>126) char-=94;
 		new_url+=String.fromCharCode(char);
 	}
@@ -130,7 +154,7 @@ function surrogafy_url(){
 	new_url=url;
 	if(new_url.substring(0,2)=="//") new_url=get_proto(new_url,proxy_current_url)+":"+new_url;
 	if(!check_proto(new_url)) new_url=get_proto(new_url,proxy_current_url)+"://"+servername(proxy_current_url)+filepath(url);
-	if(proxy_encode_urls) new_url=proxenc_url(new_url);
+	if(proxy_encode_urls) new_url=proxenc(new_url);
 	else new_url=encodeURIComponent(new_url);
 	if(addproxy) new_url=proxy_this_script+"?<?=COOK_PREF?>_"+(proxy_encode_urls?"e":"")+"url="+new_url;
 	url=url.replace(/^url\(([^)]*)\)$/i,"\$1");
@@ -262,7 +286,7 @@ $ipregexp="/^((?:[0-2]{0,2}[0-9]{1,2}\.){3}[0-2]{0,2}[0-9]{1,2})\:([0-9]{1,5})$/
 <body onload="document.getElementById('url').focus();">
 <div style="font-size: 18pt; font-weight: bold; text-align: center; margin-bottom: 5px">Surrogafier</div>
 <center>
-<form method="post" onsubmit="if(this.<?=COOK_PREF?>_encode_urls.checked){this.<?=COOK_PREF?>_eurl.value=proxenc_url(this.<?=COOK_PREF?>_url.value);this.<?=COOK_PREF?>_url.value='';this.submit();}">
+<form method="post" onsubmit="if(this.<?=COOK_PREF?>_encode_urls.checked){this.<?=COOK_PREF?>_eurl.value=proxenc(this.<?=COOK_PREF?>_url.value);this.<?=COOK_PREF?>_url.value='';this.submit();}">
 <input type="hidden" name="<?=COOK_PREF?>_set_values" value="1" />
 <input type="hidden" name="<?=COOK_PREF?>_eurl" />
 <table>
@@ -298,6 +322,7 @@ $ipregexp="/^((?:[0-2]{0,2}[0-9]{1,2}\.){3}[0-2]{0,2}[0-9]{1,2})\:([0-9]{1,5})$/
 <tr><td style="text-align: left">&nbsp;</td><td><input type="checkbox" name="<?=COOK_PREF?>_remove_scripts" style="border: 0px" <? if(!empty($_COOKIE[COOK_PREF.'_remove_scripts'])) echo "checked=\"checked\" "; ?>/>&nbsp;Remove Scripts (JS, VBS, etc)</td></tr>
 <tr><td style="text-align: left">&nbsp;</td><td><input type="checkbox" name="<?=COOK_PREF?>_remove_objects" style="border: 0px" <? if(!empty($_COOKIE[COOK_PREF.'_remove_objects'])) echo "checked=\"checked\" "; ?>/>&nbsp;Remove Objects (Flash, Java, etc)</td></tr>
 <tr><td style="text-align: left">&nbsp;</td><td><input type="checkbox" name="<?=COOK_PREF?>_encode_urls" style="border: 0px" <? if(!empty($_COOKIE[COOK_PREF.'_encode_urls'])) echo "checked=\"checked\" "; ?>/>&nbsp;Encode URLs<noscript><b>**</b></noscript></td></tr>
+<tr><td style="text-align: left">&nbsp;</td><td><input type="checkbox" name="<?=COOK_PREF?>_encode_cooks" style="border: 0px" <? if(!empty($_COOKIE[COOK_PREF.'_encode_cooks'])) echo "checked=\"checked\" "; ?>/>&nbsp;Encode Cookies<noscript><b>**</b></noscript></td></tr>
 <tr><td colspan="2"><input type="submit" value="Surrogafy" style="width: 100%; background-color: #F0F0F0" /></td></tr>
 </table>
 <br />
@@ -306,7 +331,7 @@ $ipregexp="/^((?:[0-2]{0,2}[0-9]{1,2}\.){3}[0-2]{0,2}[0-9]{1,2})\:([0-9]{1,5})$/
 &copy; CopyLeft 2006 <a href="http://bcable.net/">Brad Cable</a></div>
 <noscript>
 <br />
-<b>**</b> Surrogafier has detected that you do not have Javascript enabled. <b>**</b>
+<b>**</b> Surrogafier has detected that your browser does not have Javascript enabled. <b>**</b>
 <br />
 <b>**</b> This feature requires Javascript in order to function to its full potential. <b>**</b>
 </form>
@@ -357,7 +382,7 @@ function portval($url,$default=80){
 	else return $portval;
 }
 
-function proxdec_url($url){
+function proxdec($url){
 	if(substr($url,0,1)!="~" && strtolower(substr($url,0,3))!="%7e") return $url;
 	while(substr($url,0,1)=="~" || strtolower(substr($url,0,3))=="%7e"){
 		if(strtolower(substr($url,0,3))=="%7e") $url=urldecode($url);
@@ -366,7 +391,7 @@ function proxdec_url($url){
 		$new_url="";
 		for($i=0;$i<strlen($url);$i++){
 			$char=ord(substr($url,$i,1));
-			$char-=ord(substr(COOK_PREF,$i%strlen(COOK_PREF),1));
+			$char-=ord(substr(SESS_PREF,$i%strlen(SESS_PREF),1));
 			while($char<32) $char+=94;
 			$new_url.=chr($char);
 		}
@@ -375,12 +400,12 @@ function proxdec_url($url){
 	return $url;
 }
 
-function proxenc_url($url){
+function proxenc($url){
 	if(substr($url,0,1)=="~" || strtolower(substr($url,0,3))=="%7e") return $url;
 	$new_url="";
 	for($i=0;$i<strlen($url);$i++){
 		$char=ord(substr($url,$i,1));
-		$char+=ord(substr(COOK_PREF,$i%strlen(COOK_PREF),1));
+		$char+=ord(substr(SESS_PREF,$i%strlen(SESS_PREF),1));
 		while($char>126) $char-=94;
 		$new_url.=chr($char);
 	}
@@ -412,7 +437,7 @@ function surrogafy_url($url,$add_proxy=true,$topurl=false,$parse_url=true){
 	else $new_url=$url;
 	$new_url=trim($new_url);
 	if($add_proxy){
-		if(ENCODE_URLS) $new_url=proxenc_url($new_url);
+		if(ENCODE_URLS) $new_url=proxenc($new_url);
 		else $new_url=urlencode($new_url);
 		$new_url=THIS_SCRIPT."?".COOK_PREF."_".URLVAR."=$new_url$label";
 	}
@@ -454,6 +479,100 @@ function header_value($headername){
 	return $arr[0];
 }
 
+function havok($errorno,$arg1=null,$arg2=null,$arg3=null){
+	switch($errorno){
+		case 1:
+			$et="Bad IP Address";
+			$ed="The IP address given is an impossible IP address, or the domain given was resolved to an impossible IP address.";
+			break;
+		case 2:
+			$et="Address is Blocked";
+			$ed="The administrator of this proxy service has decided to block this address, domain, or subnet.";
+			break;
+		case 3:
+			$et="Could Not Resolve Domain";
+			$ed="The domain of the URL given could not be resolved due to DNS issues or an errorneous domain name.";
+			break;
+		case 4:
+			$et="Bad Filters";
+			$ed="The administrator of this proxy has incorrectly configured his domain filters, or a domain given could not be resolved.";
+			break;
+		case 5:
+			$et="Domain is Blocked";
+			$ed="The administrator of this proxy has decided to block this domain.";
+			break;
+		case 6:
+			$et="Could Not Connect to Server";
+			$ed="An error has occurred while attempting to connect to \"$arg1\" on port \"$arg2\".<br /><br />URL: $arg3";
+			break;
+	}
+?>
+<div style="font-family: Bitstream Vera Sans, Arial"><div style="border: 3px solid #FFFFFF; padding: 2px">
+	<div style="float: left; border: 1px solid #602020; padding: 1px; background-color: #FFFFFF">
+	<div style="float: left; background-color: #801010; color: #FFFFFF; font-weight: bold; font-size: 54px; padding: 2px; padding-left: 12px; padding-right: 12px">!</div>
+	</div>
+	<div style="float: left; width: 500px; padding-left: 20px">
+		<div style="border-bottom: 1px solid #000000; font-size: 12pt; text-align: center; font-weight: bold; padding: 2px">Error: <?=$et?></div>
+		<div style="padding: 6px"><?=$ed?></div>
+	</div>
+</div></div>
+<?	exit();
+}
+
+function getip($host){
+	$dnss=@dns_get_record($host);
+	if(!$dnss) havok(3);
+	foreach($dnss as $dns){
+		if(!empty($dns["ip"])) $ip=$dns["ip"];
+		if($dns["type"]=="CNAME") if(get_check($dns["target"])) return getip($dns["target"]);
+	}
+	return $ip;
+}
+
+function ipbitter($ipaddr){
+	$ipsplit=explode(".",$ipaddr);
+	for($i=0;$i<count($ipsplit);$i++){
+		$ipsplit[$i]=decbin($ipsplit[$i]);
+		$ipsplit[$i]=$ipsplit[$i].str_repeat("0",8-strlen($ipsplit[$i]));
+	}
+	return implode("",$ipsplit);
+}
+
+function ipcompare($iprange,$ip){
+	$iprarr=split("/",$iprange);
+	$ipaddr=$iprarr[0];
+	$mask=$iprarr[1];
+	$maskbits=str_repeat("1",32-$mask).str_repeat("0",$mask);
+	$ipbits=ipbitter($ipaddr);
+	$ipbits2=ipbitter($ip);
+	return (($ipbits & $maskbits) == ($ipbits2 & $maskbits));
+}
+
+
+function ip_check($ip,$mask=false){
+	$ipseg="(?:[01]?[0-9]{1,2}|2(?:5[0-5]|[0-4][0-9]))";
+	return preg_match("/^(?:$ipseg\.){3}$ipseg".($mask?"\/[0-9]{1,2}":"")."$/i",$ip);
+}
+
+function get_check($address){
+	global $blocked_addresses;
+	$ipc=ip_check($address);
+	$addressip=(ip_check($address)?$address:getip($address));
+	if(empty($addressip)) havok(3);
+	if(!ip_check($addressip)) havok(1);
+	foreach($blocked_addresses as $badd){
+		if(!$ipc) if(strlen($badd)<=strlen($address) && substr($address,strlen($address)-strlen($badd),strlen($badd))==$badd) havok(5);
+		if($badd==$addressip) havok(2);
+		elseif(ip_check($badd,true)){ if(ipcompare($badd,$addressip)) havok(2); }
+		else{
+			$baddip=getip($badd);
+			if(empty($baddip)) havok(4);
+			if($baddip==$addressip) havok(2);
+		}
+	}
+	return true;
+}
+
 function getpage($url){
 
 	global $headers,$out,$post_vars,$proxy_variables,$referer;
@@ -475,8 +594,9 @@ function getpage($url){
 		$portval=portval($url);
 	}
 
-	$fp=pfsockopen($servername,$portval,$errno,$errval,5);
-	if(!$fp) die("<br />An error has occurred while attempting to connect to \"$servername\" on port \"$portval\"<br />URL: $url");
+	get_check($servername);
+	$fp=@pfsockopen($servername,$portval,$errno,$errval,5);
+	if(!$fp) havok(6,$servername,$portval,$url);
 
 	#$out=(empty($post_vars)?"GET":"POST")." $requrl HTTP/1.1\r\nHost: ".servername($url)."\r\n";
 	$out="{$_SERVER['REQUEST_METHOD']} $requrl HTTP/1.1\r\nHost: ".servername($url)."\r\n";
@@ -513,6 +633,7 @@ function getpage($url){
 			$cook_domain=preg_replace("/^(.*".COOKIE_SEPARATOR.").*$/","\\1",$key);
 			if(substr($cook_prefix,strlen($cook_prefix)-strlen($cook_domain),strlen($cook_domain))!=$cook_domain) continue;
 			$key=substr($key,strlen($cook_domain),strlen($key)-strlen($cook_domain));
+			if(ENCODE_COOKS) $val=proxdec($val);
 			if(!in_array($key,$proxy_variables)) $addtoout.=" $key=$val;";
 		}
 		if($addtoout!="Cookie:"){
@@ -564,6 +685,7 @@ function getpage($url){
 			if($cook_domain==$thiscook[1]) $cook_domain=$cook_prefdomain;
 			elseif(substr($cook_prefdomain,strlen($cook_prefdomain)-strlen($cook_domain),strlen($cook_domain))!=$cook_domain) continue;
 			$cook_name=str_replace(".","_",$cook_domain).COOKIE_SEPARATOR.$thiscook[0];
+			if(ENCODE_COOKS) $cook_val=proxenc($cook_val);
 			$_COOKIE[$cook_name]=$cook_val;
 			setcookie($cook_name,$cook_val);
 		}
@@ -653,29 +775,30 @@ function getpage($url){
 ## BEGIN PROXY CODE #
 
 # Deal with cookies for proxy #
-global $proxy_variables,$proxy_varblacklist,$post_vars,$cookies,$curr_url,$referer;
+global $proxy_variables,$proxy_varblacklist,$post_vars,$cookies,$curr_url,$referer,$blocked_addresses;
 
 define("URLVAR",((!empty($postandget[COOK_PREF.'_encode_urls']) || !empty($_COOKIE[COOK_PREF.'_encode_urls']))?"e":"")."url");
-if(URLVAR=="eurl" && isset($postandget[COOK_PREF.'_eurl'])) $curr_url=$postandget[COOK_PREF.'_eurl']; elseif(URLVAR=="url" && isset($postandget[COOK_PREF.'_url']) && isset($postandget[COOK_PREF.'_url'])) $curr_url=$postandget[COOK_PREF.'_url'];
+if(URLVAR=="eurl" && isset($postandget[COOK_PREF.'_eurl'])) $curr_url=$postandget[COOK_PREF.'_eurl'];
+elseif(URLVAR=="url" && isset($postandget[COOK_PREF.'_url']) && isset($postandget[COOK_PREF.'_url'])) $curr_url=$postandget[COOK_PREF.'_url'];
 
-$proxy_variables=array(COOK_PREF."_url",COOK_PREF."_eurl",COOK_PREF."_pip",COOK_PREF."_pport",COOK_PREF."_useragent",COOK_PREF."_useragenttext",COOK_PREF."_remove_cookies",COOK_PREF."_remove_referer",COOK_PREF."_remove_scripts",COOK_PREF."_remove_objects",COOK_PREF."_encode_urls");
+$proxy_variables=array(COOK_PREF."_url",COOK_PREF."_eurl",COOK_PREF."_pip",COOK_PREF."_pport",COOK_PREF."_useragent",COOK_PREF."_useragenttext",COOK_PREF."_remove_cookies",COOK_PREF."_remove_referer",COOK_PREF."_remove_scripts",COOK_PREF."_remove_objects",COOK_PREF."_encode_urls",COOK_PREF."_encode_cooks");
 $proxy_varblacklist=array(COOK_PREF."_url",COOK_PREF."_eurl");
 
 if($postandget[COOK_PREF.'_set_values']){
 	if($postandget[COOK_PREF."_useragent"]!="1"){
 		unset($postandget[COOK_PREF."_useragenttext"]);
-		setcookie(COOK_PREF."_useragenttext",false);
+		$_COOKIE[COOK_PREF."_useragenttext"]=false;
 	}
 	while(list($key,$val)=each($proxy_variables)){
 		if(!in_array($val,$proxy_varblacklist)){
-			if(!isset($postandget[$val]) || empty($postandget[$val])) setcookie($val,false);
+			if(!isset($postandget[$val]) || empty($postandget[$val])) $_COOKIE[$val]=false;
 			else{
 				$_COOKIE[$val]=$postandget[$val];
 				setcookie($val,$postandget[$val]);
 			}
 		}
 	}
-	define("ENCODE_URLS",!empty($postandget[COOK_PREF.'_encode_urls']));
+	define("ENCODE_URLS",!empty($_COOKIE[COOK_PREF.'_encode_urls']));
 	$theurl=surrogafy_url($postandget[COOK_PREF.'_'.URLVAR],true,"",false);
 	header("Location: $theurl");
 	exit();
@@ -686,8 +809,9 @@ if($postandget[COOK_PREF.'_set_values']){
 while(strstr("%",$curr_url)) $curr_url=urldecode($curr_url);
 $curr_url=stripslashes($curr_url);
 define("ENCODE_URLS",!empty($_COOKIE[COOK_PREF.'_encode_urls']));
-if(ENCODE_URLS) $curr_url=proxdec_url($curr_url);
-$referer=proxdec_url(urldecode(preg_replace("/^([^\?]*)(\?".COOK_PREF."_".URLVAR."=)?/i","",$_SERVER["HTTP_REFERER"])));
+define("ENCODE_COOKS",!empty($_COOKIE[COOK_PREF.'_encode_cooks']));
+if(ENCODE_URLS) $curr_url=proxdec($curr_url);
+$referer=proxdec(urldecode(preg_replace("/^([^\?]*)(\?".COOK_PREF."_".URLVAR."=)?/i","",$_SERVER["HTTP_REFERER"])));
 
 $getkeys=array_keys($_GET);
 foreach($getkeys as $getvar){
@@ -785,17 +909,17 @@ $regexp_arrays=array(
 		(ENCODE_URLS?array(1,1,"/(<input[^>]*? type$anyspace=$anyspace(?:\"submit\"|'submit'|submit)[^>]*?[^\/])((?:[ ]?[\/])?>)/i","\\1 onclick=\"proxy_form_button=this.name;\"\\2"):null),
 
 		array(2,1,"/ name=\"".COOK_PREF."_".URLVAR."\" value$anyspace=$anyspace{$htmlreg} \/>/i",1,false),
-		array(2,1,"/<[a-z][^>]* $htmlattrs$anyspace=$anyspace{$htmlreg}[^>]*>/i",2),
+		array(2,1,"/<[a-z][^>]*$plusspace$htmlattrs$anyspace=$anyspace{$htmlreg}[^>]*>/i",2),
 		array(2,2,"/<script[^>]*?{$plusspace}src$anyspace=$anyspace([\"'])$anyspace(.*?[^\\\\])\\1[^>]*>$anyspace<\/script>/i",2),
-		array(2,1,"/<meta[^>]* http-equiv$anyspace=$anyspace([\"'])refresh\\1[^>]* content$anyspace=$anyspace([\"'])[ 0-9\.;\t\\r\n]*url=(.*?)\\2[^>]*>/i",3),
-		array(2,1,"/<meta[^>]* http-equiv$anyspace={$anyspace}refresh [^>]*content$anyspace=$anyspace([\"'])[ 0-9\.;\t\\r\n]*url=(.*?)\\1[^>]*>/i",2),
-		array(1,1,"/(<meta[^>]* http-equiv$anyspace=$anyspace([\"'])set-cookie\\2[^>]* content$anyspace=$anyspace)([\"'])(.*?[^\\\\])$anyspace\\3/i","\\1\\3".PAGECOOK_PREFIX."\\4\\3"),
-		array(1,1,"/(<meta[^>]*http-equiv$anyspace={$anyspace}set-cookie[^>]* content$anyspace=$anyspace)([\"'])(.*?[^\\\\])$anyspace\\2/i","\\1\\2".PAGECOOK_PREFIX."\\3\\2")
+		array(2,1,"/<meta[^>]*{$plusspace}http-equiv$anyspace=$anyspace([\"'])refresh\\1[^>]* content$anyspace=$anyspace([\"'])[ 0-9\.;\t\\r\n]*url=(.*?)\\2[^>]*>/i",3),
+		array(2,1,"/<meta[^>]*{$plusspace}http-equiv$anyspace={$anyspace}refresh [^>]*content$anyspace=$anyspace([\"'])[ 0-9\.;\t\\r\n]*url=(.*?)\\1[^>]*>/i",2),
+		array(1,1,"/(<meta[^>]*{$plusspace}http-equiv$anyspace=$anyspace([\"'])set-cookie\\2[^>]* content$anyspace=$anyspace)([\"'])(.*?[^\\\\])$anyspace\\3/i","\\1\\3".PAGECOOK_PREFIX."\\4\\3"),
+		array(1,1,"/(<meta[^>]*{$plusspace}http-equiv$anyspace={$anyspace}set-cookie[^>]* content$anyspace=$anyspace)([\"'])(.*?[^\\\\])$anyspace\\2/i","\\1\\2".PAGECOOK_PREFIX."\\3\\2")
 	),
 	"text/css" => array(
 		array(2,1,"/[^a-z]url\($anyspace(\"|')(.*)(\\1)$anyspace\)/i",2),
 		array(2,1,"/[^a-z]url\($anyspace([^\"'\\\\].*)$anyspace\)/i",1),
-		array(2,1,"/@import (\"|')(.*)(\\1);/i",2)
+		array(2,1,"/@import$plusspace(\"|')(.*)(\\1);/i",2)
 	),
 	"application/x-javascript" => $js_regexp_arrays,
 	"text/javascript" => $js_regexp_arrays
