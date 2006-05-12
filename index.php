@@ -1,7 +1,7 @@
 <?
 
 #
-# Surrogafier v0.7.8b
+# Surrogafier v0.7.8.1b
 #
 # Author: Brad Cable
 # License: GPL Version 2
@@ -23,7 +23,7 @@ $blocked_addresses=array("10.0.0.0/24","172.0.0.0/24","192.168.0.0/16","127.0.0.
 
 // DON'T EDIT ANYTHING AFTER THIS POINT \\
 
-define("VERSION","0.7.8b");
+define("VERSION","0.7.8.1b");
 define("THIS_SCRIPT","http://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}");
 
 # Randomized cookie prefixes #
@@ -56,16 +56,55 @@ define("COOKIE_SEPARATOR","__".COOK_PREF."__");
 
 # end #
 
-$js_proxenc="function proxenc(url){
+$js_proxenc="
+
+function expon(a,b){
+	if(b==0) return 1;
+	num=a; b--;
+	while(b>0){ num*=a; b--; }
+	return num;
+}
+
+function b64e(string){
+	if(window.btoa) return btoa(string);
+	binrep=\"\";
+	for(i=0;i<string.length;i++){
+		charnum=string.charCodeAt(i);
+		for(j=7;j>=0;j--){
+			if(charnum>=expon(2,j)){
+				binrep+=\"1\"; charnum-=expon(2,j);
+			}
+			else binrep+=\"0\";
+		}
+	}
+	while(binrep.length%6) binrep+=\"00\";
+	encstr=\"\";
+	for(i=1;i*6<=binrep.length;i++){
+		charbin=binrep.substring((i-1)*6,i*6);
+		charnum=0;
+		for(j=0;j<6;j++) if(charbin.substring(j,j+1)==\"1\") charnum+=expon(2,5-j);
+		if(charnum<=25) charnum+=65;
+		else if(charnum<=51) charnum+=71;
+		else if(charnum<=61) charnum-=4;
+		else if(charnum==62) charnum=43;
+		else if(charnum==63) charnum=47;
+		encstr+=String.fromCharCode(charnum);
+	}
+	while(encstr.length%8) encstr+=\"=\";
+	return encstr;
+}
+
+function proxenc(url){
 	if(url.substring(0,1)==\"~\" || url.substring(0,3).toLowerCase()==\"%7e\") return url;
 	new_url=\"\";
+	sess_pref=\"".SESS_PREF."\";
 	for(i=0;i<url.length;i++){
-		char=String.charCodeAt(url.substring(i,i+1));
-		char+=String.charCodeAt(\"".SESS_PREF."\".substring(i%\"".SESS_PREF."\".length,(i%\"".SESS_PREF."\".length)+1));
+		char=url.charCodeAt(i);
+		char+=sess_pref.charCodeAt(i%sess_pref.length);
 		while(char>126) char-=94;
 		new_url+=String.fromCharCode(char);
 	}
-	return encodeURIComponent(\"~\"+btoa(new_url));
+	return encodeURIComponent(\"~\"+b64e(new_url));
 }";
 
 ## JAVASCRIPT ##
@@ -298,38 +337,38 @@ $ipregexp="/^((?:[0-2]{0,2}[0-9]{1,2}\.){3}[0-2]{0,2}[0-9]{1,2})\:([0-9]{1,5})$/
 <input type="hidden" name="<?=COOK_PREF?>_eurl" />
 <table>
 <tr>
-	<td>URL:</td>
-	<td><input type="text" name="<?=COOK_PREF?>_url" id="url" style="width: 230px" /></td>
+	<td style="text-align: left">URL:</td>
+	<td><input type="text" name="<?=COOK_PREF?>_url" id="url" style="width: 99%" /></td>
 </tr>
 <tr>
-	<td>Proxy Server:</td>
+	<td style="text-align: left">Proxy Server:</td>
 	<td><table cellspacing="0" cellpadding="0">
 	<tr>
-		<td><input type="text" name="<?=COOK_PREF?>_pip" onkeyup="if(this.value.match(<?=$ipregexp?>)){ document.forms[0].<?=COOK_PREF?>_pport.value=this.value.replace(<?=$ipregexp?>,'\$2'); this.value=this.value.replace(<?=$ipregexp?>,'\$1'); document.forms[0].<?=COOK_PREF?>_pport.focus(); };" style="width: 180px" value="<?=($_COOKIE[COOK_PREF.'_pip'])?>" /></td>
-		<td style="width: 5px">&nbsp;</td>
-		<td><input type="text" name="<?=COOK_PREF?>_pport" maxlength="5" size="5" style="width: 45px" value="<?=($_COOKIE[COOK_PREF.'_pport'])?>" /></td>
+		<td style="width: 100%"><input type="text" name="<?=COOK_PREF?>_pip" onkeyup="if(this.value.match(<?=$ipregexp?>)){ document.forms[0].<?=COOK_PREF?>_pport.value=this.value.replace(<?=$ipregexp?>,'\$2'); this.value=this.value.replace(<?=$ipregexp?>,'\$1'); document.forms[0].<?=COOK_PREF?>_pport.focus(); };" style="width: 100%; text-align: left" value="<?=($_COOKIE[COOK_PREF.'_pip'])?>" /></td>
+		<td style="width: 5px">&nbsp;&nbsp;</td>
+		<td style="width: 50px"><input type="text" name="<?=COOK_PREF?>_pport" maxlength="5" size="5" style="width: 50px" value="<?=($_COOKIE[COOK_PREF.'_pport'])?>" /></td>
 	</tr>
 	</table></td>
 </tr>
 <tr>
-	<td>User-Agent:</td>
-	<td><select name="<?=COOK_PREF?>_useragent" style="width: 230px" onchange="if(this.value=='1'){ document.getElementById('useragent_texttr').style.display='table-row'; document.getElementById('<?=COOK_PREF?>_useragenttext').focus(); } else document.getElementById('useragent_texttr').style.display='none';">
+	<td style="text-align: left">User-Agent:</td>
+	<td><select name="<?=COOK_PREF?>_useragent" style="width: 100%" onchange="if(this.value=='1'){ document.getElementById('useragent_texttr').style.display=(document.all?'inline':'table-row'); document.getElementById('<?=COOK_PREF?>_useragenttext').focus(); } else document.getElementById('useragent_texttr').style.display='none';">
 <? foreach($useragent_array as $useragent){ ?>
 		<option value="<?=($useragent[0])?>"<? if($_COOKIE[COOK_PREF.'_useragent']==$useragent[0]) echo " selected=\"selected\""; ?>><?=($useragent[1])?></option>
 <? } ?>
 	</select>
 	</td>
 </tr>
-<tr id="useragent_texttr" style="display: <?=(($_COOKIE[COOK_PREF.'_useragent']=="1")?"table-row":"none")?>">
+<tr id="useragent_texttr"<?=(($_COOKIE[COOK_PREF.'_useragent']=="1")?"":" style=\"display: none\"")?>>
 	<td>&nbsp;</td>
-	<td><input type="text" id="<?=COOK_PREF?>_useragenttext" name="<?=COOK_PREF?>_useragenttext" value="<?=($_COOKIE[COOK_PREF.'_useragenttext'])?>" style="width: 230px" /></td>
+	<td><input type="text" id="<?=COOK_PREF?>_useragenttext" name="<?=COOK_PREF?>_useragenttext" value="<?=($_COOKIE[COOK_PREF.'_useragenttext'])?>" style="width: 99%" /></td>
 </tr>
-<tr><td style="text-align: left">&nbsp;</td><td><input type="checkbox" name="<?=COOK_PREF?>_remove_cookies" style="border: 0px" <? if(!empty($_COOKIE[COOK_PREF.'_remove_cookies'])) echo "checked=\"checked\" "; ?>/>&nbsp;Remove Cookies</td></tr>
-<tr><td style="text-align: left">&nbsp;</td><td><input type="checkbox" name="<?=COOK_PREF?>_remove_referer" style="border: 0px" <? if(!empty($_COOKIE[COOK_PREF.'_remove_referer'])) echo "checked=\"checked\" "; ?>/>&nbsp;Remove Referer Field</td></tr>
-<tr><td style="text-align: left">&nbsp;</td><td><input type="checkbox" name="<?=COOK_PREF?>_remove_scripts" style="border: 0px" <? if(!empty($_COOKIE[COOK_PREF.'_remove_scripts'])) echo "checked=\"checked\" "; ?>/>&nbsp;Remove Scripts (JS, VBS, etc)</td></tr>
-<tr><td style="text-align: left">&nbsp;</td><td><input type="checkbox" name="<?=COOK_PREF?>_remove_objects" style="border: 0px" <? if(!empty($_COOKIE[COOK_PREF.'_remove_objects'])) echo "checked=\"checked\" "; ?>/>&nbsp;Remove Objects (Flash, Java, etc)</td></tr>
-<tr><td style="text-align: left">&nbsp;</td><td><input type="checkbox" name="<?=COOK_PREF?>_encode_urls" style="border: 0px" <? if(!empty($_COOKIE[COOK_PREF.'_encode_urls'])) echo "checked=\"checked\" "; ?>/>&nbsp;Encode URLs<noscript><b>**</b></noscript></td></tr>
-<tr><td style="text-align: left">&nbsp;</td><td><input type="checkbox" name="<?=COOK_PREF?>_encode_cooks" style="border: 0px" <? if(!empty($_COOKIE[COOK_PREF.'_encode_cooks'])) echo "checked=\"checked\" "; ?>/>&nbsp;Encode Cookies<noscript><b>**</b></noscript></td></tr>
+<tr><td>&nbsp;</td><td style="text-align: left"><input type="checkbox" name="<?=COOK_PREF?>_remove_cookies" style="border: 0px" <? if(!empty($_COOKIE[COOK_PREF.'_remove_cookies'])) echo "checked=\"checked\" "; ?>/>&nbsp;Remove Cookies</td></tr>
+<tr><td>&nbsp;</td><td style="text-align: left"><input type="checkbox" name="<?=COOK_PREF?>_remove_referer" style="border: 0px" <? if(!empty($_COOKIE[COOK_PREF.'_remove_referer'])) echo "checked=\"checked\" "; ?>/>&nbsp;Remove Referer Field</td></tr>
+<tr><td>&nbsp;</td><td style="text-align: left"><input type="checkbox" name="<?=COOK_PREF?>_remove_scripts" style="border: 0px" <? if(!empty($_COOKIE[COOK_PREF.'_remove_scripts'])) echo "checked=\"checked\" "; ?>/>&nbsp;Remove Scripts (JS, VBS, etc)</td></tr>
+<tr><td>&nbsp;</td><td style="text-align: left"><input type="checkbox" name="<?=COOK_PREF?>_remove_objects" style="border: 0px" <? if(!empty($_COOKIE[COOK_PREF.'_remove_objects'])) echo "checked=\"checked\" "; ?>/>&nbsp;Remove Objects (Flash, Java, etc)</td></tr>
+<tr><td>&nbsp;</td><td style="text-align: left"><input type="checkbox" name="<?=COOK_PREF?>_encode_urls" style="border: 0px" <? if(!empty($_COOKIE[COOK_PREF.'_encode_urls'])) echo "checked=\"checked\" "; ?>/>&nbsp;Encode URLs<noscript><b>**</b></noscript></td></tr>
+<tr><td>&nbsp;</td><td style="text-align: left"><input type="checkbox" name="<?=COOK_PREF?>_encode_cooks" style="border: 0px" <? if(!empty($_COOKIE[COOK_PREF.'_encode_cooks'])) echo "checked=\"checked\" "; ?>/>&nbsp;Encode Cookies<noscript><b>**</b></noscript></td></tr>
 <tr><td colspan="2"><input type="submit" value="Surrogafy" style="width: 100%; background-color: #F0F0F0" /></td></tr>
 </table>
 <br />
