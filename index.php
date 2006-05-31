@@ -1,7 +1,7 @@
 <?
 
 #
-# Surrogafier v0.7.9b
+# Surrogafier v0.7.9.1b
 #
 # Author: Brad Cable
 # Email: brad@bcable.net
@@ -35,7 +35,7 @@ $blocked_addresses=array("10.0.0.0/24","172.0.0.0/24","192.168.0.0/16","127.0.0.
 
 ob_start("ob_gzhandler"); # use gzip encoding to compress all data, if possible
 
-define("VERSION","0.7.9b");
+define("VERSION","0.7.9.1b");
 define("THIS_SCRIPT","http://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}");
 
 # Randomized cookie prefixes #
@@ -184,7 +184,7 @@ $ipregexp="/^((?:[0-2]{0,2}[0-9]{1,2}\.){3}[0-2]{0,2}[0-9]{1,2})\:([0-9]{1,5})$/
 <body onload="document.getElementById('url').focus();">
 <div style="font-size: 18pt; font-weight: bold; text-align: center; margin-bottom: 5px">Surrogafier</div>
 <center>
-<form method="post" onsubmit="if(this.<?=COOK_PREF?>_encode_urls.checked){this.<?=COOK_PREF?>.value=proxenc(this.<?=COOK_PREF?>_url.value);this.<?=COOK_PREF?>_url.value='';this.submit();}">
+<form method="post" onsubmit="if(this.<?=COOK_PREF?>_encode_urls.checked){this.<?=COOK_PREF?>_eurl.value=proxenc(this.<?=COOK_PREF?>_url.value);this.<?=COOK_PREF?>_url.value='';this.submit();}">
 <input type="hidden" name="<?=COOK_PREF?>_set_values" value="1" />
 <input type="hidden" name="<?=COOK_PREF?>_eurl" />
 <table>
@@ -602,8 +602,7 @@ class aurl{
 		       ($this->get_userpass()==""?"":$this->get_userpass()."@").
 		       $this->get_servername().
 		       (intval($this->get_portval())==80?"":":".intval($this->get_portval())).
-		       $this->get_path().
-		       $this->get_file().
+		       $this->get_path().$this->get_file().
 		       ($this->get_query()==""?"":"?".$this->get_query()).
 		       ($this->get_label()==""?"":"#".$this->get_label())
 		;
