@@ -1,7 +1,7 @@
 <?
 
 #
-# Surrogafier v0.7.9.1b
+# Surrogafier v0.7.9.2b
 #
 # Author: Brad Cable
 # Email: brad@bcable.net
@@ -33,9 +33,9 @@ $blocked_addresses=array("10.0.0.0/24","172.0.0.0/24","192.168.0.0/16","127.0.0.
 # (unless you absolutely know what you are doing...)
 #
 
-ob_start("ob_gzhandler"); # use gzip encoding to compress all data, if possible
+if(extension_loaded("zlib") && !ini_get("zlib.output_compression")) ob_start("ob_gzhandler"); # use gzip encoding to compress all data, if possible
 
-define("VERSION","0.7.9.1b");
+define("VERSION","0.7.9.2b");
 define("THIS_SCRIPT","http://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}");
 
 # Randomized cookie prefixes #
@@ -168,6 +168,7 @@ $ipregexp="/^((?:[0-2]{0,2}[0-9]{1,2}\.){3}[0-2]{0,2}[0-9]{1,2})\:([0-9]{1,5})$/
 <html>
 <head>
 <title>Surrogafier</title>
+<meta name="robots" content="index, nofollow" />
 <style>
 	body{font-family: bitstream vera sans, arial}
 	input{border: 1px solid #000000}
@@ -244,15 +245,20 @@ Created by <a href="http://bcable.net/">Brad Cable</a></div>
 ## JAVASCRIPT FUNCS ##
 if($_SERVER['QUERY_STRING']=="js_funcs"){ ?>//<script>
 
-function check_proto(url){ return ((url.replace(/^[a-z]*\:\/\//i,"")!=url)?true:false); }
+function check_proto(url){
+	if(url==null || url==undefined) return;
+	return ((url.replace(/^[a-z]*\:\/\//i,"")!=url)?true:false);
+}
 
 function protostrip(url){
+	if(url==null || url==undefined) return;
 	if(url.substring(0,2)=="//") url=url.substring(2,url.length-2);
 	else if(check_proto(url)) url=url.replace(/^[a-z]*\:\/\/(.*)$/i,"\$1");
 	return url;
 }
 
 function get_proto(url,topurl){
+	if(url==null || url==undefined) return;
 	if(check_proto(url)) return url.replace(/^([a-z]*)\:\/\/.*$/i,"\$1");
 	else{
 		if(topurl=="" || !check_proto(topurl)) return "http";
@@ -261,20 +267,24 @@ function get_proto(url,topurl){
 }
 
 function protofilestrip(url){
+	if(url==null || url==undefined) return;
 	url=protostrip(url);
+	if(url==null || url==undefined) return;
 	url=url.replace(/^([^\?\#]*).*$/i,"\$1");
-	if(url.replace("/","")!=url) url=url.replace(/^([^\/]*)\/.*$/i,"\$1");
-	return url;
 }
 
 function servername(url){
+	if(url==null || url==undefined) return;
 	server=protofilestrip(url);
+	if(server==null || server==undefined) return;
 	return server.replace(/^([^:]+).*$/,"\$1",server);
 }
 
 function filepath(url){
+	if(url==null || url==undefined) return;
 	if(protostrip(url)!=url || url.substring(0,1)=="/"){
 		url=protostrip(url);
+		if(url==null || url==undefined) return;
 		if(url.replace(/^([^\?\#]*).*$/i,"\$1").split("/").length>=2) url=url.replace(/^[^\/]*\/([^\?\#]*)/i,"\$1");
 		else url="";
 		url="/"+url;
@@ -325,7 +335,7 @@ function surrogafy_url(){
 	if(url.substring(0,1)=="#") return url;
 	new_url=url;
 	if(new_url.substring(0,2)=="//") new_url=get_proto(new_url,proxy_current_url)+":"+new_url;
-	if(!check_proto(new_url)) new_url=get_proto(new_url,proxy_current_url)+"://"+servername(proxy_current_url)+filepath(url);
+	if(!check_proto(new_url)) new_url=get_proto(new_url,proxy_current_url)+"://"+proxy_location_hostname+filepath(url);
 	if(proxy_encode_urls) new_url=proxenc(new_url);
 	else new_url=encodeURIComponent(new_url);
 	if(addproxy) new_url=proxy_this_script+"?<?=COOK_PREF?>_"+(proxy_encode_urls?"e":"")+"url="+new_url;
@@ -666,8 +676,8 @@ function proxenc($url){
 function header_value_arr($headername){
 	global $headers;
 	$linearr=explode("\n",$headers);
-	$hvalsarr=preg_grep("/$headername\: (.*)/i",$linearr); #*
-	return array_values(preg_replace("/$headername\: (.*)/i","\\1",$hvalsarr));
+	$hvalsarr=preg_grep("/$headername\: ([^\r\n]*)/i",$linearr); #*
+	return array_values(preg_replace("/$headername\: ([^\r\n]*)/i","\\1",$hvalsarr));
 }
 
 function header_value($headername){
@@ -826,12 +836,15 @@ function getpage($url){
 		$addtoout="";
 		reset($_COOKIE);
 		while(list($key,$val)=each($_COOKIE)){
+			if(ENCODE_COOKS){
+				$key=proxdec($key);
+				$val=proxdec(urldecode($val));
+			}
 			if(str_replace(COOKIE_SEPARATOR,"",$key)==$key) continue;
 			#$cook_domain=preg_replace("/^(.*".COOKIE_SEPARATOR.").*$/","\\1",$key); #**
 			$cook_domain=substr($key,0,strpos($key,COOKIE_SEPARATOR)).COOKIE_SEPARATOR;
 			if(substr($cook_prefix,strlen($cook_prefix)-strlen($cook_domain),strlen($cook_domain))!=$cook_domain) continue;
 			$key=substr($key,strlen($cook_domain),strlen($key)-strlen($cook_domain));
-			if(ENCODE_COOKS) $val=proxdec($val);
 			if(!in_array($key,$proxy_variables)) $addtoout.=" $key=$val;";
 		}
 		if(!empty($addtoout)){
@@ -850,7 +863,8 @@ function getpage($url){
 	      ($cache_control!=""?"Cache-Control: $cache_control\r\n":"").
 	      ($if_modified!=""?"If-Modified-Since: $if_modified\r\n":"").
 	      ($if_none_match!=""?"If-None-Match: $if_none_match\r\n":"").
-	      "\r\n".$post_vars;
+	      "\r\n".$post_vars
+	;
 
 	$fp=@fsockopen($servername,$portval,$errno,$errval,5) or havok(6,$servername,$portval);
 	stream_set_timeout($fp,5);
@@ -882,11 +896,6 @@ function getpage($url){
 		}
 	}
 
-	header("Status: ".$response);
-	$oheaders=preg_replace("/[\r\n](?:Location|Content-Length|Content-Encoding|Set-Cookie|Transfer-Encoding|Connection|Keep-Alive|Pragma|Cache-Control|Expires)\: .*/i","",$headers); #*
-	$ohsplit=explode("\n",$oheaders);
-	foreach($ohsplit as $header) header($header);
-	unset($oheaders,$ohsplit);
 	#if(header_value("Pragma")=="") header("Pragma: public");
 	#if(header_value("Cache-Control")=="") header("Cache-Control: public");
 	#if(header_value("Last-Modified")=="" && header_value("Expires")=="") header("Expires: ".date("D, d M Y H:i:s e",time()+86400));
@@ -900,7 +909,10 @@ function getpage($url){
 			if($cook_domain==$thiscook[1]) $cook_domain=$cook_prefdomain;
 			elseif(substr($cook_prefdomain,strlen($cook_prefdomain)-strlen($cook_domain),strlen($cook_domain))!=$cook_domain) continue;
 			$cook_name=str_replace(".","_",$cook_domain).COOKIE_SEPARATOR.$thiscook[0];
-			if(ENCODE_COOKS) $cook_val=proxenc($cook_val);
+			if(ENCODE_COOKS){
+				$cook_name=proxenc($cook_name);
+				$cook_val=proxenc($cook_val);
+			}
 			$_COOKIE[$cook_name]=$cook_val;
 			setcookie($cook_name,$cook_val);
 		}
@@ -913,6 +925,12 @@ function getpage($url){
 		header("Location: $redirurl");
 		exit();
 	}
+
+	$oheaders=preg_replace("/[\r\n](?:Location|Content-Length|Content-Encoding|Set-Cookie|Transfer-Encoding|Connection|Keep-Alive|Pragma|Cache-Control|Expires)\: .*/i","",$headers); #*
+	$ohsplit=explode("\n",$oheaders);
+	foreach($ohsplit as $header) if(!empty($header)) header($header);
+	unset($oheaders,$ohsplit);
+	#header("Status: ".$response);
 
 	if(substr(header_value("Content-Type"),0,4)=="text" || substr(header_value("Content-Type"),0,24)=="application/x-javascript"){
 		$justoutput=false;
@@ -960,7 +978,7 @@ function getpage($url){
 		$body="";
 		while(true){
 			$chunk=fread($fp,200);
-			if($justoutputnow) echo($chunk);
+			if($justoutputnow) echo $chunk;
 			else $body.=$chunk;
 			if(empty($chunk)) break;
 		}
@@ -968,6 +986,7 @@ function getpage($url){
 
 	fclose($fp);
 	if(header_value("Content-Encoding")=="gzip") $body=gzinflate(substr($body,10));
+	#die("HEADERS: ".$headers."<br /><br />Body: ".$body);
 	if($justoutput){
 		if(!$justoutputnow) echo $body;
 		exit();
@@ -1059,13 +1078,19 @@ $curr_urlobj=new aurl($curr_url);
 function parse_html($regexp,$partoparse,$html,$addproxy){
 	global $curr_urlobj;
 	$newhtml="";
-	while(preg_match($regexp,$html,$matcharr,PREG_OFFSET_CAPTURE)){ #,$offset)){
+	while(preg_match($regexp,$html,$matcharr,PREG_OFFSET_CAPTURE)){
 		$nurl=surrogafy_url($matcharr[$partoparse][0],$curr_urlobj,$addproxy);
+		#$begin=$matcharr[$partoparse][1];
+		#$len=strlen($matcharr[$partoparse][0]);
+		#$end=$matcharr[$partoparse][1]+$len;
+		#$newhtml.=substr($html,0,$begin).str_replace($matcharr[$partoparse][0],$nurl,substr($html,$begin,$len));
+		#$html=substr($html,$end,strlen($html)-$end);
 		$begin=$matcharr[$partoparse][1];
-		$len=strlen($matcharr[$partoparse][0]);
-		$end=$matcharr[$partoparse][1]+$len;
-		$newhtml.=substr($html,0,$begin).str_replace($matcharr[$partoparse][0],$nurl,substr($html,$begin,$len));
+		$end=$matcharr[$partoparse][1]+strlen($matcharr[$partoparse][0]);
+		$newhtml.=substr_replace($html,$nurl,$begin);
+		#$newhtml.=substr($html,0,$begin).str_replace($matcharr[$partoparse][0],$nurl,substr($html,$begin,$len));
 		$html=substr($html,$end,strlen($html)-$end);
+
 	}
 	$newhtml.=$html;
 	return $newhtml;
@@ -1087,7 +1112,8 @@ function parse_all_html($html){
 		for(reset($regexp_arrays);list($key,$arr)=each($regexp_arrays);) if($key==CONTENT_TYPE) foreach($arr as $regarr) $html=regular_express($regarr,$html);
 		return $html;
 	}
-	$splitarr=preg_split("/(<!--.*?-->|<style.*?<\/style>|<script.*?<\/script>)/is",$html,-1,PREG_SPLIT_DELIM_CAPTURE);
+	if(!empty($_COOKIE[COOK_PREF.'_remove_scripts'])) $splitarr=array($html);
+	else $splitarr=preg_split("/(<!--.*?-->|<style.*?<\/style>|<script.*?<\/script>)/is",$html,-1,PREG_SPLIT_DELIM_CAPTURE);
 	unset($html);
 	for(reset($regexp_arrays);list($key,$arr)=each($regexp_arrays);){
 		if($key=="text/javascript") continue;
@@ -1110,48 +1136,52 @@ function parse_all_html($html){
 	return implode("",$splitarr);
 }
 
+if(CONTENT_TYPE=="text/html"){
+	if(!empty($_COOKIE[COOK_PREF.'_remove_scripts'])){
+		$body=preg_replace("/<(.?)noscript>/si","",$body); #*
+		$body=preg_replace("/<script.+?<\/script>/si","",$body);
+		$body=preg_replace("/ on[a-z]{3,20}=(?:\"[^\"]*\"|'[^']*'|[^'\" ][^ ]*)/i","",$body);
+	}
+
+	if(!empty($_COOKIE[COOK_PREF.'_remove_objects'])){
+		$body=preg_replace("/<embed.*?<\/embed>/si","",$body);
+		$body=preg_replace("/<object.*?<\/object>/si","",$body);
+	}
+}
+
 $body=parse_all_html($body);
 # end #
 
 
 if(CONTENT_TYPE=="text/html"){
-# Insert the code's Javascript #
-
+# Insert the code's headers/Javascript #
 	$urlobj=new aurl($curr_url);
-	$big_javascript="<link rel=\"icon\" href=\"".surrogafy_url("http://".$urlobj->get_servername()."/favicon.ico")."\" />".
-			"<script type=\"text/javascript\" src=\"".THIS_SCRIPT."?js_funcs\"></script>".
-			"<script type=\"text/javascript\" src=\"".THIS_SCRIPT."?js_regexps\"></script>".
-			"<script language=\"javascript\">".
-			//"<!--".
-			"proxy_this_script=\"".THIS_SCRIPT."\";".
-			"proxy_current_url=\"$curr_url\";".
-			"proxy_location_hostname=\"".$urlobj->get_servername()."\";".
-			"proxy_encode_urls=".(ENCODE_URLS?"true":"false").";".
-			"proxy_form_button=null;".
-			//"//-->".
-			"</script>"
+	$big_headers="<meta name=\"robots\" content=\"noindex, nofollow\" />".
+			"<link rel=\"icon\" href=\"".surrogafy_url("http://".$urlobj->get_servername()."/favicon.ico")."\" />".
+			(empty($_COOKIE[COOK_PREF.'_remove_scripts'])?
+				"<script type=\"text/javascript\" src=\"".THIS_SCRIPT."?js_funcs\"></script>".
+				"<script type=\"text/javascript\" src=\"".THIS_SCRIPT."?js_regexps\"></script>".
+				"<script language=\"javascript\">".
+				//"<!--".
+				"proxy_this_script=\"".THIS_SCRIPT."\";".
+				"proxy_current_url=\"".str_replace("\"","\\\"",$curr_url)."\";".
+				"proxy_location_hostname=\"".str_replace("\"","\\\"",$urlobj->get_servername())."\";".
+				"proxy_encode_urls=".(ENCODE_URLS?"true":"false").";".
+				"proxy_form_button=null;".
+				//"//-->".
+				"</script>"
+			:"")
 	;
 
-	if(strpos($body,"<head")) $body=preg_replace("/(<head[^>]*>)/i","\\1$big_javascript",$body,1);
-	elseif(strpos($body,"<script")) $body=preg_replace("/<script/i","$big_javascript<script",$body,1); #*
-	elseif(strpos($body,"<head")) $body=preg_replace("/<\/head/i","$big_javascript</head",$body,1);
-	elseif(strpos($body,"<body")) $body=preg_replace("/(<body[^>]*>)/i","\\1$big_javascript",$body,1);
-	elseif(strpos($body,"<html")) $body=preg_replace("/(<html[^>]*>)/i","\\1$big_javascript",$body,1);
-	#else $body=$big_javascript.$body;
+	if(preg_match("/<head/i",$body)) $body=preg_replace("/(<head[^>]*>)/i","\\1$big_headers",$body,1);
+	elseif(preg_match("/<script/i",$body)) $body=preg_replace("/<script/i","$big_headers<script",$body,1); #*
+	elseif(preg_match("/<\/head/i",$body)) $body=preg_replace("/<\/head/i","$big_headers</head",$body,1);
+	elseif(preg_match("/<body/i",$body)) $body=preg_replace("/(<body[^>]*>)/i","\\1$big_headers",$body,1);
+	elseif(preg_match("/<html/i",$body)) $body=preg_replace("/(<html[^>]*>)/i","\\1$big_headers",$body,1);
+	#else $body=$big_headers.$body;
 # end #
-
-	# Remove Scripts
-	if(!empty($_COOKIE[COOK_PREF.'_remove_scripts'])){
-		$body=preg_replace("/<(.?)noscript>/si","",$body); #*
-		$body=preg_replace("/<script.+?<\/script>/si","",$body);
-	}
 }
 
-# Remove objects
-if(!empty($_COOKIE[COOK_PREF.'_remove_objects'])){
-	$body=preg_replace("/<embed.*?<\/embed>/si","",$body);
-	$body=preg_replace("/<object.*?<\/object>/si","",$body);
-}
 
 ## Retrieved, Parsed, All Ready to Output ##
 echo $body;
