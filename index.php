@@ -1,7 +1,7 @@
 <?
 
 #
-# Surrogafier v0.7.9.2b
+# Surrogafier v0.7.9.3b
 #
 # Author: Brad Cable
 # Email: brad@bcable.net
@@ -35,7 +35,7 @@ $blocked_addresses=array("10.0.0.0/24","172.0.0.0/24","192.168.0.0/16","127.0.0.
 
 if(extension_loaded("zlib") && !ini_get("zlib.output_compression")) ob_start("ob_gzhandler"); # use gzip encoding to compress all data, if possible
 
-define("VERSION","0.7.9.2b");
+define("VERSION","0.7.9.3b");
 define("THIS_SCRIPT","http://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}");
 
 # Randomized cookie prefixes #
@@ -819,9 +819,9 @@ function getpage($url){
 
 	$out="{$_SERVER['REQUEST_METHOD']} ".str_replace(" ","%20",$requrl)." HTTP/1.1\r\nHost: ".$urlobj->get_servername()."\r\n";
 
-	if($_COOKIE[COOK_PREF."_useragent"]!=-1){
+	if($_COOKIE[COOK_PREF."_useragent"]!="-1"){
 		$useragent=$_COOKIE[COOK_PREF."_useragent"];
-		if(empty($useragent)) $useragent=$_SESSION['HTTP_USER_AGENT'];
+		if(empty($useragent)) $useragent=$_SERVER['HTTP_USER_AGENT'];
 		$useragent_cook=($useragent==1?$_COOKIE[COOK_PREF."_useragenttext"]:$useragent);
 		if(!empty($useragent_cook)) $out.="User-Agent: $useragent_cook\r\n";
 	}
