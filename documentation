@@ -1,0 +1,77 @@
+
+                      Surrogafier v0.7.9.3b Documentation
+--------------------------------------------------------------------------------
+
+    Table of Contents
+  ---------------------
+
+  Introduction
+
+  I: How to Operate this Application
+    I.a: Installation
+    I.b: Blocking Addresses
+    I.c: Using Surrogafier
+    I.d: But Wait...
+
+--------------------------------------------------------------------------------
+
+  Introduction
+----------------
+
+Surrogafier is a 3 tier web proxy with other various features.  The next section
+describes how to install and operate this proxy.
+
+  I. How to Operate this Application
+--------------------------------------
+
+    I.a: Installation
+  ---------------------
+
+Copy the PHP file into a directory that Apache  or any other PHP enabled web
+server (with PHP installed and enabled on it), then access it as you would any
+other PHP script on said server.
+
+    I.b: Blocking Addresses
+  ---------------------------
+
+Edit the PHP file with your editor of choice, and at the top is an array with
+the addresses you want blocked as elements.  Currently you can block addresses
+in one of three ways:
+
+  1.2.3.4     - plain IP address
+  1.2.3.4/24  - subnet blocking
+  php.net     - domain blocking
+
+The default blocked addresses are:
+  10.0.0.0/24
+  172.0.0.0/24
+  192.168.0/16
+  127.0.0.0/24
+
+These are blocked by default since they are reserved for local
+and internal purposes.  If I have missed some, or if I have one
+of these mistaken, please email me.
+
+For information on the format of arrays in PHP, please visit:
+http://www.php.net/manual/en/function.array.php
+
+    I.c: Using Surrogafier
+  --------------------------
+
+To use the script, just enter the URL you want to send through the proxy, enter
+in a proxy ip/port if you wish, and change all the other options to fit your
+needs, and click "Surrogafy".  Most sites should work flawlessly with this web
+proxy, but if a site does not work, please report it to brad@bcable.net.
+
+    I.d: But Wait...
+  --------------------
+
+Q: ... That's it?
+A: Yeah, that's it... but just a few notes.  I have noticed a few installs of
+   Surrogafier being installed on the firewalled computer of a network, then
+   not being successful at getting around the firewall.  The idea is that you
+   put Surrogafier on a server free of filtering, then connect to that server to
+   bypass the firewall you are under.  Basically, the operators of said network
+   must not have any filtering going on, AND the server must not reside in
+   China.  You may access a server with Surrogafier installed on it while you
+   are residing in a place such as China to bypass the oppressive firewall.

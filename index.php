@@ -1,7 +1,7 @@
 <?
 
 #
-# Surrogafier v0.7.9.3b
+# Surrogafier v0.8.0b
 #
 # Author: Brad Cable
 # Email: brad@bcable.net
@@ -11,7 +11,25 @@
 #
 
 
-set_time_limit(10);
+
+## CONFIG ##
+
+# Time limit for a single request and parse. [10]
+define("TIME_LIMIT",10);
+
+# Default to simple mode when the page is loaded. [false]
+define("DEFAULT_SIMPLE",false);
+# Force the page to always be in simple mode (no advanced mode option). [false]
+define("FORCE_SIMPLE",false);
+# Width for the URL box when in simple mode (CSS "width" attribute). [300px]
+define("SIMPLE_MODE_URLWIDTH","300px");
+
+# Default value for tunnel server. []
+define("DEFAULT_TUNNEL_PIP","");
+# Default value for tunnel port. []
+define("DEFAULT_TUNNEL_PPORT","");
+# Should the tunnel fields be displayed? "false" value here will force the defaults above [true]
+define("FORCE_DEFAULT_TUNNEL",true);
 
 /*/ Address Blocking Notes \*\
 
@@ -23,7 +41,10 @@ Formats for address blocking are as follows:
 
 \*\ End Address Blocking Notes /*/
 
-$blocked_addresses=array("10.0.0.0/24","172.0.0.0/24","192.168.0.0/16","127.0.0.0/24");
+$blocked_addresses=array("10.0.0.0/24","172.0.0.0/24","192.0.0.0/24","127.0.0.0/24");
+
+## END CONFIG ##
+
 
 
 // DON'T EDIT ANYTHING AFTER THIS POINT \\
@@ -33,10 +54,14 @@ $blocked_addresses=array("10.0.0.0/24","172.0.0.0/24","192.168.0.0/16","127.0.0.
 # (unless you absolutely know what you are doing...)
 #
 
+
+if(!ini_get("safe_mode")) set_time_limit(TIME_LIMIT);
+
 if(extension_loaded("zlib") && !ini_get("zlib.output_compression")) ob_start("ob_gzhandler"); # use gzip encoding to compress all data, if possible
 
-define("VERSION","0.7.9.3b");
+define("VERSION","0.8.0b");
 define("THIS_SCRIPT","http://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}");
+define("SIMPLE_MODE",DEFAULT_SIMPLE || FORCE_SIMPLE);
 
 # Randomized cookie prefixes #
 function gen_randstr($len){
@@ -156,7 +181,7 @@ $useragent_array=array(
 	array("Dillo/0.8.5","Any / Dillo 0.8.5"),
 	array("Wget/1.10.2","Any / Wget 1.10.2"),
 	array("Lynx/2.8rel5","Any / Lynx 2.8rel.5"),
-	array("1"," [ Custom ] ")
+	array("1"," [ Custom ] <noscript><b>**</b></noscript>")
 );
 
 $ipregexp="/^((?:[0-2]{0,2}[0-9]{1,2}\.){3}[0-2]{0,2}[0-9]{1,2})\:([0-9]{1,5})$/";
@@ -175,14 +200,53 @@ $ipregexp="/^((?:[0-2]{0,2}[0-9]{1,2}\.){3}[0-2]{0,2}[0-9]{1,2})\:([0-9]{1,5})$/
 	select{border: 1px solid #000000}
 	a{color: #000000}
 	a:hover{text-decoration: none}
+	.advanced_stuff{display: <?=(SIMPLE_MODE?"none":"table-row")?>}
+	.simple_stuff{display: <?=(SIMPLE_MODE?"table-row":"none")?>}
+	.url{width: <?=(SIMPLE_MODE?SIMPLE_MODE_URLWIDTH:"99%")?>}
+	.signature{float: left}
+<? if(FORCE_SIMPLE){ ?>
+	.noscript_stuff{display: none}
+	.signature{text-align: center; float: none}
+<? } ?>
 </style>
+<? if(!FORCE_SIMPLE){ ?><noscript><style>
+	.advanced_stuff{display: table-row}
+	.simple_stuff{display: none}
+	.noscript_stuff{display: none}
+	.url{width: 99%}
+	.signature{text-align: center; float: none}
+</style></noscript><? } ?>
 <script language="javascript">
 <!--
+
 <?=$js_proxenc?>
+
+function useragent_check(focus){
+	if(document.getElementsByName('<?=COOK_PREF?>_useragent')[0].value=='1'){
+		document.getElementById('useragent_texttr').style.display=(document.all?'inline':'table-row');
+		if(focus) document.getElementById('<?=COOK_PREF?>_useragenttext').focus();
+	}
+	else document.getElementById('useragent_texttr').style.display='none';
+}
+
+<? if(!FORCE_SIMPLE){ ?>
+advanced_mode=true;
+function toggle_mode(){
+	document.getElementById("mode_toggler").innerHTML=(advanced_mode?"Advanced Mode":"Simple Mode");
+	advanced_stuff=document.getElementsByName("advanced_stuff");
+	for(i=0;i<advanced_stuff.length;i++) advanced_stuff[i].style.display=(advanced_mode?"none":"table-row");
+	document.getElementById("simple_submit").style.display=(advanced_mode?"inline":"none");
+	document.getElementById("url").style.width=(advanced_mode?"<?=SIMPLE_MODE_URLWIDTH?>":"99%");
+	advanced_mode=!advanced_mode;
+	if(advanced_mode) useragent_check(false);
+	setTimeout("document.getElementById('url').focus();",100);
+}
+<? } ?>
+
 //-->
 </script>
 </head>
-<body onload="document.getElementById('url').focus();">
+<body<?=(SIMPLE_MODE?" onload=\"toggle_mode();\"":"")?>>
 <div style="font-size: 18pt; font-weight: bold; text-align: center; margin-bottom: 5px">Surrogafier</div>
 <center>
 <form method="post" onsubmit="if(this.<?=COOK_PREF?>_encode_urls.checked){this.<?=COOK_PREF?>_eurl.value=proxenc(this.<?=COOK_PREF?>_url.value);this.<?=COOK_PREF?>_url.value='';this.submit();}">
@@ -190,49 +254,54 @@ $ipregexp="/^((?:[0-2]{0,2}[0-9]{1,2}\.){3}[0-2]{0,2}[0-9]{1,2})\:([0-9]{1,5})$/
 <input type="hidden" name="<?=COOK_PREF?>_eurl" />
 <table>
 <tr>
-	<td style="text-align: left">URL:</td>
-	<td><input type="text" name="<?=COOK_PREF?>_url" id="url" style="width: 99%" /></td>
+	<td style="text-align: left">URL:&nbsp;&nbsp;</td>
+	<td>
+		<input type="text" class="url" name="<?=COOK_PREF?>_url" id="url" />
+		<input type="submit" class="simple_stuff" id="simple_submit" value="Surrogafy" style="background-color: #F0F0F0" />
+	</td>
 </tr>
-<tr>
-	<td style="text-align: left">Proxy Server:</td>
+<? if(FORCE_DEFAULT_TUNNEL){ ?>
+<tr name="advanced_stuff" class="advanced_stuff">
+	<td style="text-align: left">Tunnel Proxy:</td>
 	<td><table cellspacing="0" cellpadding="0">
 	<tr>
-		<td style="width: 100%"><input type="text" name="<?=COOK_PREF?>_pip" onkeyup="if(this.value.match(<?=$ipregexp?>)){ document.forms[0].<?=COOK_PREF?>_pport.value=this.value.replace(<?=$ipregexp?>,'\$2'); this.value=this.value.replace(<?=$ipregexp?>,'\$1'); document.forms[0].<?=COOK_PREF?>_pport.focus(); };" style="width: 100%; text-align: left" value="<?=($_COOKIE[COOK_PREF.'_pip'])?>" /></td>
+		<td style="width: 100%"><input type="text" name="<?=COOK_PREF?>_pip" onkeyup="if(this.value.match(<?=$ipregexp?>)){ document.forms[0].<?=COOK_PREF?>_pport.value=this.value.replace(<?=$ipregexp?>,'\$2'); this.value=this.value.replace(<?=$ipregexp?>,'\$1'); document.forms[0].<?=COOK_PREF?>_pport.focus(); };" style="width: 100%; text-align: left" value="<?=(empty($_COOKIE[COOK_PREF.'_pip'])?DEFAULT_TUNNEL_PIP:$_COOKIE[COOK_PREF.'_pip'])?>" /></td>
 		<td style="width: 5px">&nbsp;&nbsp;</td>
-		<td style="width: 50px"><input type="text" name="<?=COOK_PREF?>_pport" maxlength="5" size="5" style="width: 50px" value="<?=($_COOKIE[COOK_PREF.'_pport'])?>" /></td>
+		<td style="width: 50px"><input type="text" name="<?=COOK_PREF?>_pport" maxlength="5" size="5" style="width: 50px" value="<?=(empty($_COOKIE[COOK_PREF.'_pport'])?DEFAULT_TUNNEL_PPORT:$_COOKIE[COOK_PREF.'_pport'])?>" /></td>
 	</tr>
 	</table></td>
 </tr>
-<tr>
+<? } ?>
+<tr name="advanced_stuff" class="advanced_stuff">
 	<td style="text-align: left">User-Agent:</td>
-	<td><select name="<?=COOK_PREF?>_useragent" style="width: 100%" onchange="if(this.value=='1'){ document.getElementById('useragent_texttr').style.display=(document.all?'inline':'table-row'); document.getElementById('<?=COOK_PREF?>_useragenttext').focus(); } else document.getElementById('useragent_texttr').style.display='none';">
+	<td><select name="<?=COOK_PREF?>_useragent" style="width: 100%" onchange="useragent_check(true);">
 <? foreach($useragent_array as $useragent){ ?>
 		<option value="<?=($useragent[0])?>"<? if($_COOKIE[COOK_PREF.'_useragent']==$useragent[0]) echo " selected=\"selected\""; ?>><?=($useragent[1])?></option>
 <? } ?>
 	</select>
 	</td>
 </tr>
-<tr id="useragent_texttr"<?=(($_COOKIE[COOK_PREF.'_useragent']=="1")?"":" style=\"display: none\"")?>>
+<tr name="advanced_stuff" class="advanced_stuff" id="useragent_texttr"<?=(($_COOKIE[COOK_PREF.'_useragent']=="1")?"":" style=\"display: none\"")?>>
 	<td>&nbsp;</td>
 	<td><input type="text" id="<?=COOK_PREF?>_useragenttext" name="<?=COOK_PREF?>_useragenttext" value="<?=($_COOKIE[COOK_PREF.'_useragenttext'])?>" style="width: 99%" /></td>
 </tr>
-<tr><td>&nbsp;</td><td style="text-align: left"><input type="checkbox" name="<?=COOK_PREF?>_remove_cookies" style="border: 0px" <? if(!empty($_COOKIE[COOK_PREF.'_remove_cookies'])) echo "checked=\"checked\" "; ?>/>&nbsp;Remove Cookies</td></tr>
-<tr><td>&nbsp;</td><td style="text-align: left"><input type="checkbox" name="<?=COOK_PREF?>_remove_referer" style="border: 0px" <? if(!empty($_COOKIE[COOK_PREF.'_remove_referer'])) echo "checked=\"checked\" "; ?>/>&nbsp;Remove Referer Field</td></tr>
-<tr><td>&nbsp;</td><td style="text-align: left"><input type="checkbox" name="<?=COOK_PREF?>_remove_scripts" style="border: 0px" <? if(!empty($_COOKIE[COOK_PREF.'_remove_scripts'])) echo "checked=\"checked\" "; ?>/>&nbsp;Remove Scripts (JS, VBS, etc)</td></tr>
-<tr><td>&nbsp;</td><td style="text-align: left"><input type="checkbox" name="<?=COOK_PREF?>_remove_objects" style="border: 0px" <? if(!empty($_COOKIE[COOK_PREF.'_remove_objects'])) echo "checked=\"checked\" "; ?>/>&nbsp;Remove Objects (Flash, Java, etc)</td></tr>
-<tr><td>&nbsp;</td><td style="text-align: left"><input type="checkbox" name="<?=COOK_PREF?>_encode_urls" style="border: 0px" <? if(!empty($_COOKIE[COOK_PREF.'_encode_urls'])) echo "checked=\"checked\" "; ?>/>&nbsp;Encode URLs<noscript><b>**</b></noscript></td></tr>
-<tr><td>&nbsp;</td><td style="text-align: left"><input type="checkbox" name="<?=COOK_PREF?>_encode_cooks" style="border: 0px" <? if(!empty($_COOKIE[COOK_PREF.'_encode_cooks'])) echo "checked=\"checked\" "; ?>/>&nbsp;Encode Cookies<noscript><b>**</b></noscript></td></tr>
-<tr><td colspan="2"><input type="submit" value="Surrogafy" style="width: 100%; background-color: #F0F0F0" /></td></tr>
+<tr name="advanced_stuff" class="advanced_stuff"><td>&nbsp;</td><td style="text-align: left"><input type="checkbox" name="<?=COOK_PREF?>_remove_cookies" style="border: 0px" <? if(!empty($_COOKIE[COOK_PREF.'_remove_cookies'])) echo "checked=\"checked\" "; ?>/>&nbsp;Remove Cookies</td></tr>
+<tr name="advanced_stuff" class="advanced_stuff"><td>&nbsp;</td><td style="text-align: left"><input type="checkbox" name="<?=COOK_PREF?>_remove_referer" style="border: 0px" <? if(!empty($_COOKIE[COOK_PREF.'_remove_referer'])) echo "checked=\"checked\" "; ?>/>&nbsp;Remove Referer Field</td></tr>
+<tr name="advanced_stuff" class="advanced_stuff"><td>&nbsp;</td><td style="text-align: left"><input type="checkbox" name="<?=COOK_PREF?>_remove_scripts" style="border: 0px" <? if(!empty($_COOKIE[COOK_PREF.'_remove_scripts'])) echo "checked=\"checked\" "; ?>/>&nbsp;Remove Scripts (JS, VBS, etc)</td></tr>
+<tr name="advanced_stuff" class="advanced_stuff"><td>&nbsp;</td><td style="text-align: left"><input type="checkbox" name="<?=COOK_PREF?>_remove_objects" style="border: 0px" <? if(!empty($_COOKIE[COOK_PREF.'_remove_objects'])) echo "checked=\"checked\" "; ?>/>&nbsp;Remove Objects (Flash, Java, etc)</td></tr>
+<tr name="advanced_stuff" class="advanced_stuff"><td>&nbsp;</td><td style="text-align: left"><input type="checkbox" name="<?=COOK_PREF?>_encode_urls" style="border: 0px" <? if(!empty($_COOKIE[COOK_PREF.'_encode_urls'])) echo "checked=\"checked\" "; ?>/>&nbsp;Encode URLs<noscript><b>**</b></noscript></td></tr>
+<tr name="advanced_stuff" class="advanced_stuff"><td>&nbsp;</td><td style="text-align: left"><input type="checkbox" name="<?=COOK_PREF?>_encode_cooks" style="border: 0px" <? if(!empty($_COOKIE[COOK_PREF.'_encode_cooks'])) echo "checked=\"checked\" "; ?>/>&nbsp;Encode Cookies<noscript><b>**</b></noscript></td></tr>
+<tr name="advanced_stuff" class="advanced_stuff"><td colspan="2"><input type="submit" value="Surrogafy" style="width: 100%; background-color: #F0F0F0" /></td></tr>
+<tr><td style="font-size: 8pt" colspan="2">
+	<div class="signature"><a href="http://bcable.net/">Surrogafier v<?=VERSION?> <b>&middot;</b> Brad Cable</a></div>
+	<div class="noscript_stuff" style="float: right"><a href="#" onclick="toggle_mode();" id="mode_toggler"><?=(SIMPLE_MODE?"Advanced":"Simple")?> Mode</a></div>
+</td></tr>
 </table>
-<br />
-<div style="font-size: 10pt">Surrogafier v<?=VERSION?>
-<br />
-Created by <a href="http://bcable.net/">Brad Cable</a></div>
 <noscript>
 <br />
 <b>**</b> Surrogafier has detected that your browser does not have Javascript enabled. <b>**</b>
 <br />
-<b>**</b> This feature requires Javascript in order to function to its full potential. <b>**</b>
+<b>**</b> Surrogafier requires Javascript in order to function to its full potential. <b>**</b>
 </noscript>
 </form>
 </center>
@@ -466,7 +535,7 @@ function convertarray_to_javascript(){
 
 global $regexp_arrays;
 
-$jsattrs="(href|src|location|backgroundImage|pluginspage|codebase|img)";
+$jsattrs="(href|src|location|backgroundImage|pluginspage|codebase|img|location\.href)";
 $jshtmlattrs="(innerHTML)";
 $jsmethods="(location\.replace)";
 $jslochost="(location\.host(?:name){0,1})";
@@ -475,7 +544,7 @@ $jsrealpage="((?:(?:document|window)\.){0,1}location(?:(?=[^\.])|\.(?!hash|host|
 $anyspace="[\t\r\n ]*";
 $plusspace="[\t\r\n ]+";
 $spacer="[\t ]*";
-$htmlattrs="(href|src|background|pluginspage|codebase)";
+$htmlattrs="(data|href|src|background|pluginspage|codebase)";
 $jsvarobj="(?:[a-zA-Z0-9\._\(\)\[\]\+-]+)";
 $quoteseg="(?:(?:\"(?:(?:[^\"]|[\\\\]\")*?)\")|(?:'(?:(?:[^']|[\\\\]')*?)')";
 $jsquotereg="((?:(?:$anyspace$quoteseg|$jsvarobj)$anyspace\+)*)$anyspace$quoteseg|$jsvarobj)$spacer(?=[;\}\n\r]))";
@@ -484,7 +553,7 @@ $jsend="(?=${anyspace}[;\}\n\r])";
 $htmlreg="($quoteseg|(?:[^\"'\\\\][^> ]*)))";
 
 $js_regexp_arrays=array(
-	array(1,2,"/([^a-z0-9])${jsrealpage}([^a-z0-9])/i","\\1proxy_current_url\\3"),
+	array(1,2,"/([^a-z0-9])${jsrealpage}([^a-z0-9=])/i","\\1proxy_current_url\\3"),
 	array(1,2,"/([^a-z])$jslochost([^a-z])/i","\\1proxy_location_hostname\\3"),
 	array(1,2,"/([^a-z]$jsmethods$anyspace\()([^)]*)\)/i","\\1surrogafy_url(\\3))"),
 	array(1,2,"/(\.$jsattrs$anyspace=(?:(?:$anyspace$jsvarobj$anyspace=)*)$anyspace)($jsquotereg(?:\+$jsquotereg)*)$jsend/i","\\1surrogafy_url(\\3)"),
@@ -777,7 +846,7 @@ function get_check($address){
 	return true;
 }
 
-function httpclean($str){ return preg_replace("/([^-_\.0-9a-z])/e","'%'.strtoupper(dechex(ord(\"\\1\")))",$str); } #*
+function httpclean($str){ return preg_replace("/([^:-_\.0-9a-z])/e","'%'.strtoupper(dechex(ord(\"\\1\")))",$str); } #*
 
 function getpage($url){
 	global $headers,$out,$post_vars,$proxy_variables,$referer;
@@ -806,9 +875,9 @@ function getpage($url){
 		elseif(!empty($_SERVER['PHP_AUTH_DIGEST'])) $http_auth="Digest ".$_SERVER['PHP_AUTH_DIGEST'];
 	}
 
-	if(!empty($_COOKIE[COOK_PREF."_pip"]) && !empty($_COOKIE[COOK_PREF."_pport"])){
-		$servername=$_COOKIE[COOK_PREF."_pip"];
-		$portval=intval($_COOKIE[COOK_PREF."_pport"]);
+	if(PIP!="" && PPORT!=""){
+		$servername=PIP;
+		$portval=PPORT;
 		$requrl=$urlobj->get_url();
 	}
 	else{
@@ -967,8 +1036,9 @@ function getpage($url){
 	elseif(header_value("Content-Length")!=""){
 		$conlen=header_value("Content-Length");
 		$body="";
-		for($i=0;$i<$conlen;$i++){
-			$byte=fread($fp,1);
+		for($i=0;$i<$conlen;$i+=$read){
+			$read=($conlen-$i<1024?$conlen-$i:1024);
+			$byte=fread($fp,$read);
 			if($justoutputnow) echo $byte;
 			else $body.=$byte;
 		}
@@ -977,7 +1047,7 @@ function getpage($url){
 	else{
 		$body="";
 		while(true){
-			$chunk=fread($fp,200);
+			$chunk=fread($fp,1024);
 			if($justoutputnow) echo $chunk;
 			else $body.=$chunk;
 			if(empty($chunk)) break;
@@ -1031,6 +1101,9 @@ if($postandget[COOK_PREF.'_set_values']){
 }
 # end #
 
+define("PIP",(FORCE_DEFAULT_TUNNEL?$_COOKIE[COOK_PREF."_pip"]:DEFAULT_TUNNEL_PIP));
+define("PPORT",intval(FORCE_DEFAULT_TUNNEL?$_COOKIE[COOK_PREF."_pport"]:DEFAULT_TUNNEL_PPORT));
+
 # Deal with GET/POST/COOKIES and the URL #
 define("ENCODE_COOKS",!empty($_COOKIE[COOK_PREF.'_encode_cooks']));
 if(ENCODE_URLS) $curr_url=proxdec($curr_url);
@@ -1050,7 +1123,7 @@ $pagestuff=getpage($curr_url);
 $body=$pagestuff[0];
 
 # For AJAX, some things quote the entire HTML of a page... this makes sure it doesn't parse inside of that
-if(preg_match("/^[\t\r\n ]*\".*\"[\t\r\n ]*$/i",$body)>0){ #*
+if(preg_match("/^[\t\r\n ]*([\"']).*\\1[\t\r\n ]*$/i",$body)>0){ #*
 	echo $body;
 	exit();
 }
