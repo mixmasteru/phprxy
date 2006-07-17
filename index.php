@@ -1,7 +1,7 @@
 <?
 
 #
-# Surrogafier v0.8.0b
+# Surrogafier v0.8.1b
 #
 # Author: Brad Cable
 # Email: brad@bcable.net
@@ -59,7 +59,7 @@ if(!ini_get("safe_mode")) set_time_limit(TIME_LIMIT);
 
 if(extension_loaded("zlib") && !ini_get("zlib.output_compression")) ob_start("ob_gzhandler"); # use gzip encoding to compress all data, if possible
 
-define("VERSION","0.8.0b");
+define("VERSION","0.8.1b");
 define("THIS_SCRIPT","http://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}");
 define("SIMPLE_MODE",DEFAULT_SIMPLE || FORCE_SIMPLE);
 
@@ -223,7 +223,7 @@ $ipregexp="/^((?:[0-2]{0,2}[0-9]{1,2}\.){3}[0-2]{0,2}[0-9]{1,2})\:([0-9]{1,5})$/
 
 function useragent_check(focus){
 	if(document.getElementsByName('<?=COOK_PREF?>_useragent')[0].value=='1'){
-		document.getElementById('useragent_texttr').style.display=(document.all?'inline':'table-row');
+		document.getElementById('useragent_texttr').style.display="";
 		if(focus) document.getElementById('<?=COOK_PREF?>_useragenttext').focus();
 	}
 	else document.getElementById('useragent_texttr').style.display='none';
@@ -233,8 +233,8 @@ function useragent_check(focus){
 advanced_mode=true;
 function toggle_mode(){
 	document.getElementById("mode_toggler").innerHTML=(advanced_mode?"Advanced Mode":"Simple Mode");
-	advanced_stuff=document.getElementsByName("advanced_stuff");
-	for(i=0;i<advanced_stuff.length;i++) advanced_stuff[i].style.display=(advanced_mode?"none":"table-row");
+	advanced_stuff=document.getElementsByTagName("tr");
+	for(i=1;i<=11;i++) advanced_stuff[i].style.display=(advanced_mode?"none":"");
 	document.getElementById("simple_submit").style.display=(advanced_mode?"inline":"none");
 	document.getElementById("url").style.width=(advanced_mode?"<?=SIMPLE_MODE_URLWIDTH?>":"99%");
 	advanced_mode=!advanced_mode;
@@ -247,9 +247,9 @@ function toggle_mode(){
 </script>
 </head>
 <body<?=(SIMPLE_MODE?" onload=\"toggle_mode();\"":"")?>>
-<div style="font-size: 18pt; font-weight: bold; text-align: center; margin-bottom: 5px">Surrogafier</div>
 <center>
-<form method="post" onsubmit="if(this.<?=COOK_PREF?>_encode_urls.checked){this.<?=COOK_PREF?>_eurl.value=proxenc(this.<?=COOK_PREF?>_url.value);this.<?=COOK_PREF?>_url.value='';this.submit();}">
+<span style="font-size: 18pt; font-weight: bold; margin-bottom: 5px">Surrogafier</span>
+<form method="post" onsubmit="if(this.<?=COOK_PREF?>_encode_urls.checked){this.<?=COOK_PREF?>_eurl.value=proxenc(this.<?=COOK_PREF?>_url.value);this.<?=COOK_PREF?>_url.value='';this.submit();}" style="margin: 0px; padding: 0px">
 <input type="hidden" name="<?=COOK_PREF?>_set_values" value="1" />
 <input type="hidden" name="<?=COOK_PREF?>_eurl" />
 <table>
@@ -261,7 +261,7 @@ function toggle_mode(){
 	</td>
 </tr>
 <? if(FORCE_DEFAULT_TUNNEL){ ?>
-<tr name="advanced_stuff" class="advanced_stuff">
+<tr class="advanced_stuff">
 	<td style="text-align: left">Tunnel Proxy:</td>
 	<td><table cellspacing="0" cellpadding="0">
 	<tr>
@@ -272,7 +272,7 @@ function toggle_mode(){
 	</table></td>
 </tr>
 <? } ?>
-<tr name="advanced_stuff" class="advanced_stuff">
+<tr class="advanced_stuff">
 	<td style="text-align: left">User-Agent:</td>
 	<td><select name="<?=COOK_PREF?>_useragent" style="width: 100%" onchange="useragent_check(true);">
 <? foreach($useragent_array as $useragent){ ?>
@@ -281,17 +281,17 @@ function toggle_mode(){
 	</select>
 	</td>
 </tr>
-<tr name="advanced_stuff" class="advanced_stuff" id="useragent_texttr"<?=(($_COOKIE[COOK_PREF.'_useragent']=="1")?"":" style=\"display: none\"")?>>
+<tr class="advanced_stuff" id="useragent_texttr"<?=(($_COOKIE[COOK_PREF.'_useragent']=="1")?"":" style=\"display: none\"")?>>
 	<td>&nbsp;</td>
 	<td><input type="text" id="<?=COOK_PREF?>_useragenttext" name="<?=COOK_PREF?>_useragenttext" value="<?=($_COOKIE[COOK_PREF.'_useragenttext'])?>" style="width: 99%" /></td>
 </tr>
-<tr name="advanced_stuff" class="advanced_stuff"><td>&nbsp;</td><td style="text-align: left"><input type="checkbox" name="<?=COOK_PREF?>_remove_cookies" style="border: 0px" <? if(!empty($_COOKIE[COOK_PREF.'_remove_cookies'])) echo "checked=\"checked\" "; ?>/>&nbsp;Remove Cookies</td></tr>
-<tr name="advanced_stuff" class="advanced_stuff"><td>&nbsp;</td><td style="text-align: left"><input type="checkbox" name="<?=COOK_PREF?>_remove_referer" style="border: 0px" <? if(!empty($_COOKIE[COOK_PREF.'_remove_referer'])) echo "checked=\"checked\" "; ?>/>&nbsp;Remove Referer Field</td></tr>
-<tr name="advanced_stuff" class="advanced_stuff"><td>&nbsp;</td><td style="text-align: left"><input type="checkbox" name="<?=COOK_PREF?>_remove_scripts" style="border: 0px" <? if(!empty($_COOKIE[COOK_PREF.'_remove_scripts'])) echo "checked=\"checked\" "; ?>/>&nbsp;Remove Scripts (JS, VBS, etc)</td></tr>
-<tr name="advanced_stuff" class="advanced_stuff"><td>&nbsp;</td><td style="text-align: left"><input type="checkbox" name="<?=COOK_PREF?>_remove_objects" style="border: 0px" <? if(!empty($_COOKIE[COOK_PREF.'_remove_objects'])) echo "checked=\"checked\" "; ?>/>&nbsp;Remove Objects (Flash, Java, etc)</td></tr>
-<tr name="advanced_stuff" class="advanced_stuff"><td>&nbsp;</td><td style="text-align: left"><input type="checkbox" name="<?=COOK_PREF?>_encode_urls" style="border: 0px" <? if(!empty($_COOKIE[COOK_PREF.'_encode_urls'])) echo "checked=\"checked\" "; ?>/>&nbsp;Encode URLs<noscript><b>**</b></noscript></td></tr>
-<tr name="advanced_stuff" class="advanced_stuff"><td>&nbsp;</td><td style="text-align: left"><input type="checkbox" name="<?=COOK_PREF?>_encode_cooks" style="border: 0px" <? if(!empty($_COOKIE[COOK_PREF.'_encode_cooks'])) echo "checked=\"checked\" "; ?>/>&nbsp;Encode Cookies<noscript><b>**</b></noscript></td></tr>
-<tr name="advanced_stuff" class="advanced_stuff"><td colspan="2"><input type="submit" value="Surrogafy" style="width: 100%; background-color: #F0F0F0" /></td></tr>
+<tr class="advanced_stuff"><td>&nbsp;</td><td style="text-align: left"><input type="checkbox" name="<?=COOK_PREF?>_remove_cookies" style="border: 0px" <? if(!empty($_COOKIE[COOK_PREF.'_remove_cookies'])) echo "checked=\"checked\" "; ?>/>&nbsp;Remove Cookies</td></tr>
+<tr class="advanced_stuff"><td>&nbsp;</td><td style="text-align: left"><input type="checkbox" name="<?=COOK_PREF?>_remove_referer" style="border: 0px" <? if(!empty($_COOKIE[COOK_PREF.'_remove_referer'])) echo "checked=\"checked\" "; ?>/>&nbsp;Remove Referer Field</td></tr>
+<tr class="advanced_stuff"><td>&nbsp;</td><td style="text-align: left"><input type="checkbox" name="<?=COOK_PREF?>_remove_scripts" style="border: 0px" <? if(!empty($_COOKIE[COOK_PREF.'_remove_scripts'])) echo "checked=\"checked\" "; ?>/>&nbsp;Remove Scripts (JS, VBS, etc)</td></tr>
+<tr class="advanced_stuff"><td>&nbsp;</td><td style="text-align: left"><input type="checkbox" name="<?=COOK_PREF?>_remove_objects" style="border: 0px" <? if(!empty($_COOKIE[COOK_PREF.'_remove_objects'])) echo "checked=\"checked\" "; ?>/>&nbsp;Remove Objects (Flash, Java, etc)</td></tr>
+<tr class="advanced_stuff"><td>&nbsp;</td><td style="text-align: left"><input type="checkbox" name="<?=COOK_PREF?>_encode_urls" style="border: 0px" <? if(!empty($_COOKIE[COOK_PREF.'_encode_urls'])) echo "checked=\"checked\" "; ?>/>&nbsp;Encode URLs<noscript><b>**</b></noscript></td></tr>
+<tr class="advanced_stuff"><td>&nbsp;</td><td style="text-align: left"><input type="checkbox" name="<?=COOK_PREF?>_encode_cooks" style="border: 0px" <? if(!empty($_COOKIE[COOK_PREF.'_encode_cooks'])) echo "checked=\"checked\" "; ?>/>&nbsp;Encode Cookies<noscript><b>**</b></noscript></td></tr>
+<tr class="advanced_stuff"><td colspan="2"><input type="submit" value="Surrogafy" style="width: 100%; background-color: #F0F0F0" /></td></tr>
 <tr><td style="font-size: 8pt" colspan="2">
 	<div class="signature"><a href="http://bcable.net/">Surrogafier v<?=VERSION?> <b>&middot;</b> Brad Cable</a></div>
 	<div class="noscript_stuff" style="float: right"><a href="#" onclick="toggle_mode();" id="mode_toggler"><?=(SIMPLE_MODE?"Advanced":"Simple")?> Mode</a></div>
