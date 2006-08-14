@@ -1,7 +1,7 @@
 <?
 
 #
-# Surrogafier v0.8.1b
+# Surrogafier v0.8.2b
 #
 # Author: Brad Cable
 # Email: brad@bcable.net
@@ -31,6 +31,9 @@ define("DEFAULT_TUNNEL_PPORT","");
 # Should the tunnel fields be displayed? "false" value here will force the defaults above [true]
 define("FORCE_DEFAULT_TUNNEL",true);
 
+# Protocol that proxy is running on. [http]
+define("PROTO","http");
+
 /*/ Address Blocking Notes \*\
 
 Formats for address blocking are as follows:
@@ -59,8 +62,8 @@ if(!ini_get("safe_mode")) set_time_limit(TIME_LIMIT);
 
 if(extension_loaded("zlib") && !ini_get("zlib.output_compression")) ob_start("ob_gzhandler"); # use gzip encoding to compress all data, if possible
 
-define("VERSION","0.8.1b");
-define("THIS_SCRIPT","http://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}");
+define("VERSION","0.8.2b");
+define("THIS_SCRIPT",PROTO."://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}");
 define("SIMPLE_MODE",DEFAULT_SIMPLE || FORCE_SIMPLE);
 
 # Randomized cookie prefixes #
@@ -806,7 +809,7 @@ function ipbitter($ipaddr){
 	$ipsplit=explode(".",$ipaddr);
 	for($i=0;$i<count($ipsplit);$i++){
 		$ipsplit[$i]=decbin($ipsplit[$i]);
-		$ipsplit[$i]=$ipsplit[$i].str_repeat("0",8-strlen($ipsplit[$i]));
+		$ipsplit[$i]=str_repeat("0",8-strlen($ipsplit[$i])).$ipsplit[$i];
 	}
 	return implode("",$ipsplit);
 }
