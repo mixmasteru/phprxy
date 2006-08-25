@@ -1,7 +1,7 @@
 <?
 
 #
-# Surrogafier v0.8.2b
+# Surrogafier v0.8.3b
 #
 # Author: Brad Cable
 # Email: brad@bcable.net
@@ -9,7 +9,6 @@
 # License Details:
 # http://bcable.net/license.php
 #
-
 
 
 ## CONFIG ##
@@ -30,6 +29,19 @@ define("DEFAULT_TUNNEL_PIP","");
 define("DEFAULT_TUNNEL_PPORT","");
 # Should the tunnel fields be displayed? "false" value here will force the defaults above [true]
 define("FORCE_DEFAULT_TUNNEL",true);
+
+# Default value for "Remove Cookies" checkbox [false]
+define("DEFAULT_REMOVE_COOKIES",false);
+# Default value for "Remove Referer Field" checkbox [false]
+define("DEFAULT_REMOVE_REFERER",false);
+# Default value for "Remove Scripts" checkbox [false]
+define("DEFAULT_REMOVE_SCRIPTS",false);
+# Default value for "Remove Objects" checkbox [false]
+define("DEFAULT_REMOVE_OBJECTS",false);
+# Default value for "Encode URLs" checkbox [false]
+define("DEFAULT_ENCODE_URLS",false);
+# Default value for "Encode Cookies" checkbox [false]
+define("DEFAULT_ENCODE_COOKS",false);
 
 # Protocol that proxy is running on. [http]
 define("PROTO","http");
@@ -62,7 +74,7 @@ if(!ini_get("safe_mode")) set_time_limit(TIME_LIMIT);
 
 if(extension_loaded("zlib") && !ini_get("zlib.output_compression")) ob_start("ob_gzhandler"); # use gzip encoding to compress all data, if possible
 
-define("VERSION","0.8.2b");
+define("VERSION","0.8.3b");
 define("THIS_SCRIPT",PROTO."://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}");
 define("SIMPLE_MODE",DEFAULT_SIMPLE || FORCE_SIMPLE);
 
@@ -77,6 +89,13 @@ function gen_randstr($len){
 	return $chars;
 }
 
+function dosetcookie($cookname,$cookval,$expire=null){
+	$_COOKIE[$cookname]=$cookval;
+	if($expire===null) setcookie($cookname,$cookval);
+	else setcookie($cookname,$cookval,$expire);
+}
+
+define("FIRST_LOAD",empty($_COOKIE['PHPSESSID']));
 session_start();
 if(empty($_SESSION['sesspref'])){
 	$sesspref=gen_randstr(30);
@@ -86,13 +105,23 @@ else $sesspref=$_SESSION['sesspref'];
 
 if(empty($_COOKIE['user'])){
 	$cookpref=gen_randstr(12);
-	setcookie("user",$cookpref);
+	dosetcookie("user",$cookpref);
 }
 else $cookpref=$_COOKIE['user'];
 
 define("SESS_PREF",$sesspref);
 define("COOK_PREF",$cookpref);
 define("COOKIE_SEPARATOR","__".COOK_PREF."__");
+
+if(FIRST_LOAD){
+	if(DEFAULT_REMOVE_COOKIES) dosetcookie(COOK_PREF."_remove_cookies",true);
+	if(DEFAULT_REMOVE_REFERER) dosetcookie(COOK_PREF."_remove_referer",true);
+	if(DEFAULT_REMOVE_SCRIPTS) dosetcookie(COOK_PREF."_remove_scripts",true);
+	if(DEFAULT_REMOVE_OBJECTS) dosetcookie(COOK_PREF."_remove_objects",true);
+	if(DEFAULT_ENCODE_URLS) dosetcookie(COOK_PREF."_encode_urls",true);
+	if(DEFAULT_ENCODE_COOKS) dosetcookie(COOK_PREF."_encode_cooks",true);
+}
+
 # end #
 
 define("ENCODE_URLS",!empty($postandget[COOK_PREF.'_encode_urls']) || (!empty($_COOKIE[COOK_PREF.'_encode_urls']) && !$postandget[COOK_PREF.'_set_values']));
@@ -631,8 +660,10 @@ class aurl{
 
 		if($this->locked) return;
 
+		$urlwasvalid=true;
 		if(!preg_match(URLREG,$this->url)){
-			if($this->topurl==null) $this->url="http://".(($this->url{0}==":" || $this->url{0}=="/")?substr($this->url,1):$this->url).(strpos($this->url,"/")?"":"/");
+			$urlwasvalid=false;
+			if($this->topurl==null) $this->url="http://".(($this->url{0}==":" || $this->url{0}=="/")?substr($this->url,1):$this->url).(strpos($this->url,"/")!==false?"":"/");
 			else{
 				$newurl=$this->topurl->get_proto().$this->get_fieldreq(2,$this->topurl->get_userpass()).$this->topurl->get_servername();
 				if(substr($this->url,0,1)!="/") $newurl.=$this->topurl->get_path();
@@ -640,7 +671,7 @@ class aurl{
 			}
 		}
 
-		$this->set_proto(($this->topurl==null?http:$this->topurl->get_proto()));
+		$this->set_proto(($urlwasvalid || $this->topurl==null?preg_replace("/^([^:]+).*$/","\\1",$this->url):$this->topurl->get_proto()));
 		$this->set_userpass(preg_replace(URLREG,"\\2",$this->url));
 		$this->set_servername(preg_replace(URLREG,"\\3",$this->url));
 		$this->set_portval(preg_replace(URLREG,"\\4",$this->url));
@@ -667,8 +698,8 @@ class aurl{
 	function get_portval(){ return (empty($this->port)?($this->get_proto()=="https"?"443":"80"):$this->port); }
 	function set_portval($port=""){ $this->portval=strval((intval($port)!=80)?$port:""); }
 	function get_path(){
-		if(strpos("/../",$this->path)) $this->path=preg_replace("/\/[^\/]*\/..\//","/",$this->path);
-		if(strpos("/./",$this->path)) while(($path=str_replace("/./","/",$this->path)) && $path!=$this->path) $this->path=$path;
+		if(strpos($this->path,"/../")!==false) $this->path=preg_replace("/(?:\/[^\/]+){0,1}\/\.\.\//","/",$this->path);
+		if(strpos($this->path,"/./")!==false) while(($path=str_replace("/./","/",$this->path)) && $path!=$this->path) $this->path=$path;
 		return $this->path;
 	}
 	function set_path($path=""){ $this->path=(empty($path)?"/":$path); }
@@ -717,7 +748,7 @@ function surrogafy_url($url,$topurl=false,$addproxy=true){
 
 function proxdec($url){
 	if(substr($url,0,1)!="~" && strtolower(substr($url,0,3))!="%7e") return $url;
-	while(strpos($url,"%")) $url=urldecode($url);
+	while(strpos($url,"%")!==false) $url=urldecode($url);
 	while(substr($url,0,1)=="~" || strtolower(substr($url,0,3))=="%7e"){
 		$url=substr($url,1,strlen($url)-1);
 		$url=base64_decode($url);
@@ -927,7 +958,7 @@ function getpage($url){
 
 	$out.="Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5\r\n".
 	      "Accept-Language: en-us,en;q=0.5\r\n".
-	      "Accept-Encoding: gzip,deflate\r\n".
+	      "Accept-Encoding: gzip\r\n".
 	      "Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.7\r\n".  /*/
 	      "Keep-Alive: 300\r\n".
 	      "Connection: keep-alive\r\n".                          /*/
@@ -985,8 +1016,7 @@ function getpage($url){
 				$cook_name=proxenc($cook_name);
 				$cook_val=proxenc($cook_val);
 			}
-			$_COOKIE[$cook_name]=$cook_val;
-			setcookie($cook_name,$cook_val);
+			dosetcookie($cook_name,$cook_val);
 		}
 	}
 
@@ -1075,7 +1105,7 @@ function getpage($url){
 global $proxy_variables,$proxy_varblacklist,$post_vars,$cookies,$curr_url,$curr_urlobj,$referer,$blocked_addresses;
 
 $curr_url=$postandget[COOK_PREF.'_'.URLVAR];
-while(strpos($curr_url,"%")) $curr_url=urldecode($curr_url);
+while(strpos($curr_url,"%")!==false) $curr_url=urldecode($curr_url);
 $curr_url=stripslashes($curr_url);
 
 $proxy_variables=array(COOK_PREF."_url",COOK_PREF."_eurl",COOK_PREF."_pip",COOK_PREF."_pport",COOK_PREF."_useragent",COOK_PREF."_useragenttext",COOK_PREF."_remove_cookies",COOK_PREF."_remove_referer",COOK_PREF."_remove_scripts",COOK_PREF."_remove_objects",COOK_PREF."_encode_urls",COOK_PREF."_encode_cooks");
@@ -1084,17 +1114,12 @@ $proxy_varblacklist=array(COOK_PREF."_url",COOK_PREF."_eurl");
 if($postandget[COOK_PREF.'_set_values']){
 	if($postandget[COOK_PREF."_useragent"]!="1"){
 		unset($postandget[COOK_PREF."_useragenttext"]);
-		$_COOKIE[COOK_PREF."_useragenttext"]=false;
-		setcookie(COOK_PREF."_useragenttext",false,0);
+		dosetcookie(COOK_PREF."_useragenttext",false,0);
 	}
 	while(list($key,$val)=each($proxy_variables)){
 		if(!in_array($val,$proxy_varblacklist)){
-			$_COOKIE[$val]=false;
-			setcookie($val,false,0);
-			if(isset($postandget[$val]) && !empty($postandget[$val])){
-				$_COOKIE[$val]=$postandget[$val];
-				setcookie($val,$postandget[$val]);
-			}
+			dosetcookie($val,false,0);
+			if(isset($postandget[$val]) && !empty($postandget[$val])) dosetcookie($val,$postandget[$val]);
 		}
 	}
 	$theurl=$postandget[COOK_PREF.'_'.URLVAR];
@@ -1113,7 +1138,7 @@ if(ENCODE_URLS) $curr_url=proxdec($curr_url);
 $referer=proxdec(urldecode(preg_replace("/^([^\?]*)(\?".COOK_PREF."_".URLVAR."=)?/i","",$_SERVER["HTTP_REFERER"]))); #*
 
 $getkeys=array_keys($_GET);
-foreach($getkeys as $getvar){ if(!in_array($getvar,$proxy_variables)){ $curr_url.=(!strpos($curr_url,"?")?"?":"&")."$getvar=".urlencode($_GET[$getvar]); } }
+foreach($getkeys as $getvar){ if(!in_array($getvar,$proxy_variables)){ $curr_url.=(strpos($curr_url,"?")===false?"?":"&")."$getvar=".urlencode($_GET[$getvar]); } }
 
 $post_vars="";
 $postkeys=array_keys($_POST);
@@ -1257,7 +1282,6 @@ if(CONTENT_TYPE=="text/html"){
 	#else $body=$big_headers.$body;
 # end #
 }
-
 
 ## Retrieved, Parsed, All Ready to Output ##
 echo $body;
