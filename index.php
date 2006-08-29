@@ -1,7 +1,7 @@
 <?
 
 #
-# Surrogafier v0.8.3b
+# Surrogafier v0.8.4b
 #
 # Author: Brad Cable
 # Email: brad@bcable.net
@@ -74,7 +74,7 @@ if(!ini_get("safe_mode")) set_time_limit(TIME_LIMIT);
 
 if(extension_loaded("zlib") && !ini_get("zlib.output_compression")) ob_start("ob_gzhandler"); # use gzip encoding to compress all data, if possible
 
-define("VERSION","0.8.3b");
+define("VERSION","0.8.4b");
 define("THIS_SCRIPT",PROTO."://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}");
 define("SIMPLE_MODE",DEFAULT_SIMPLE || FORCE_SIMPLE);
 
@@ -346,59 +346,113 @@ function toggle_mode(){
 ## JAVASCRIPT FUNCS ##
 if($_SERVER['QUERY_STRING']=="js_funcs"){ ?>//<script>
 
-function check_proto(url){
-	if(url==null || url==undefined) return;
-	return ((url.replace(/^[a-z]*\:\/\//i,"")!=url)?true:false);
-}
+function trim(str){ return str.replace(/^\s*([\s\S]*?)\s*$/,"$1"); }
 
-function protostrip(url){
-	if(url==null || url==undefined) return;
-	if(url.substring(0,2)=="//") url=url.substring(2,url.length-2);
-	else if(check_proto(url)) url=url.replace(/^[a-z]*\:\/\/(.*)$/i,"\$1");
-	return url;
-}
+const URLREG=/^(?:([a-z]*)?(?:\:?\/\/))(?:([^\@\/]*)\@)?([^\/:\?\#\&]*)(?:\:([0-9]+))?(\/[^\&\?\#]*?)?([^\/\?\#\&]*(?:\&[^\?\#]*)?)(?:\?([\s\S]*?))?(?:\#([\s\S]*))?$/i;
 
-function get_proto(url,topurl){
-	if(url==null || url==undefined) return;
-	if(check_proto(url)) return url.replace(/^([a-z]*)\:\/\/.*$/i,"\$1");
-	else{
-		if(topurl=="" || !check_proto(topurl)) return "http";
-		else return get_proto(topurl,"");
+function aurl(url,topurl){
+
+	this.get_fieldreq=function(fieldno,value){
+		fieldreqs=new Array();
+		fieldreqs[2]="://"+(value!=""?value+"@":"");
+		fieldreqs[4]=(value!="" && parseInt(value)!=80?":"+parseInt(value):"");
+		fieldreqs[7]=(value!=""?"?"+value:"");
+		fieldreqs[8]=(value!=""?"#"+value:"");
+		if(fieldreqs[fieldno]!=undefined) return (value!=""?null:value);
+		else return fieldreqs[fieldno];
 	}
-}
 
-function protofilestrip(url){
-	if(url==null || url==undefined) return;
-	url=protostrip(url);
-	if(url==null || url==undefined) return;
-	url=url.replace(/^([^\?\#]*).*$/i,"\$1");
-}
+	this.set_proto=function(proto){
+		if(proto==undefined) proto="http";
+		if(this.locked) return;
+		this.proto=proto;
+	}
+	this.get_proto=function(){ return this.proto; }
 
-function servername(url){
-	if(url==null || url==undefined) return;
-	server=protofilestrip(url);
-	if(server==null || server==undefined) return;
-	return server.replace(/^([^:]+).*$/,"\$1",server);
-}
+	this.get_userpass=function(){ return this.userpass; }
+	this.set_userpass=function(userpass){ if(userpass==undefined) userpass=""; this.userpass=userpass; }
+	this.get_servername=function(){ return this.servername; }
+	this.set_servername=function(servername){ if(servername==undefined) servername=""; this.servername=servername; }
+	this.get_portval=function(){ return ((this.portval=="")?(this.get_proto()=="https"?"443":"80"):this.portval); }
+	this.set_portval=function(port){ if(port==undefined) port=""; this.portval=((parseInt(port)!=80)?port:"").toString(); }
+	this.get_path=function(){ // ***
+		if(this.path.indexOf("/../")!=-1) this.path=this.path.replace(/(?:\/[^\/]+){0,1}\/\.\.\//g,"/");
+		if(this.path.indexOf("/./")!=-1) while((path=this.path.replace("/./","/")) && path!=this.path) this.path=path;
+		return this.path;
+	}
+	this.set_path=function(path){ if(path==undefined) path="/"; this.path=path; }
+	this.get_file=function(){ return this.file; }
+	this.set_file=function(file){ if(file==undefined) file=""; this.file=file; }
+	this.get_query=function(){ return this.query; }
+	this.set_query=function(query){ if(query==undefined) query=""; this.query=query; }
+	this.get_label=function(){ return this.label; }
+	this.set_label=function(label){ if(label==undefined) label=""; this.label=label; }
 
-function filepath(url){
-	if(url==null || url==undefined) return;
-	if(protostrip(url)!=url || url.substring(0,1)=="/"){
-		url=protostrip(url);
-		if(url==null || url==undefined) return;
-		if(url.replace(/^([^\?\#]*).*$/i,"\$1").split("/").length>=2) url=url.replace(/^[^\/]*\/([^\?\#]*)/i,"\$1");
-		else url="";
-		url="/"+url;
+	this.get_url=function(){
+		if(this.locked) return this.url;
+		return this.get_proto()+"://"+
+		       (this.get_userpass()==""?"":this.get_userpass()+"@")+
+		       this.get_servername()+
+		       (parseInt(this.get_portval())==80?"":":"+parseInt(this.get_portval()))+
+		       this.get_path()+this.get_file()+
+		       (this.get_query()==""?"":"?"+this.get_query())+
+		       (this.get_label()==""?"":"#"+this.get_label())
+		;
+	}
+
+	this.surrogafy=function(){
+		url=this.get_url();
+		if(this.locked || this.get_proto()+this.get_fieldreq(2,this.get_userpass())+this.get_servername()+this.get_path()+this.get_file()==proxy_this_script) return url;
+		label=this.get_label();
+		this.set_label();
+		if(proxy_encode_urls && !this.locked) url=proxenc(url);
+		url=proxy_this_script+"?<?=COOK_PREF?>_<?=URLVAR?>="+(!proxy_encode_urls?escape(url):url);
+		this.set_label(label);
 		return url;
 	}
-	else{
-		curr_url_path=filepath(proxy_current_url);
-		if(curr_url_path.replace("/","")!=curr_url_path){
-			curr_url_path=curr_url_path.replace(/^(.*\/)[^\/]*$/i,"\$1");
-			return curr_url_path+url;
+
+	//this.url=preg_replace("/&#([0-9]+);/e","chr(\\1)" // parse like PHP does for &#num; HTML entities?
+	this.url=trim(url.replace("&amp;","&").replace("\r","").replace("\n",""));
+	this.topurl=topurl;
+	this.locked=(url.match(/^(?:(?:javascript|mailto|about):|~|%7e)/i)?true:false); //*
+
+	if(this.locked) return;
+
+	urlwasvalid=true;
+	if(!this.url.match(URLREG)){
+		urlwasvalid=false;
+		if(this.topurl==undefined) this.url="http://"+((this.url.charAt(0)==":" || this.url.charAt(0)=="/")?this.url.substring(1):this.url)+(this.url.indexOf("/")!=-1?"":"/");
+		else{
+			newurl=this.topurl.get_proto()+"://"+this.get_fieldreq(2,this.topurl.get_userpass())+this.topurl.get_servername()+((this.topurl.get_portval()!=80 && (this.topurl.get_proto()=="https"?this.topurl.get_portval()!=443:true))?":"+this.topurl.get_portval():"");
+			if(this.url.substring(0,1)!="/") newurl+=this.topurl.get_path();
+			this.url=newurl+this.url;
 		}
-		else return "/"+url;
 	}
+
+	this.set_proto((urlwasvalid || this.topurl==undefined?this.url.replace(/^([^:]+).*$/,"\$1"):this.topurl.get_proto()));
+	this.set_userpass(this.url.replace(URLREG,"$2"));
+	this.set_servername(this.url.replace(URLREG,"$3"));
+	this.set_portval(this.url.replace(URLREG,"$4"));
+	this.set_path(this.url.replace(URLREG,"$5"));
+	this.set_file(this.url.replace(URLREG,"$6"));
+	this.set_query(this.url.replace(URLREG,"$7"));
+	this.set_label(this.url.replace(URLREG,"$8"));
+
+	//if(!this.locked && !this.url.match(URLREG)) havok(7,this.url); //*
+}
+
+function surrogafy_url(url,topurl,addproxy){
+	if(addproxy==undefined) addproxy=true;
+	urlquote="";
+	if((url.substring(0,1)=="\"" || url.substring(0,1)=="'") && url.substring(0,1)==url.substring(url.length-1,url.length)){
+		urlquote=url.substring(0,1);
+		url=url.substring(1,url.length-1);
+	}
+	if(topurl==undefined) topurl=curr_urlobj;
+	urlobj=new aurl(url,topurl);
+	new_url=(addproxy?urlobj.surrogafy():urlobj.get_url());
+	if(urlquote!="") new_url=urlquote+new_url+urlquote;
+	return new_url;
 }
 
 <?=$js_proxenc?>
@@ -414,44 +468,12 @@ function preg_match_all(regexpstr,string){
 	return matcharr;
 }
 
-function surrogafy_url(){
-	addproxy=true;
-	switch(arguments.length){
-		case 0: return;
-		case 2: addproxy=arguments[1];
-		case 1: url=arguments[0];
-	}
-	if(url==undefined || url.length==0) return;
-	ourl=url;
-	resturl=null;
-	urlquote=null;
-	if((ourl.substring(0,1)=="\"" || ourl.substring(0,1)=="'") && ourl.substring(0,1)==ourl.substring(ourl.length-1,ourl.length)){
-		urlquote=ourl.substring(0,1);
-		ourl=ourl.substring(1,ourl.length-1);
-		url=ourl;
-	}
-	url=url.replace(/^url\(([^)]+)\).*$/i,"\$1");
-	if(url!=ourl) resturl=ourl.replace(/^url\([^)]+(\).*)$/i,"\$1");
-	if(url.substring(0,proxy_this_script.length)==proxy_this_script || url.substring(0,11)=="javascript:") return url;
-	if(url.substring(0,1)=="#") return url;
-	new_url=url;
-	if(new_url.substring(0,2)=="//") new_url=get_proto(new_url,proxy_current_url)+":"+new_url;
-	if(!check_proto(new_url)) new_url=get_proto(new_url,proxy_current_url)+"://"+proxy_location_hostname+filepath(url);
-	if(proxy_encode_urls) new_url=proxenc(new_url);
-	else new_url=encodeURIComponent(new_url);
-	if(addproxy) new_url=proxy_this_script+"?<?=COOK_PREF?>_"+(proxy_encode_urls?"e":"")+"url="+new_url;
-	url=url.replace(/^url\(([^)]*)\)$/i,"\$1");
-	if(resturl!=null) new_url="url("+new_url+resturl;
-	if(urlquote!=null) new_url=urlquote+new_url+urlquote;
-	return new_url;
-}
-
 function parse_html(regexp,partoparse,html,addproxy){
 	if(html.match(regexp)){
 		matcharr=preg_match_all(regexp,html);
 		for(i=0;i<matcharr.length;i++){
 			match=matcharr[i];
-			nurl=surrogafy_url(match[partoparse],addproxy);
+			nurl=surrogafy_url(match[partoparse],undefined,addproxy);
 			nhtml=match[0].replace(match[partoparse],nurl);
 			html=html.replace(match[0],nhtml);
 		}
@@ -496,6 +518,8 @@ function proxy_form_encode(form){
 	return false;
 }
 
+// function wrapping
+
 document.write_actual=document.write;
 document.write=function(html){
 	html=parse_all_html(html);
@@ -511,6 +535,7 @@ document.writeln=function(html){
 window.open_actual=window.open;
 window.open=function(url,arg2,arg3){
 	url=surrogafy_url(url);
+	if((url.substring(0,1)=="\"" || url.substring(0,1)=="'") && url.substring(0,1)==url.substring(url.length-1,url.length)) url=url.substring(1,url.length-1);
 	return window.open_actual(url,arg2,arg3);
 }
 
@@ -665,7 +690,7 @@ class aurl{
 			$urlwasvalid=false;
 			if($this->topurl==null) $this->url="http://".(($this->url{0}==":" || $this->url{0}=="/")?substr($this->url,1):$this->url).(strpos($this->url,"/")!==false?"":"/");
 			else{
-				$newurl=$this->topurl->get_proto().$this->get_fieldreq(2,$this->topurl->get_userpass()).$this->topurl->get_servername();
+				$newurl=$this->topurl->get_proto().$this->get_fieldreq(2,$this->topurl->get_userpass()).$this->topurl->get_servername().(($this->topurl->get_portval()!=80 && ($this->topurl->get_proto()=="https"?$this->topurl->get_portval()!=443:true))?":".$this->topurl->get_portval():"");
 				if(substr($this->url,0,1)!="/") $newurl.=$this->topurl->get_path();
 				$this->url=$newurl.$this->url;
 			}
@@ -695,7 +720,7 @@ class aurl{
 	function set_userpass($userpass=""){ $this->userpass=$userpass; }
 	function get_servername(){ return $this->servername; }
 	function set_servername($servername=""){ $this->servername=$servername; }
-	function get_portval(){ return (empty($this->port)?($this->get_proto()=="https"?"443":"80"):$this->port); }
+	function get_portval(){ return (empty($this->portval)?($this->get_proto()=="https"?"443":"80"):$this->portval); }
 	function set_portval($port=""){ $this->portval=strval((intval($port)!=80)?$port:""); }
 	function get_path(){
 		if(strpos($this->path,"/../")!==false) $this->path=preg_replace("/(?:\/[^\/]+){0,1}\/\.\.\//","/",$this->path);
@@ -711,6 +736,7 @@ class aurl{
 	function set_label($label=""){ $this->label=$label; }
 
 	function get_url(){
+		if($this->locked) return $this->url;
 		return $this->get_proto()."://".
 		       ($this->get_userpass()==""?"":$this->get_userpass()."@").
 		       $this->get_servername().
@@ -723,7 +749,7 @@ class aurl{
 
 	function surrogafy(){
 		$url=$this->get_url();
-		if($this->get_proto().$this->get_fieldreq(2,$this->get_userpass()).$this->get_servername().$this->get_path().$this->get_file()==THIS_SCRIPT || $this->locked) return $url;
+		if($this->locked || $this->get_proto().$this->get_fieldreq(2,$this->get_userpass()).$this->get_servername().$this->get_path().$this->get_file()==THIS_SCRIPT) return $url;
 		$label=$this->get_label();
 		$this->set_label();
 		if(ENCODE_URLS && !$this->locked) $url=proxenc($url);
@@ -880,7 +906,7 @@ function get_check($address){
 	return true;
 }
 
-function httpclean($str){ return preg_replace("/([^:-_\.0-9a-z])/e","'%'.strtoupper(dechex(ord(\"\\1\")))",$str); } #*
+function httpclean($str){ return preg_replace("/([^:-_\.0-9a-z])/e","'%'.(strlen(dechex(ord('\\1')))==1?'0':'').strtoupper(dechex(ord('\\1')))",$str); } #*
 
 function getpage($url){
 	global $headers,$out,$post_vars,$proxy_variables,$referer;
@@ -920,7 +946,7 @@ function getpage($url){
 	}
 	get_check($servername);
 
-	$out="{$_SERVER['REQUEST_METHOD']} ".str_replace(" ","%20",$requrl)." HTTP/1.1\r\nHost: ".$urlobj->get_servername()."\r\n";
+	$out="{$_SERVER['REQUEST_METHOD']} ".str_replace(" ","%20",$requrl)." HTTP/1.1\r\nHost: ".$urlobj->get_servername().(($portval!=80 && ($urlobj->get_proto()=="https"?$portval!=443:true))?":$portval":"")."\r\n";
 
 	if($_COOKIE[COOK_PREF."_useragent"]!="-1"){
 		$useragent=$_COOKIE[COOK_PREF."_useragent"];
@@ -968,6 +994,16 @@ function getpage($url){
 	      ($if_none_match!=""?"If-None-Match: $if_none_match\r\n":"").
 	      "\r\n".$post_vars
 	;
+
+	// This part ignores any "SSL: fatal protocol error" errors, and makes sure other errors are still triggered correctly
+	function errorHandle($errno,$errmsg){
+		if($errno<=E_PARSE && ($errno!=E_WARNING || substr($errmsg,strlen($errmsg)-25,25)!="SSL: fatal protocol error")){
+			restore_error_handler();
+			trigger_error($errmsg,$errno<<8);
+			set_error_handler("errorHandle");
+		}
+	}
+	set_error_handler("errorHandle");
 
 	$fp=@fsockopen($servername,$portval,$errno,$errval,5) or havok(6,$servername,$portval);
 	stream_set_timeout($fp,5);
@@ -1023,7 +1059,10 @@ function getpage($url){
 	if(substr($response,0,2)=="30" && $response{2}!="4"){
 		$urlobj=new aurl($url);
 		$redirurl=surrogafy_url(header_value("Location"),$urlobj);
+
 		fclose($fp);
+		restore_error_handler();
+
 		header("Location: $redirurl");
 		exit();
 	}
@@ -1066,7 +1105,8 @@ function getpage($url){
 		}
 	}
 
-	elseif(header_value("Content-Length")!=""){
+	// for
+	/*elseif(header_value("Content-Length")!=""){
 		$conlen=header_value("Content-Length");
 		$body="";
 		for($i=0;$i<$conlen;$i+=$read){
@@ -1075,7 +1115,7 @@ function getpage($url){
 			if($justoutputnow) echo $byte;
 			else $body.=$byte;
 		}
-	}
+	}*/
 
 	else{
 		$body="";
@@ -1088,6 +1128,8 @@ function getpage($url){
 	}
 
 	fclose($fp);
+	restore_error_handler();
+
 	if(header_value("Content-Encoding")=="gzip") $body=gzinflate(substr($body,10));
 	#die("HEADERS: ".$headers."<br /><br />Body: ".$body);
 	if($justoutput){
@@ -1142,7 +1184,16 @@ foreach($getkeys as $getvar){ if(!in_array($getvar,$proxy_variables)){ $curr_url
 
 $post_vars="";
 $postkeys=array_keys($_POST);
-foreach($postkeys as $postkey){ if(!in_array($postkey,$proxy_variables)){ $post_vars.=($post_vars!=""?"&":"")."$postkey=".httpclean(urldecode($_POST[$postkey])); } }
+foreach($postkeys as $postkey){
+	if(!in_array($postkey,$proxy_variables)){
+		if(!is_array($_POST[$postkey]))
+			$post_vars.=($post_vars!=""?"&":"").httpclean(stripslashes(urldecode($postkey)))."=".httpclean(stripslashes(urldecode($_POST[$postkey])));
+		else{
+			foreach($_POST[$postkey] as $postval)
+				$post_vars.=($post_vars!=""?"&":"").httpclean(stripslashes(urldecode($postkey)))."%5B%5D=".httpclean(stripslashes(urldecode($postval)));
+		}
+	}
+}
 
 # end #
 
@@ -1258,7 +1309,7 @@ if(CONTENT_TYPE=="text/html"){
 # Insert the code's headers/Javascript #
 	$urlobj=new aurl($curr_url);
 	$big_headers="<meta name=\"robots\" content=\"noindex, nofollow\" />".
-			"<link rel=\"icon\" href=\"".surrogafy_url("http://".$urlobj->get_servername()."/favicon.ico")."\" />".
+			"<link rel=\"icon\" href=\"".surrogafy_url($urlobj->get_proto()."://".$urlobj->get_servername()."/favicon.ico")."\" />".
 			(empty($_COOKIE[COOK_PREF.'_remove_scripts'])?
 				"<script type=\"text/javascript\" src=\"".THIS_SCRIPT."?js_funcs\"></script>".
 				"<script type=\"text/javascript\" src=\"".THIS_SCRIPT."?js_regexps\"></script>".
@@ -1267,8 +1318,10 @@ if(CONTENT_TYPE=="text/html"){
 				"proxy_this_script=\"".THIS_SCRIPT."\";".
 				"proxy_current_url=\"".str_replace("\"","\\\"",$curr_url)."\";".
 				"proxy_location_hostname=\"".str_replace("\"","\\\"",$urlobj->get_servername())."\";".
+				"proxy_location_port=\"".str_replace("\"","\\\"",$urlobj->get_portval())."\";".
 				"proxy_encode_urls=".(ENCODE_URLS?"true":"false").";".
 				"proxy_form_button=null;".
+				"curr_urlobj=new aurl(proxy_current_url);".
 				//"//-->".
 				"</script>"
 			:"")
