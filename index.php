@@ -1,7 +1,7 @@
 <?php
 
 #
-# Surrogafier v0.9.0b
+# Surrogafier v0.9.1b
 #
 # Author: Brad Cable
 # Email: brad@bcable.net
@@ -87,7 +87,7 @@ if(get_magic_quotes_gpc()){
 	$_COOKIE=stripslashes_recurse($_COOKIE);
 }
 
-define('VERSION','0.9.0b');
+define('VERSION','0.9.1b');
 define('THIS_SCRIPT',PROTO."://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}");
 define('SIMPLE_MODE',DEFAULT_SIMPLE || FORCE_SIMPLE);
 
@@ -140,8 +140,8 @@ if(FIRST_LOAD){
 
 $postandget=array_merge($_GET,$_POST);
 define('ENCRYPT_URLS',(empty($postandget[COOK_PREF.'_set_values'])?!empty($_COOKIE[COOK_PREF.'_encrypt_urls']):!empty($postandget[COOK_PREF.'_encrypt_urls'])));
-define('URL_FORM',!empty($_COOKIE[COOK_PREF.'_url_form']) || !empty($postandget[COOK_PREF.'_url_form']));
-define('PAGE_FRAMED',!empty($_GET[COOK_PREF.'_framed']));
+define('URL_FORM',(empty($postandget[COOK_PREF.'_set_values'])?!empty($_COOKIE[COOK_PREF.'_url_form']):!empty($postandget[COOK_PREF.'_url_form'])));
+define('PAGE_FRAMED',(!empty($_GET[COOK_PREF.'_framed']) || $_SERVER['QUERY_STRING']=='js_regexps_framed'));
 #define('URLVAR',(ENCRYPT_URLS?'e':null).'url');
 
 function my_base64_decode($string){ return base64_decode(str_replace(' ','+',urldecode($string))); }
@@ -266,7 +266,7 @@ $ipregexp='/^((?:[0-2]{0,2}[0-9]{1,2}\.){3}[0-2]{0,2}[0-9]{1,2})\:([0-9]{1,5})$/
 <title>Surrogafier</title>
 <meta name="robots" content="index, nofollow" />
 <style>
-	body{font-family: bitstream vera sans, arial}
+	body{font-family: bitstream vera sans, trebuchet ms}
 	input{border: 1px solid #000000}
 	select{border: 1px solid #000000}
 	a{color: #000000}
@@ -398,7 +398,7 @@ if(!empty($_GET[COOK_PREF.'_frame']) && !empty($postandget[COOK_PREF])){ ?>
 <html>
 <head>
 <style>
-	body{margin: 0px; padding: 0px; font-size: 12px; overflow: hidden}
+	body{font-family: bitstream vera sans, trebuchet ms; margin: 0px; padding: 0px; font-size: 12px; overflow: hidden}
 	input{border: 1px solid #000000}
 	td{font-size: 12px}
 	a{text-decoration: none; color: #000000}
@@ -428,6 +428,7 @@ if(!empty($_GET[COOK_PREF.'_frame']) && !empty($postandget[COOK_PREF])){ ?>
 <?php exit(); }
 
 #define('AURL_LOCK_REGEXP','(?:(?:javascript|mailto|about):|~|%7e)');
+define('FRAME_LOCK_REGEXP','(?:(?:javascript|mailto|about):)');
 define('AURL_LOCK_REGEXP','(?:(?:javascript|mailto|about):|'.str_replace(array('/','.'),array('\/','\.'),addslashes(THIS_SCRIPT)).')');
 
 ## JAVASCRIPT FUNCS ##
@@ -766,7 +767,7 @@ $regexp_arrays=array(
 		array(2,1,"/ name=\"".COOK_PREF."\" value{$anyspace}={$anyspace}{$htmlreg} \/>/i",1,false),
 		array(2,1,"/<[a-z][^>]*{$plusspace}{$htmlattrs}{$anyspace}={$anyspace}{$htmlreg}/i",2),
 		array(2,2,"/<script[^>]*?{$plusspace}src{$anyspace}={$anyspace}([\"']){$anyspace}(.*?[^\\\\])\\1[^>]*>{$anyspace}<\/script>/i",2),
-		(URL_FORM && PAGE_FRAMED?array(1,1,"/(<a{$plusspace}[^>]*href{$anyspace}={$anyspace})(?:(?!".AURL_LOCK_REGEXP.")({$htmlnoquot})|(\")(?!".AURL_LOCK_REGEXP.')([^"]+)"|(\')(?!'.AURL_LOCK_REGEXP.')([^\']+)\')/i','\1\2\3\4\5\6&'.COOK_PREF.'_frame=1\3\5'):null)
+		(URL_FORM && PAGE_FRAMED?array(1,1,"/(<a{$plusspace}[^>]*href{$anyspace}={$anyspace})(?:(?!".FRAME_LOCK_REGEXP.")({$htmlnoquot})|(\")(?!".FRAME_LOCK_REGEXP.')([^"]+)"|(\')(?!'.FRAME_LOCK_REGEXP.')([^\']+)\')/i','\1\2\3\4\5\6&'.COOK_PREF.'_frame=1\3\5'):null)
 	),
 
 	'text/css' => array(
@@ -780,7 +781,7 @@ $regexp_arrays=array(
 );
 
 ## JAVASCRIPT REGEXPS ##
-if($_SERVER['QUERY_STRING']=='js_regexps'){ ?>//<script>
+if($_SERVER['QUERY_STRING']=='js_regexps' || $_SERVER['QUERY_STRING']=='js_regexps_framed'){ ?>//<script>
 <?php echo(convertarray_to_javascript().((!empty($_COOKIE[COOK_PREF.'_remove_objects']))?'regexp_arrays["text/html"].push(Array(1,/<[\\\\/]?(embed|param|object)[^>]*>/ig,""));':null)); ?>
 //</script><?php exit(); }
 ## END JAVASCRIPT REGEXPS ##
@@ -969,7 +970,7 @@ function havok($errorno,$arg1=null,$arg2=null,$arg3=null){
 	}
 	$ed.="\n<br /><br />\nURL:&nbsp;{$url}";
 ?>
-<div style="font-family: Bitstream Vera Sans, Arial"><div style="border: 3px solid #FFFFFF; padding: 2px">
+<div style="font-family: bitstream vera sans, trebuchet ms"><div style="border: 3px solid #FFFFFF; padding: 2px">
 	<div style="float: left; border: 1px solid #602020; padding: 1px; background-color: #FFFFFF">
 	<div style="float: left; background-color: #801010; color: #FFFFFF; font-weight: bold; font-size: 54px; padding: 2px; padding-left: 12px; padding-right: 12px">!</div>
 	</div>
@@ -1431,7 +1432,7 @@ if(CONTENT_TYPE=='text/html'){
 			'<link rel="icon" href="'.surrogafy_url($urlobj->get_proto().'://'.($urlobj->get_servername()).'/favicon.ico').'" />'.
 			(empty($_COOKIE[COOK_PREF.'_remove_scripts'])?
 				'<script type="text/javascript" src="'.THIS_SCRIPT.'?js_funcs"></script>'.
-				'<script type="text/javascript" src="'.THIS_SCRIPT.'?js_regexps"></script>'.
+				'<script type="text/javascript" src="'.THIS_SCRIPT.'?js_regexps'.(PAGE_FRAMED?'_framed':null).'"></script>'.
 				'<script language="javascript">'.
 				//'<!--'.
 				'document.proxy_current_url=proxy_current_url="'.str_replace('"','\\"',$urlobj->get_url()).'";'.
