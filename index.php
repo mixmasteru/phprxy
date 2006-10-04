@@ -1,7 +1,7 @@
 <?php
 
 #
-# Surrogafier v0.9.2b
+# Surrogafier v0.9.3b
 #
 # Author: Brad Cable
 # Email: brad@bcable.net
@@ -12,9 +12,6 @@
 
 
 ## CONFIG ##
-
-# Time limit for a single request and parse. [30]
-define('TIME_LIMIT',30);
 
 # Default to simple mode when the page is loaded. [false]
 define('DEFAULT_SIMPLE',false);
@@ -48,6 +45,11 @@ define('DEFAULT_ENCRYPT_COOKS',false);
 # Protocol that proxy is running on. [http]
 define('PROTO','http');
 
+# Time limit in seconds for a single request and parse. [30]
+define('TIME_LIMIT',30);
+# Time limit in minutes for a DNS entry to be kept in the cache. [5]
+define('DNS_CACHE_EXPIRE',10);
+
 /*/ Address Blocking Notes \*\
 
 Formats for address blocking are as follows:
@@ -58,7 +60,7 @@ Formats for address blocking are as follows:
 
 \*\ End Address Blocking Notes /*/
 
-$blocked_addresses=array('10.0.0.0/24','172.0.0.0/24','192.0.0.0/24','127.0.0.0/24');
+$blocked_addresses=array('10.0.0.0/24','172.0.0.0/24','192.168.0.0/16','127.0.0.0/24');
 
 ## END CONFIG ##
 
@@ -87,7 +89,7 @@ if(get_magic_quotes_gpc()){
 	$_COOKIE=stripslashes_recurse($_COOKIE);
 }
 
-define('VERSION','0.9.2b');
+define('VERSION','0.9.3b');
 define('THIS_SCRIPT',PROTO."://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}");
 define('SIMPLE_MODE',DEFAULT_SIMPLE || FORCE_SIMPLE);
 
@@ -630,7 +632,7 @@ function proxy_form_encrypt(form){
 }
 
 function setParentURL(url){
-	if(top_<?php echo(COOK_PREF); ?>!=window){
+	if(top_<?php echo(COOK_PREF); ?>!=null && top_<?php echo(COOK_PREF); ?>!=window){
 		top_<?php echo(COOK_PREF); ?>.document.getElementById('url').value=url;
 		top_<?php echo(COOK_PREF); ?>.document.getElementById('proxy_link').href=surrogafy_url(url)+"&force_main=1";
 	}
@@ -749,7 +751,7 @@ $quoteseg='(?:(?:"(?:(?:[^"]|[\\\\]")*?)")|(?:\'(?:(?:[^\']|[\\\\]\')*?)\')';
 $htmlattrs='(data|href|src|background|pluginspage|codebase)';
 $jsvarsect='[a-zA-Z0-9\._\[\]\+-]+';
 #$notjsvarsect='[^a-zA-Z0-9\._\[\]\+-]';
-$notjsvarsect='[^a-zA-Z0-9\._\[\]\+-\/]';
+$notjsvarsect='[^a-zA-Z0-9\._\[\]\+\/\-]';
 $jsobjsect="{$jsvarsect}(?:\((?:{$quoteseg}|{$jsvarsect}))\))?";
 $jsvarobj="{$jsobjsect}(?:\.{$jsobjsect})*";
 #$jsvarobj='(?:[a-zA-Z0-9\._\(\)\[\]\+\-]+)';
@@ -760,8 +762,10 @@ $htmlnoquot='(?:[^"\'\\\\][^> ]*)';
 $htmlreg="({$quoteseg}|{$htmlnoquot}))";
 
 $js_regexp_arrays=array(
-	array(1,2,"/({$jsvarobj})\.({$jsattrs}{$anyspace}=(?:(?:{$anyspace}{$jsvarobj}{$anyspace}=)*){$anyspace})({$jsquotereg}(?:\+{$jsquotereg})*){$jsend}/i",'proxy_setAttribute(\1,/\3/,\4)'),
+	array(1,2,"/({$jsvarobj})\.({$jsattrs}{$anyspace}=(?:(?:{$anyspace}{$jsvarobj}{$anyspace}=)*){$anyspace})({$jsquotereg}(?:\+{$jsquotereg})*){$jsend}/i",'proxy_setAttribute(\1=,/\3/,\4)'),
 	array(1,2,"/({$notjsvarsect}){$jsrealpage}(?!{$anyspace}=)([^a-z0-9=])/i",'\1proxy_current_url\3'),
+	array(1,2,"/((?:top|parent)\.){$jsrealpage}(?!{$anyspace}=)([^a-z0-9=])/i",'\1proxy_current_url\4'),
+	array(1,2,'/(proxy_setAttribute\([^,]+)=,/i','\1,'),
 	array(1,2,"/([^a-z]){$jslochost}([^a-z])/i",'\1proxy_location_hostname\3'),
 	array(1,2,"/([^a-z]{$jsmethods}{$anyspace}\()([^)]*)\)/i",'\1surrogafy_url(\3))'),
 	#array(1,2,"/(\.{$jsattrs}{$anyspace}=(?:(?:{$anyspace}{$jsvarobj}{$anyspace}=)*){$anyspace})({$jsquotereg}(?:\+{$jsquotereg})*){$jsend}/i",'\1surrogafy_url(\3)'),
@@ -771,8 +775,6 @@ $js_regexp_arrays=array(
 	array(1,2,"/(([^ {>\t\r\n=;]+){$anyspace}=(?:{$anyspace}new{$anyspace}|{$anyspace})XMLHttpRequest(?:\(\);|;))/i","\\1\n\\2._realopen=\\2.open;\n\\2.open=proxy_XMLHttpRequest_open;"),
 	array(1,2,"/(([^ {>\t\r\n=;]+){$anyspace}=(?:{$anyspace}new{$anyspace}|{$anyspace})ActiveXObject{$anyspace}\({$anyspace}([\"'])[a-z0-9]*\.XMLHTTP\\3{$anyspace}\)[;]{0,1})/i","\\1\n\\2._realopen=\\2.open;\n\\2.open=proxy_XMLHttpRequest_open;"),
 	(ENCRYPT_URLS?array(1,2,"/((?:[^\) \{\}]*(?:\)\.{0,1}))+)(\.submit{$anyspace}\(\)){$jsend}/i",'void((\1.method=="post"?null:\1\2));'):null),
-	array(1,2,'/(var _53=[^;]*;)/','\1alert("ja");alert(_53);'),
-	array(1,2,'/^(Toolbox\.NextHtmlId=)/','alert(parent.location.href);alert(top.location.href);'),
 );
 
 $regexp_arrays=array(
@@ -1017,7 +1019,14 @@ function havok($errorno,$arg1=null,$arg2=null,$arg3=null){
 		<div style="padding: 6px"><?php echo($ed); ?></div>
 	</div>
 </div></div>
-<?php exit(); }
+<?php finish(); }
+
+function finish(){
+	global $dns_cache_array;
+	# save DNS Cache before exiting
+	$_SESSION['DNS_CACHE_ARRAY']=$dns_cache_array;
+	exit();
+}
 
 function ipbitter($ipaddr){
 	$ipsplit=explode('.',$ipaddr);
@@ -1044,23 +1053,36 @@ function ip_check($ip,$mask=false){
 	return preg_match("/^(?:$ipseg\.){3}$ipseg".($mask?'\/[0-9]{1,2}':null).'$/i',$ip); #*
 }
 
+function gethostbyname_cacheit($address){
+	global $dns_cache_array;
+	$ipaddr=gethostbyname($address);
+	$dns_cache_array[$address]=array('time'=>time(), 'ipaddr'=>$ipaddr);
+	return $ipaddr;
+}
+
+function gethostbyname_cached($address){
+	global $dns_cache_array;
+	if(isset($dns_cache_array[$address])) return $dns_cache_array[$address]['ipaddr'];
+	return gethostbyname_cacheit($address);
+}
+
 function get_check($address){
 	global $blocked_addresses;
 	if(strrchr($address,'/')) $address=substr(strrchr($address,'/'),1);
 	$ipc=ip_check($address);
-	$addressip=(ip_check($address)?$address:gethostbyname($address));
+	$addressip=(ip_check($address)?$address:gethostbyname_cached($address));
 	if(!ip_check($addressip)) havok(1,$address,$addressip);
 	foreach($blocked_addresses as $badd){
 		if(!$ipc) if(strlen($badd)<=strlen($address) && substr($address,strlen($address)-strlen($badd),strlen($badd))==$badd) havok(5);
 		if($badd==$addressip) havok(2,$address,$addressip);
 		elseif(ip_check($badd,true)){ if(ipcompare($badd,$addressip)) havok(2,$address,$addressip); }
 		else{
-			$baddip=gethostbyname($badd);
+			$baddip=gethostbyname_cached($badd);
 			if(empty($baddip)) havok(4);
 			if($baddip==$addressip) havok(2,$address,$addressip);
 		}
 	}
-	return true;
+	return $addressip;
 }
 
 function httpclean($str){ return preg_replace('/([^":-_\.0-9a-z])/e','\'%\'.(strlen(dechex(ord(\'\1\')))==1?\'0\':null).strtoupper(dechex(ord(\'\1\')))',$str); } #*
@@ -1101,7 +1123,7 @@ function getpage($url){
 		$servername=($urlobj->get_proto()=='ssl' || $urlobj->get_proto()=='https'?'ssl://':null).$urlobj->get_servername();
 		$portval=$urlobj->get_portval();
 	}
-	get_check($servername);
+	$ipaddress=get_check($servername);
 
 	$out="{$_SERVER['REQUEST_METHOD']} ".str_replace(' ','%20',$requrl)." HTTP/1.1\r\nHost: ".$urlobj->get_servername().(($portval!=80 && ($urlobj->get_proto()=='https'?$portval!=443:true))?":$portval":null)."\r\n";
 
@@ -1162,7 +1184,7 @@ function getpage($url){
 	}
 	set_error_handler('errorHandle');
 
-	$fp=@fsockopen($servername,$portval,$errno,$errval,5) or havok(6,$servername,$portval);
+	$fp=@fsockopen($ipaddress,$portval,$errno,$errval,5) or havok(6,$servername,$portval);
 	stream_set_timeout($fp,5);
 	$ub=stream_get_meta_data($fp);
 	$ub=$ub['unread_bytes'];
@@ -1222,7 +1244,7 @@ function getpage($url){
 		restore_error_handler();
 
 		header("Location: $redirurl");
-		exit();
+		finish();
 	}
 
 	$oheaders=preg_replace("/[\r\n](?:Location|Content-Length|Content-Encoding|Set-Cookie|Transfer-Encoding|Connection|Keep-Alive|Pragma|Cache-Control|Expires)\: .*/i",null,$headers); #*
@@ -1292,7 +1314,7 @@ function getpage($url){
 	#die('REQ: '.$out.'<br /><br />HEADERS: '.$headers.'<br /><br />Body: '.$body);
 	if($justoutput){
 		if(!$justoutputnow) echo $body;
-		exit();
+		finish();
 	}
 	return array($body,$url,$cook_prefix);
 
@@ -1302,7 +1324,7 @@ function getpage($url){
 ## BEGIN PROXY CODE #
 
 # Deal with cookies for proxy #
-global $proxy_variables,$proxy_varblacklist,$post_vars,$cookies,$curr_url,$curr_urlobj,$referer,$blocked_addresses;
+global $proxy_variables,$proxy_varblacklist,$post_vars,$cookies,$curr_url,$curr_urlobj,$referer,$blocked_addresses,$dns_cache_array;
 
 $curr_url=proxdec($postandget[COOK_PREF]);
 #$curr_url=urldecode($postandget[COOK_PREF]);
@@ -1326,7 +1348,7 @@ if($postandget[COOK_PREF.'_set_values']){
 	$theurl=framify_url(surrogafy_url(proxdec($postandget[COOK_PREF])),true);
 	#$theurl=surrogafy_url((ENCRYPT_URLS?proxdec($theurl):$theurl),null);
 	header("Location: $theurl");
-	exit();
+	finish();
 }
 # end #
 
@@ -1360,6 +1382,15 @@ foreach($postkeys as $postkey){
 }
 # end #
 
+# DNS cache
+if(!isset($_SESSION['DNS_CACHE_ARRAY'])) $dns_cache_array=array();
+else $dns_cache_array=$_SESSION['DNS_CACHE_ARRAY'];
+
+# purge old records from DNS cache
+while(list($key,$entry)=each($dns_cache_array)){
+	if($entry['time']<time()-(DNS_CACHE_EXPIRE*60)) unset($dns_cache_array[$key]);
+}
+
 # Get the page #
 $pagestuff=getpage($curr_url);
 $body=$pagestuff[0];
@@ -1367,7 +1398,7 @@ $body=$pagestuff[0];
 # For AJAX, some things quote the entire HTML of a page... this makes sure it doesn't parse inside of that
 if(preg_match("/^[\t\r\n ]*([\"']).*\\1[\t\r\n ]*$/i",$body)>0){ #*
 	echo $body;
-	exit();
+	finish();
 }
 
 $curr_url=$pagestuff[1];
@@ -1514,4 +1545,4 @@ elseif(CONTENT_TYPE=='application/x-javascript' || CONTENT_TYPE=='text/javascrip
 echo $body;
 //echo "$parsetime seconds to parse";
 
-## THE END ## ?>
+finish(); ## THE END ## ?>
