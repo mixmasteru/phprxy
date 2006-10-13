@@ -1,7 +1,7 @@
 <?php
 
 #
-# Surrogafier v0.9.3b
+# Surrogafier v0.9.4b
 #
 # Author: Brad Cable
 # Email: brad@bcable.net
@@ -89,7 +89,7 @@ if(get_magic_quotes_gpc()){
 	$_COOKIE=stripslashes_recurse($_COOKIE);
 }
 
-define('VERSION','0.9.3b');
+define('VERSION','0.9.4b');
 define('THIS_SCRIPT',PROTO."://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}");
 define('SIMPLE_MODE',DEFAULT_SIMPLE || FORCE_SIMPLE);
 
@@ -140,11 +140,16 @@ if(FIRST_LOAD){
 
 # end #
 
+# SETUP #
+global $postandget,$proxy_variables,$proxy_varblacklist,$post_vars,$cookies,$curr_url,$curr_urlobj,$referer,$blocked_addresses,$dns_cache_array;
 $postandget=array_merge($_GET,$_POST);
+$curr_url=proxdec($postandget[COOK_PREF]);
+
 define('ENCRYPT_URLS',(empty($postandget[COOK_PREF.'_set_values'])?!empty($_COOKIE[COOK_PREF.'_encrypt_urls']):!empty($postandget[COOK_PREF.'_encrypt_urls'])));
 define('URL_FORM',(empty($postandget[COOK_PREF.'_set_values'])?!empty($_COOKIE[COOK_PREF.'_url_form']):!empty($postandget[COOK_PREF.'_url_form'])));
 define('PAGE_FRAMED',(!empty($_GET[COOK_PREF.'_framed']) || $_SERVER['QUERY_STRING']=='js_regexps_framed' || $_SERVER['QUERY_STRING']=='js_funcs_framed'));
 #define('URLVAR',(ENCRYPT_URLS?'e':null).'url');
+# END SETUP #
 
 function my_base64_decode($string){ return base64_decode(str_replace(' ','+',urldecode($string))); }
 
@@ -169,56 +174,60 @@ function proxdec($url){
 
 $js_proxenc='
 
-function expon(a,b){
-	if(b==0) return 1;
-	num=a; b--;
-	while(b>0){ num*=a; b--; }
-	return num;
-}
+function '.COOK_PREF.'_proxenc_class(){
+	this.expon=function(a,b){
+		if(b==0) return 1;
+		num=a; b--;
+		while(b>0){ num*=a; b--; }
+		return num;
+	}
 
-function b64e(string){
-	if(window.btoa) return btoa(string);
-	binrep="";
-	for(i=0;i<string.length;i++){
-		charnum=string.charCodeAt(i);
-		for(j=7;j>=0;j--){
-			if(charnum>=expon(2,j)){
-				binrep+="1"; charnum-=expon(2,j);
+	this.b64e=function(string){
+		if(window.btoa) return btoa(string);
+		binrep="";
+		for(i=0;i<string.length;i++){
+			charnum=string.charCodeAt(i);
+			for(j=7;j>=0;j--){
+				if(charnum>=this.expon(2,j)){
+					binrep+="1"; charnum-=this.expon(2,j);
+				}
+				else binrep+="0";
 			}
-			else binrep+="0";
 		}
+		while(binrep.length%6) binrep+="00";
+		encstr="";
+		for(i=1;i*6<=binrep.length;i++){
+			charbin=binrep.substring((i-1)*6,i*6);
+			charnum=0;
+			for(j=0;j<6;j++) if(charbin.substring(j,j+1)=="1") charnum+=this.expon(2,5-j);
+			if(charnum<=25) charnum+=65;
+			else if(charnum<=51) charnum+=71;
+			else if(charnum<=61) charnum-=4;
+			else if(charnum==62) charnum=43;
+			else if(charnum==63) charnum=47;
+			encstr+=String.fromCharCode(charnum);
+		}
+		while(encstr.length%8) encstr+="=";
+		return encstr;
 	}
-	while(binrep.length%6) binrep+="00";
-	encstr="";
-	for(i=1;i*6<=binrep.length;i++){
-		charbin=binrep.substring((i-1)*6,i*6);
-		charnum=0;
-		for(j=0;j<6;j++) if(charbin.substring(j,j+1)=="1") charnum+=expon(2,5-j);
-		if(charnum<=25) charnum+=65;
-		else if(charnum<=51) charnum+=71;
-		else if(charnum<=61) charnum-=4;
-		else if(charnum==62) charnum=43;
-		else if(charnum==63) charnum=47;
-		encstr+=String.fromCharCode(charnum);
+
+	this.proxenc=function(url){
+		if(url.substring(0,1)=="~" || url.substring(0,3).toLowerCase()=="%7e") return url;
+		url=encodeURIComponent(url);
+		new_url="";
+		sess_pref="'.SESS_PREF.'";
+		for(i=0;i<url.length;i++){
+			char=url.charCodeAt(i);
+			char+=sess_pref.charCodeAt(i%sess_pref.length);
+			while(char>126) char-=94;
+			new_url+=String.fromCharCode(char);
+		}
+		return "~"+encodeURIComponent(this.b64e(new_url));
+		//return "~"+this.b64e(new_url);
 	}
-	while(encstr.length%8) encstr+="=";
-	return encstr;
 }
 
-function proxenc(url){
-	if(url.substring(0,1)=="~" || url.substring(0,3).toLowerCase()=="%7e") return url;
-	url=encodeURIComponent(url);
-	new_url="";
-	sess_pref="'.SESS_PREF.'";
-	for(i=0;i<url.length;i++){
-		char=url.charCodeAt(i);
-		char+=sess_pref.charCodeAt(i%sess_pref.length);
-		while(char>126) char-=94;
-		new_url+=String.fromCharCode(char);
-	}
-	return "~"+encodeURIComponent(b64e(new_url));
-	//return "~"+b64e(new_url);
-}';
+'.COOK_PREF.'_pe=new '.COOK_PREF.'_proxenc_class();';
 
 
 if(!empty($postandget['force_main']) || (substr($_SERVER['QUERY_STRING'],0,3)!='js_' && empty($postandget[COOK_PREF]))){
@@ -321,7 +330,7 @@ function submit_code(){
 	document.forms[0].<?php echo(COOK_PREF); ?>.disabled=false;
 	document.forms[0].<?php echo(COOK_PREF); ?>.value=document.getElementById('url').value;
 	if(document.forms[0].<?php echo(COOK_PREF); ?>_encrypt_urls.checked){
-		document.forms[0].<?php echo(COOK_PREF); ?>.value=proxenc(document.forms[0].<?php echo(COOK_PREF); ?>.value);
+		document.forms[0].<?php echo(COOK_PREF); ?>.value=<?php echo(COOK_PREF); ?>_pe.proxenc(document.forms[0].<?php echo(COOK_PREF); ?>.value);
 	}
 	return true;
 }
@@ -436,11 +445,11 @@ define('AURL_LOCK_REGEXP','(?:(?:javascript|mailto|about):|#|'.str_replace(array
 ## JAVASCRIPT FUNCS ##
 if($_SERVER['QUERY_STRING']=='js_funcs' || $_SERVER['QUERY_STRING']=='js_funcs_framed'){ ?>//<script>
 
-function trim(str){ return str.replace(/^\s*([\s\S]*?)\s*$/,"$1"); }
+const <?php echo(COOK_PREF); ?>_URLREG=/^(?:([a-z]*)?(?:\:?\/\/))(?:([^\@\/]*)\@)?([^\/:\?\#\&]*)(?:\:([0-9]+))?(\/[^\&\?\#]*?)?([^\/\?\#\&]*(?:\&[^\?\#]*)?)(?:\?([\s\S]*?))?(?:\#([\s\S]*))?$/i;
 
-const URLREG=/^(?:([a-z]*)?(?:\:?\/\/))(?:([^\@\/]*)\@)?([^\/:\?\#\&]*)(?:\:([0-9]+))?(\/[^\&\?\#]*?)?([^\/\?\#\&]*(?:\&[^\?\#]*)?)(?:\?([\s\S]*?))?(?:\#([\s\S]*))?$/i;
+function <?php echo(COOK_PREF); ?>_aurl(url,topurl){
 
-function aurl(url,topurl){
+	this.trim=function(str){ return str.replace(/^\s*([\s\S]*?)\s*$/,"$1"); }
 
 	this.get_fieldreq=function(fieldno,value){
 		fieldreqs=new Array();
@@ -493,23 +502,23 @@ function aurl(url,topurl){
 
 	this.surrogafy=function(){
 		url=this.get_url();
-		if(this.locked || this.get_proto()+this.get_fieldreq(2,this.get_userpass())+this.get_servername()+this.get_path()+this.get_file()==proxy_this_script) return url;
+		if(this.locked || this.get_proto()+this.get_fieldreq(2,this.get_userpass())+this.get_servername()+this.get_path()+this.get_file()==<?php echo(COOK_PREF); ?>_this_script) return url;
 		label=this.get_label();
 		this.set_label();
-		if(proxy_encrypt_urls && !this.locked) url=proxenc(url);
-		url=proxy_this_script+"?<?php echo(COOK_PREF); ?>="+(!proxy_encrypt_urls?escape(url):url);
+		if(<?php echo(COOK_PREF); ?>_encrypt_urls && !this.locked) url=<?php echo(COOK_PREF); ?>_pe.proxenc(url);
+		url=<?php echo(COOK_PREF); ?>_this_script+"?<?php echo(COOK_PREF); ?>="+(!<?php echo(COOK_PREF); ?>_encrypt_urls?escape(url):url);
 		this.set_label(label);
 		return url;
 	}
 
 	//this.url=preg_replace("/&#([0-9]+);/e","chr(\\1)" // parse like PHP does for &#num; HTML entities?
-	this.url=trim(url.replace("&amp;","&").replace("\r","").replace("\n",""));
+	this.url=this.trim(url.replace("&amp;","&").replace("\r","").replace("\n",""));
 	this.topurl=topurl;
 	this.locked=(url.match(/^<?php echo(AURL_LOCK_REGEXP); ?>/i)?true:false); //*
 
 	if(!this.locked){
 		urlwasvalid=true;
-		if(!this.url.match(URLREG)){
+		if(!this.url.match(<?php echo(COOK_PREF); ?>_URLREG)){
 			urlwasvalid=false;
 			if(this.topurl==undefined) this.url="http://"+((this.url.charAt(0)==":" || this.url.charAt(0)=="/")?this.url.substring(1):this.url)+(this.url.indexOf("/")!=-1?"":"/");
 			else{
@@ -520,19 +529,24 @@ function aurl(url,topurl){
 		}
 
 		this.set_proto((urlwasvalid || this.topurl==undefined?this.url.replace(/^([^:]+).*$/,"\$1"):this.topurl.get_proto()));
-		this.set_userpass(this.url.replace(URLREG,"$2"));
-		this.set_servername(this.url.replace(URLREG,"$3"));
-		this.set_portval(this.url.replace(URLREG,"$4"));
-		this.set_path(this.url.replace(URLREG,"$5"));
-		this.set_file(this.url.replace(URLREG,"$6"));
-		this.set_query(this.url.replace(URLREG,"$7"));
-		this.set_label(this.url.replace(URLREG,"$8"));
+		this.set_userpass(this.url.replace(<?php echo(COOK_PREF); ?>_URLREG,"$2"));
+		this.set_servername(this.url.replace(<?php echo(COOK_PREF); ?>_URLREG,"$3"));
+		this.set_portval(this.url.replace(<?php echo(COOK_PREF); ?>_URLREG,"$4"));
+		this.set_path(this.url.replace(<?php echo(COOK_PREF); ?>_URLREG,"$5"));
+		this.set_file(this.url.replace(<?php echo(COOK_PREF); ?>_URLREG,"$6"));
+		this.set_query(this.url.replace(<?php echo(COOK_PREF); ?>_URLREG,"$7"));
+		this.set_label(this.url.replace(<?php echo(COOK_PREF); ?>_URLREG,"$8"));
 	}
 
 	//if(!this.locked && !this.url.match(URLREG)) havok(7,this.url); //*
 }
 
-function surrogafy_url(url,topurl,addproxy){
+<?php echo($js_proxenc); ?>
+
+// COOK_PREF Object \\
+<?php echo(COOK_PREF); ?>=new Object();
+
+<?php echo(COOK_PREF); ?>.surrogafy_url=function(url,topurl,addproxy){
 	url=url.toString();
 	if(!url.substring) return;
 	if(addproxy==undefined) addproxy=true;
@@ -542,25 +556,23 @@ function surrogafy_url(url,topurl,addproxy){
 		url=url.substring(1,url.length-1);
 	}
 	if(topurl==undefined) topurl=curr_urlobj;
-	urlobj=new aurl(url,topurl);
+	urlobj=new <?php echo(COOK_PREF); ?>_aurl(url,topurl);
 	new_url=(addproxy?urlobj.surrogafy():urlobj.get_url());
 	if(urlquote!="") new_url=urlquote+new_url+urlquote;
 	return new_url;
 }
 
-function surrogafy_url_toobj(url,topurl,addproxy){
+<?php echo(COOK_PREF); ?>.surrogafy_url_toobj=function(url,topurl,addproxy){
 	url=url.toString();
 	if(!url.substring) return;
 	if(addproxy==undefined) addproxy=true;
 	if((url.substring(0,1)=="\"" || url.substring(0,1)=="'") && url.substring(0,1)==url.substring(url.length-1,url.length)) url=url.substring(1,url.length-1);
 	if(topurl==undefined) topurl=curr_urlobj;
-	urlobj=new aurl(url,topurl);
+	urlobj=new <?php echo(COOK_PREF); ?>_aurl(url,topurl);
 	return urlobj;
 }
 
-<?php echo($js_proxenc); ?>
-
-function preg_match_all(regexpstr,string){
+<?php echo(COOK_PREF); ?>.preg_match_all=function(regexpstr,string){
 	matcharr=new Array();
 	regexp=new RegExp(regexpstr);
 	while(true){
@@ -571,20 +583,20 @@ function preg_match_all(regexpstr,string){
 	return matcharr;
 }
 
-function parse_html(regexp,partoparse,html,addproxy){
+<?php echo(COOK_PREF); ?>.parse_html=function(regexp,partoparse,html,addproxy){
 	if(html.match(regexp)){
-		matcharr=preg_match_all(regexp,html);
+		matcharr=this.preg_match_all(regexp,html);
 		newhtml="";
 		for(key in matcharr){
 			/*match=matcharr[i];
-			nurl=surrogafy_url(match[partoparse],undefined,addproxy);
+			nurl=this.surrogafy_url(match[partoparse],undefined,addproxy);
 			nhtml=match[0].replace(match[partoparse],nurl);
 			html=html.replace(match[0],nhtml);*/
 			match=matcharr[key];
 			if(match[partoparse]!=undefined){
 				begin=html.indexOf(match[partoparse]);
 				end=begin+match[partoparse].length;
-				nurl=surrogafy_url(match[partoparse],undefined,addproxy);
+				nurl=this.surrogafy_url(match[partoparse],undefined,addproxy);
 				newhtml+=html.substring(0,begin)+nurl;
 				html=html.substring(end);
 			}
@@ -594,7 +606,7 @@ function parse_html(regexp,partoparse,html,addproxy){
 	return html;
 }
 
-function parse_all_html(){
+<?php echo(COOK_PREF); ?>.parse_all_html=function(){
 	if(arguments[0]==null) return;
 	html=arguments[0].toString();
 	for(key in regexp_arrays){
@@ -607,48 +619,48 @@ function parse_all_html(){
 			else if(regexp_array[0]==2){
 				if(regexp_array.length<4) addproxy=true;
 				else addproxy=false;
-				html=parse_html(regexp_array[1],regexp_array[2],html,addproxy);
+				html=this.parse_html(regexp_array[1],regexp_array[2],html,addproxy);
 			}
 		}
 	}
 	return html;
 }
 
-function proxy_form_encrypt(form){
+<?php echo(COOK_PREF); ?>.form_encrypt=function(form){
 	if(form.method=='post') return true;
-	action=(proxy_encrypt_urls?form.<?php echo(COOK_PREF); ?>.value:form.<?php echo(COOK_PREF); ?>.value);
+	action=(document.<?php echo(COOK_PREF); ?>_encrypt_urls?form.<?php echo(COOK_PREF); ?>.value:form.<?php echo(COOK_PREF); ?>.value);
 	for(i=1;i<form.elements.length;i++){
 		if(form.elements[i].disabled || form.elements[i].name=='' || form.elements[i].value=='' || form.elements[i].type=='reset') continue;
 		if(form.elements[i].type=='submit'){
-			if(form.elements[i].name!=proxy_form_button) continue;
-			proxy_form_button=null;
+			if(form.elements[i].name!=<?php echo(COOK_PREF); ?>_form_button) continue;
+			<?php echo(COOK_PREF); ?>_form_button=null;
 		}
 		if(!action.match(/\?/)) pref="?";
 		else pref="&";
 		action+=pref+form.elements[i].name+"="+form.elements[i].value;
 	}
-	location.href=surrogafy_url(action);
+	location.href=this.surrogafy_url(action);
 	return false;
 }
 
-function setParentURL(url){
+<?php echo(COOK_PREF); ?>.setParentURL=function(url){
 	if(top_<?php echo(COOK_PREF); ?>!=null && top_<?php echo(COOK_PREF); ?>!=window){
 		top_<?php echo(COOK_PREF); ?>.document.getElementById('url').value=url;
-		top_<?php echo(COOK_PREF); ?>.document.getElementById('proxy_link').href=surrogafy_url(url)+"&force_main=1";
+		top_<?php echo(COOK_PREF); ?>.document.getElementById('proxy_link').href=this.surrogafy_url(url)+"&force_main=1";
 	}
 }
 
-function proxy_setAttribute(obj,attr,url){
+<?php echo(COOK_PREF); ?>.setAttribute=function(obj,attr,url){
 	if(typeof(attr)!=typeof("")){
 		attr=attr.toString();
 		attr=attr.substr(1,attr.length-2);
 	}
 
-	proxurl=surrogafy_url(url);
-	if(proxy_url_form){
+	proxurl=this.surrogafy_url(url);
+	if(<?php echo(COOK_PREF); ?>_url_form){
 		prefix="";
 		if(obj==location || attr=="href"){
-			urlobj=surrogafy_url_toobj(url);
+			urlobj=this.surrogafy_url_toobj(url);
 			append="";
 			if(!urlobj.locked) append="&<?php echo(COOK_PREF); ?>_frame=1";
 			top_<?php echo(COOK_PREF); ?>.location.href=proxurl+append;
@@ -668,31 +680,31 @@ document.writeln=function(html){ <?php echo(COOK_PREF); ?>_write_queue+=html+"\n
 document.<?php echo(COOK_PREF); ?>_purge=function(){
 	thehtml=<?php echo(COOK_PREF); ?>_write_queue;
 	if(thehtml=="") return;
-	thehtml=parse_all_html(thehtml);
+	thehtml=<?php echo(COOK_PREF); ?>.parse_all_html(thehtml);
 	<?php echo(COOK_PREF); ?>_write_queue="";
 	document.write_<?php echo(COOK_PREF); ?>(thehtml);
 }
 
 window.open_<?php echo(COOK_PREF); ?>=window.open;
 window.open=function(url,arg2,arg3){
-	url=surrogafy_url(url);
+	url=<?php echo(COOK_PREF); ?>.surrogafy_url(url);
 	if((url.substring(0,1)=="\"" || url.substring(0,1)=="'") && url.substring(0,1)==url.substring(url.length-1,url.length)) url=url.substring(1,url.length-1);
 	return window.open_<?php echo(COOK_PREF); ?>(url,arg2,arg3);
 }
 
 eval_<?php echo(COOK_PREF); ?>=eval;
 eval=function(js){
-	js=parse_all_html(js,"text/javascript");
+	js=<?php echo(COOK_PREF); ?>.parse_all_html(js,"text/javascript");
 	return eval_<?php echo(COOK_PREF); ?>(js);
 }
 
-proxy_XMLHttpRequest_open=function(){
+function <?php echo(COOK_PREF); ?>_XMLHttpRequest_open(){
 	switch(arguments.length){
 		case 1: break;
-		case 2: this._realopen(arguments[0],surrogafy_url(arguments[1])); break;
-		case 3: this._realopen(arguments[0],surrogafy_url(arguments[1]),arguments[2]); break;
-		case 4: this._realopen(arguments[0],surrogafy_url(arguments[1]),arguments[2],arguments[3]); break;
-		case 5: this._realopen(arguments[0],surrogafy_url(arguments[1]),arguments[2],arguments[3],arguments[4]); break;
+		case 2: this.<?php echo(COOK_PREF); ?>_open(arguments[0],<?php echo(COOK_PREF); ?>.surrogafy_url(arguments[1])); break;
+		case 3: this.<?php echo(COOK_PREF); ?>_open(arguments[0],<?php echo(COOK_PREF); ?>.surrogafy_url(arguments[1]),arguments[2]); break;
+		case 4: this.<?php echo(COOK_PREF); ?>_open(arguments[0],<?php echo(COOK_PREF); ?>.surrogafy_url(arguments[1]),arguments[2],arguments[3]); break;
+		case 5: this.<?php echo(COOK_PREF); ?>_open(arguments[0],<?php echo(COOK_PREF); ?>.surrogafy_url(arguments[1]),arguments[2],arguments[3],arguments[4]); break;
 	}
 }
 
@@ -760,20 +772,23 @@ $jsquotereg="((?:(?:{$anyspace}{$quoteseg}|{$jsvarobj}){$anyspace}\+)*){$anyspac
 $jsend="(?={$anyspace}[;\}\n\r])";
 $htmlnoquot='(?:[^"\'\\\\][^> ]*)';
 $htmlreg="({$quoteseg}|{$htmlnoquot}))";
+$xmlhttpreq="(?:XMLHttpRequest{$anyspace}(?:\({$anyspace}\);|;)|ActiveXObject{$anyspace}\({$anyspace}[^\)]+\.XMLHTTP['\"]{$anyspace}\);)";
+$jsnewobj="(?:{$anyspace}new{$plusspace}|{$anyspace})";
 
 $js_regexp_arrays=array(
-	array(1,2,"/({$jsvarobj})\.({$jsattrs}{$anyspace}=(?:(?:{$anyspace}{$jsvarobj}{$anyspace}=)*){$anyspace})({$jsquotereg}(?:\+{$jsquotereg})*){$jsend}/i",'proxy_setAttribute(\1=,/\3/,\4)'),
-	array(1,2,"/({$notjsvarsect}){$jsrealpage}(?!{$anyspace}=)([^a-z0-9=])/i",'\1proxy_current_url\3'),
-	array(1,2,"/((?:top|parent)\.){$jsrealpage}(?!{$anyspace}=)([^a-z0-9=])/i",'\1proxy_current_url\4'),
-	array(1,2,'/(proxy_setAttribute\([^,]+)=,/i','\1,'),
-	array(1,2,"/([^a-z]){$jslochost}([^a-z])/i",'\1proxy_location_hostname\3'),
-	array(1,2,"/([^a-z]{$jsmethods}{$anyspace}\()([^)]*)\)/i",'\1surrogafy_url(\3))'),
-	#array(1,2,"/(\.{$jsattrs}{$anyspace}=(?:(?:{$anyspace}{$jsvarobj}{$anyspace}=)*){$anyspace})({$jsquotereg}(?:\+{$jsquotereg})*){$jsend}/i",'\1surrogafy_url(\3)'),
-	array(1,2,"/(\.{$jshtmlattrs}{$anyspace}=(?:(?:{$anyspace}{$jsvarobj}{$anyspace}=)*){$anyspace})({$jsquotereg}(?:\+{$jsquotereg})*){$jsend}/i",'\1parse_all_html(\3)'),
-	array(1,2,"/\.action({$anyspace}=(?:(?:{$anyspace}{$jsvarobj}{$anyspace}=)*){$anyspace})({$jsquotereg}(?:\+{$jsquotereg})*){$jsend}/i",'.'.COOK_PREF.'.value\1surrogafy_url(\3,false)'),
-	array(1,2,"/(\.setattribute{$anyspace}\({$anyspace}(\"|'){$jsattrs}(\\2){$anyspace},{$anyspace})(.*?){$jsend}/i",'\1surrogafy_url(\5)'),
-	array(1,2,"/(([^ {>\t\r\n=;]+){$anyspace}=(?:{$anyspace}new{$anyspace}|{$anyspace})XMLHttpRequest(?:\(\);|;))/i","\\1\n\\2._realopen=\\2.open;\n\\2.open=proxy_XMLHttpRequest_open;"),
-	array(1,2,"/(([^ {>\t\r\n=;]+){$anyspace}=(?:{$anyspace}new{$anyspace}|{$anyspace})ActiveXObject{$anyspace}\({$anyspace}([\"'])[a-z0-9]*\.XMLHTTP\\3{$anyspace}\)[;]{0,1})/i","\\1\n\\2._realopen=\\2.open;\n\\2.open=proxy_XMLHttpRequest_open;"),
+	array(1,2,"/({$jsvarobj})\.({$jsattrs}{$anyspace}=(?:(?:{$anyspace}{$jsvarobj}{$anyspace}=)*){$anyspace})({$jsquotereg}(?:\+{$jsquotereg})*){$jsend}/i",COOK_PREF.'.setAttribute(\1=,/\3/,\4)'),
+	array(1,2,"/({$notjsvarsect}){$jsrealpage}(?!{$anyspace}=)([^a-z0-9=])/i",'\1'.COOK_PREF.'_current_url\3'),
+	array(1,2,"/((?:top|parent)\.){$jsrealpage}(?!{$anyspace}=)([^a-z0-9=])/i",'\1'.COOK_PREF.'_current_url\3'),
+	array(1,2,'/('.COOK_PREF.'.setAttribute\([^,]+)=,/i','\1,'),
+	array(1,2,"/([^a-z]){$jslochost}([^a-z])/i",'\1'.COOK_PREF.'_location_hostname\3'),
+	array(1,2,"/([^a-z]{$jsmethods}{$anyspace}\()([^)]*)\)/i",'\1'.COOK_PREF.'.surrogafy_url(\3))'),
+	#array(1,2,"/(\.{$jsattrs}{$anyspace}=(?:(?:{$anyspace}{$jsvarobj}{$anyspace}=)*){$anyspace})({$jsquotereg}(?:\+{$jsquotereg})*){$jsend}/i",'\1'.COOK_PREF.'.surrogafy_url(\3)'),
+	array(1,2,"/(\.{$jshtmlattrs}{$anyspace}=(?:(?:{$anyspace}{$jsvarobj}{$anyspace}=)*){$anyspace})({$jsquotereg}(?:\+{$jsquotereg})*){$jsend}/i",'\1'.COOK_PREF.'.parse_all_html(\3)'),
+	array(1,2,"/\.action({$anyspace}=(?:(?:{$anyspace}{$jsvarobj}{$anyspace}=)*){$anyspace})({$jsquotereg}(?:\+{$jsquotereg})*){$jsend}/i",'.'.COOK_PREF.'.value\1'.COOK_PREF.'.surrogafy_url(\3,false)'),
+	array(1,2,"/(\.setattribute{$anyspace}\({$anyspace}(\"|'){$jsattrs}(\\2){$anyspace},{$anyspace})(.*?){$jsend}/i",'\1'.COOK_PREF.'.surrogafy_url(\5)'),
+	array(1,2,"/(([^ {>\t\r\n=;]+){$anyspace}={$jsnewobj}{$xmlhttpreq})/i",'\1\2.'.COOK_PREF.'_open=\2.open;\2.open='.COOK_PREF.'_XMLHttpRequest_open;'),
+	//array(1,2,"/(([^ {>\t\r\n=;]+){$anyspace}=(?:{$anyspace}new{$anyspace}|{$anyspace}))/i",'\1\2.'.COOK_PREF.'_open=\2.open;\2.open='.COOK_PREF.'_XMLHttpRequest_open;'),
+	array(1,2,"/return{$plusspace}({$jsnewobj}{$xmlhttpreq})/i",'tempvar=\1tempvar.'.COOK_PREF.'_open=tempvar.open;tempvar.open='.COOK_PREF.'_XMLHttpRequest_open;return tempvar;'),
 	(ENCRYPT_URLS?array(1,2,"/((?:[^\) \{\}]*(?:\)\.{0,1}))+)(\.submit{$anyspace}\(\)){$jsend}/i",'void((\1.method=="post"?null:\1\2));'):null),
 );
 
@@ -783,11 +798,11 @@ $regexp_arrays=array(
 		array(1,2,"/(<script(?:(?:(?! src{$anyspace}=)[^>])*)>)([\s\S]*?)(\/\/-->{$anyspace})?<\/script>/i",'\1\2;document.'.COOK_PREF.'_purge();\3</script>'),
 
 #.(URL_FORM?"<input type=\"hidden\" name=\"".COOK_PREF."_framed\" value=\"1\" />\n":null)
-		array(1,1,"/(<form(?:(?!action)[^>])+)(>)/i","\\1".(URL_FORM?' target="_self"':null)."\\2\n<input type=\"hidden\" name=\"".COOK_PREF."\" value=\"{$curr_url}\" />\n"),
-		array(1,1,"/(<form[^>]*?)(?: (?:action|target){$anyspace}={$anyspace}{$htmlreg}){1,2}([^>]*>)/i","\\1".(URL_FORM?' target="_self"':null)."\\3\n<input type=\"hidden\" name=\"".COOK_PREF."\" value=\\2 />\n".(URL_FORM?"<input type=\"hidden\" name=\"".COOK_PREF."_framed\" value=\"1\" />\n":null)),
+		array(1,1,"/(<form(?:(?!action)[^>])+)(>)/i",'\1'.(URL_FORM?' target="_self"':null).'\2<input type="hidden" name="'.COOK_PREF."\" value=\"{$curr_url}\" />"),
+		array(1,1,"/(<form[^>]*?)(?: (?:action){$anyspace}={$anyspace}{$htmlreg}){1,2}([^>]*>)/i","\\1".(URL_FORM?' target="_self"':null)."\\3\n<input type=\"hidden\" name=\"".COOK_PREF."\" value=\\2 />\n".(URL_FORM?"<input type=\"hidden\" name=\"".COOK_PREF."_framed\" value=\"1\" />\n":null)),
 
-		(ENCRYPT_URLS?array(1,1,'/(<form[^>]*?)>/i','\1 onsubmit="return proxy_form_encrypt(this);">'):null),
-		(ENCRYPT_URLS?array(1,1,"/(<input[^>]*? type{$anyspace}={$anyspace}(?:\"submit\"|'submit'|submit)[^>]*?[^\/])((?:[ ]?[\/])?>)/i",'\1 onclick="proxy_form_button=this.name;"\2'):null),
+		(ENCRYPT_URLS?array(1,1,'/(<form[^>]*?)>/i','\1 onsubmit="return '.COOK_PREF.'.form_encrypt(this);">'):null),
+		(ENCRYPT_URLS?array(1,1,"/(<input[^>]*? type{$anyspace}={$anyspace}(?:\"submit\"|'submit'|submit)[^>]*?[^\/])((?:[ ]?[\/])?>)/i",'\1 onclick="'.COOK_PREF.'_form_button=this.name;"\2'):null),
 
 		array(2,1,"/ name=\"".COOK_PREF."\" value{$anyspace}={$anyspace}{$htmlreg} \/>/i",1,false),
 		array(2,1,"/<[a-z][^>]*{$plusspace}{$htmlattrs}{$anyspace}={$anyspace}{$htmlreg}/i",2),
@@ -870,7 +885,7 @@ class aurl{
 		if(!$this->locked && !preg_match(URLREG,$this->url)) havok(7,$this->url); #*
 	}
 
-	function determine_locked(){ $this->locked=(preg_match("/^".AURL_LOCK_REGEXP."/i",$url)?true:false); } #*
+	function determine_locked(){ $this->locked=(preg_match("/^".AURL_LOCK_REGEXP."/i",$this->url)?true:false); } #*
 
 	function get_fieldreq($fieldno,$value){
 		$fieldreqs=array(2 => '://'.($value!=null?"$value@":null), 4 => ($value!=null && intval($value)!=80?':'.intval($value):null), 7 => ($value!=null?"?$value":null), 8 => ($value!=null?"#$value":null));
@@ -1251,7 +1266,7 @@ function getpage($url){
 	$ohsplit=explode("\n",$oheaders);
 	foreach($ohsplit as $header) if(!empty($header)) header($header);
 	unset($oheaders,$ohsplit);
-	#header('Status: '.$response);
+	header('Status: '.$response);
 
 	if(substr(header_value('Content-Type'),0,4)=='text' || substr(header_value('Content-Type'),0,24)=='application/x-javascript'){
 		$justoutput=false;
@@ -1324,9 +1339,6 @@ function getpage($url){
 ## BEGIN PROXY CODE #
 
 # Deal with cookies for proxy #
-global $proxy_variables,$proxy_varblacklist,$post_vars,$cookies,$curr_url,$curr_urlobj,$referer,$blocked_addresses,$dns_cache_array;
-
-$curr_url=proxdec($postandget[COOK_PREF]);
 #$curr_url=urldecode($postandget[COOK_PREF]);
 #while(strpos($curr_url,'%')!==false) $curr_url=urldecode($curr_url);
 #$curr_url=stripslashes($curr_url);
@@ -1506,16 +1518,16 @@ if(CONTENT_TYPE=='text/html'){
 				'<script type="text/javascript" src="'.THIS_SCRIPT.'?js_regexps'.(PAGE_FRAMED?'_framed':null).'"></script>'.
 				'<script language="javascript">'.
 				//'<!--'.
-				'document.proxy_current_url=proxy_current_url="'.str_replace('"','\\"',$curr_urlobj->get_url()).'"+location.hash;'.
-				'document.proxy_this_script=proxy_this_script="'.THIS_SCRIPT.'";'.
-				'document.proxy_location_hostname=proxy_location_hostname="'.str_replace('"','\\"',$curr_urlobj->get_servername()).'";'.
-				'document.proxy_location_port=proxy_location_port="'.str_replace('"','\\"',$curr_urlobj->get_portval()).'";'.
-				'document.proxy_encrypt_urls=proxy_encrypt_urls='.(ENCRYPT_URLS?'true':'false').';'.
-				'document.proxy_url_form=proxy_url_form='.(URL_FORM?'true':'false').';'.
-				'document.proxy_form_button=proxy_form_button=null;'.
-				'curr_urlobj=new aurl(proxy_current_url);'.
+				'document.'.COOK_PREF.'_current_url='.COOK_PREF.'_current_url="'.str_replace('"','\\"',$curr_urlobj->get_url()).'"+location.hash;'.
+				'document.'.COOK_PREF.'_this_script='.COOK_PREF.'_this_script="'.THIS_SCRIPT.'";'.
+				'document.'.COOK_PREF.'_location_hostname='.COOK_PREF.'_location_hostname="'.str_replace('"','\\"',$curr_urlobj->get_servername()).'";'.
+				'document.'.COOK_PREF.'_location_port='.COOK_PREF.'_location_port="'.str_replace('"','\\"',$curr_urlobj->get_portval()).'";'.
+				'document.'.COOK_PREF.'_encrypt_urls='.COOK_PREF.'_encrypt_urls='.(ENCRYPT_URLS?'true':'false').';'.
+				'document.'.COOK_PREF.'_url_form='.COOK_PREF.'_url_form='.(URL_FORM?'true':'false').';'.
+				'document.'.COOK_PREF.'_form_button='.COOK_PREF.'_form_button=null;'.
+				'curr_urlobj=new '.COOK_PREF.'_aurl('.COOK_PREF.'_current_url);'.
 				(URL_FORM?'if(parent_'.COOK_PREF.'==top_'.COOK_PREF.'){ window.addEventListener("load",function(){ parent.document.title=document.title; },false);'.
-					'setParentURL(proxy_current_url); };':null).
+					COOK_PREF.'.setParentURL('.COOK_PREF.'_current_url); };':null).
 				//'//-->'.
 				'</script>'
 			:null)
