@@ -1,7 +1,7 @@
 <?php
 
 #
-# Surrogafier v0.9.4b
+# Surrogafier v0.9.5b
 #
 # Author: Brad Cable
 # Email: brad@bcable.net
@@ -89,7 +89,7 @@ if(get_magic_quotes_gpc()){
 	$_COOKIE=stripslashes_recurse($_COOKIE);
 }
 
-define('VERSION','0.9.4b');
+define('VERSION','0.9.5b');
 define('THIS_SCRIPT',PROTO."://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}");
 define('SIMPLE_MODE',DEFAULT_SIMPLE || FORCE_SIMPLE);
 
@@ -695,6 +695,7 @@ window.open=function(url,arg2,arg3){
 eval_<?php echo(COOK_PREF); ?>=eval;
 eval=function(js){
 	js=<?php echo(COOK_PREF); ?>.parse_all_html(js,"text/javascript");
+	alert(arguments.callee.caller);
 	return eval_<?php echo(COOK_PREF); ?>(js);
 }
 
@@ -750,7 +751,8 @@ function convertarray_to_javascript(){
 
 global $regexp_arrays;
 
-$jsattrs='(href|src|location|backgroundImage|pluginspage|codebase|img|location\.href)';
+# 'img' was in $jsattrs... what's that for?
+$jsattrs='(href|src|location|backgroundImage|pluginspage|codebase|location\.href)';
 $jshtmlattrs='(innerHTML)';
 $jsmethods='(location\.(?:replace|assign))';
 $jslochost='(location\.host(?:name){0,1})';
@@ -764,7 +766,7 @@ $htmlattrs='(data|href|src|background|pluginspage|codebase)';
 $jsvarsect='[a-zA-Z0-9\._\[\]\+-]+';
 #$notjsvarsect='[^a-zA-Z0-9\._\[\]\+-]';
 $notjsvarsect='[^a-zA-Z0-9\._\[\]\+\/\-]';
-$jsobjsect="{$jsvarsect}(?:\((?:{$quoteseg}|{$jsvarsect}))\))?";
+$jsobjsect="{$jsvarsect}(?:\((?:{$quoteseg}|{$jsvarsect}|))\))?";
 $jsvarobj="{$jsobjsect}(?:\.{$jsobjsect})*";
 #$jsvarobj='(?:[a-zA-Z0-9\._\(\)\[\]\+\-]+)';
 $jsquotereg="((?:(?:{$anyspace}{$quoteseg}|{$jsvarobj}){$anyspace}\+)*){$anyspace}{$quoteseg}|{$jsvarobj}){$spacer}(?=[;\}\n\r]))";
