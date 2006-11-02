@@ -1,7 +1,7 @@
 <?php
 
 #
-# Surrogafier v0.9.5b
+# Surrogafier v0.9.6b
 #
 # Author: Brad Cable
 # Email: brad@bcable.net
@@ -89,7 +89,7 @@ if(get_magic_quotes_gpc()){
 	$_COOKIE=stripslashes_recurse($_COOKIE);
 }
 
-define('VERSION','0.9.5b');
+define('VERSION','0.9.6b');
 define('THIS_SCRIPT',PROTO."://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}");
 define('SIMPLE_MODE',DEFAULT_SIMPLE || FORCE_SIMPLE);
 
@@ -354,8 +354,7 @@ function submit_code(){
 	<input type="submit" class="simple_stuff" id="simple_submit" value="Surrogafy" style="background-color: #F0F0F0" />
 </td>
 </tr>
-<?php if(FORCE_DEFAULT_TUNNEL){ ?>
-<tr class="advanced_stuff">
+<tr class="advanced_stuff"<?php if(FORCE_DEFAULT_TUNNEL){ ?> style="display: none"><?php } ?>
 <td style="text-align: left">Tunnel Proxy:</td>
 <td><table cellspacing="0" cellpadding="0">
 <tr>
@@ -365,7 +364,6 @@ function submit_code(){
 </tr>
 </table></td>
 </tr>
-<?php } ?>
 <tr class="advanced_stuff">
 <td style="text-align: left">User-Agent:</td>
 <td><select name="<?php echo(COOK_PREF); ?>_useragent" style="width: 100%" onchange="useragent_check(true);">
@@ -415,10 +413,25 @@ if(!empty($_GET[COOK_PREF.'_frame']) && !empty($postandget[COOK_PREF])){ ?>
 	a{text-decoration: none; color: #000000}
 	a:hover{text-decoration: underline}
 </style>
-<script><?php echo(COOK_PREF); ?>=true;</script>
+<script>
+<!--
+
+<?php echo(COOK_PREF); ?>=true;
+
+<?php if(ENCRYPT_URLS) echo($js_proxenc); ?>
+
+function submit_code(){
+<?php if(ENCRYPT_URLS){ ?>
+	document.forms[0].<?php echo(COOK_PREF); ?>.value=<?php echo(COOK_PREF); ?>_pe.proxenc(document.forms[0].<?php echo(COOK_PREF); ?>.value);
+<?php } ?>
+	return true;
+}
+
+//-->
+</script>
 </head>
 <body>
-<form method="get">
+<form method="get" onsubmit="return submit_code();">
 <input type="hidden" name="<?php echo(COOK_PREF); ?>_frame" value="1" />
 <table cellpadding="0" cellspacing="0" style="width: 100%; height: 100%; padding: 0px; margin: 0px">
 <tr><td><table cellpadding="0" cellspacing="0" style="width: 100%; padding: 3px">
@@ -695,7 +708,7 @@ window.open=function(url,arg2,arg3){
 eval_<?php echo(COOK_PREF); ?>=eval;
 eval=function(js){
 	js=<?php echo(COOK_PREF); ?>.parse_all_html(js,"text/javascript");
-	alert(arguments.callee.caller);
+	//alert(arguments.callee.caller);
 	return eval_<?php echo(COOK_PREF); ?>(js);
 }
 
@@ -991,6 +1004,17 @@ function header_value($headername){
 	return $arr[0];
 }
 
+function finish_noexit(){
+	global $dns_cache_array;
+	# save DNS Cache before exiting
+	$_SESSION['DNS_CACHE_ARRAY']=$dns_cache_array;
+}
+
+function finish(){
+	finish_noexit();
+	exit();
+}
+
 function havok($errorno,$arg1=null,$arg2=null,$arg3=null){
 	global $curr_url;
 	$url=$curr_url;
@@ -1037,13 +1061,6 @@ function havok($errorno,$arg1=null,$arg2=null,$arg3=null){
 	</div>
 </div></div>
 <?php finish(); }
-
-function finish(){
-	global $dns_cache_array;
-	# save DNS Cache before exiting
-	$_SESSION['DNS_CACHE_ARRAY']=$dns_cache_array;
-	exit();
-}
 
 function ipbitter($ipaddr){
 	$ipsplit=explode('.',$ipaddr);
@@ -1133,14 +1150,15 @@ function getpage($url){
 
 	if(PIP!=null && PPORT!=null){
 		$servername=PIP;
+		$ipaddress=get_check(PIP);
 		$portval=PPORT;
 		$requrl=$urlobj->get_url(false);
 	}
 	else{
-		$servername=($urlobj->get_proto()=='ssl' || $urlobj->get_proto()=='https'?'ssl://':null).$urlobj->get_servername();
+		$servername=$urlobj->get_servername();
+		$ipaddress=($urlobj->get_proto()=='ssl' || $urlobj->get_proto()=='https'?'ssl://':null).get_check($servername);
 		$portval=$urlobj->get_portval();
 	}
-	$ipaddress=get_check($servername);
 
 	$out="{$_SERVER['REQUEST_METHOD']} ".str_replace(' ','%20',$requrl)." HTTP/1.1\r\nHost: ".$urlobj->get_servername().(($portval!=80 && ($urlobj->get_proto()=='https'?$portval!=443:true))?":$portval":null)."\r\n";
 
@@ -1260,8 +1278,9 @@ function getpage($url){
 		fclose($fp);
 		restore_error_handler();
 
+		finish_noexit();
 		header("Location: $redirurl");
-		finish();
+		exit();
 	}
 
 	$oheaders=preg_replace("/[\r\n](?:Location|Content-Length|Content-Encoding|Set-Cookie|Transfer-Encoding|Connection|Keep-Alive|Pragma|Cache-Control|Expires)\: .*/i",null,$headers); #*
