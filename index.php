@@ -1,7 +1,7 @@
 <?php
 
 #
-# Surrogafier v1.0-rc2
+# Surrogafier v1.0-rc3
 #
 # Author: Brad Cable
 # Email: brad@bcable.net
@@ -123,7 +123,7 @@ if(get_magic_quotes_gpc()){
 
 # script environment constants
 if(!defined('PROTO')) define('PROTO',($_SERVER['HTTPS']=='on'?'https':'http'));
-define('VERSION','1.0-rc2');
+define('VERSION','1.0-rc3');
 define('THIS_SCRIPT',PROTO."://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}");
 define('SIMPLE_MODE',DEFAULT_SIMPLE || FORCE_SIMPLE);
 
@@ -327,20 +327,20 @@ proxenc:function(url){
 if(PAGETYPE_ID===PAGETYPE_FORCE_MAIN || (substr(QUERY_STRING,0,3)!='js_' && ORIG_URL==null)){
 
 $useragentinfo=null;
-if(preg_match('/linux/i',$_SERVER['HTTP_USER_AGENT'])) $useragentinfo.='Linux';
-elseif(preg_match('/win(?:dows|32)/i',$_SERVER['HTTP_USER_AGENT'])) $useragentinfo.='Windows';
-elseif(preg_match('/mac(?:intosh|_powerpc)/i',$_SERVER['HTTP_USER_AGENT'])) $useragentinfo.='Macintosh';
-elseif(preg_match('/bsd/i',$_SERVER['HTTP_USER_AGENT'])) $useragentinfo.='BSD';
+if(stristr($_SERVER['HTTP_USER_AGENT'],'windows')!==false || stristr($_SERVER['HTTP_USER_AGENT'],'win32')!==false) $useragentinfo.='Windows';
+elseif(stristr($_SERVER['HTTP_USER_AGENT'],'macintosh')!==false || stristr($_SERVER['HTTP_USER_AGENT'],'mac_powerpc')!==false) $useragentinfo.='Macintosh';
+elseif(stristr($_SERVER['HTTP_USER_AGENT'],'linux')!==false) $useragentinfo.='Linux';
+elseif(stristr($_SERVER['HTTP_USER_AGENT'],'bsd')!==false) $useragentinfo.='BSD';
 else $useragentinfo.='Unknown';
 
 $useragentinfo.=' / ';
 
-if(preg_match('/msie/i',$_SERVER['HTTP_USER_AGENT'])) $useragentinfo.='Internet Explorer';
-elseif(preg_match('/firefox/i',$_SERVER['HTTP_USER_AGENT'])) $useragentinfo.='Firefox';
-elseif(preg_match('/netscape/i',$_SERVER['HTTP_USER_AGENT'])) $useragentinfo.='Netscape';
-elseif(preg_match('/konqueror/i',$_SERVER['HTTP_USER_AGENT'])) $useragentinfo.='Konqueror';
-elseif(preg_match('/seamonkey/i',$_SERVER['HTTP_USER_AGENT'])) $useragentinfo.='SeaMonkey';
-elseif(preg_match('/opera/i',$_SERVER['HTTP_USER_AGENT'])) $useragentinfo.='Opera';
+if(stristr($_SERVER['HTTP_USER_AGENT'],'msie')!==false) $useragentinfo.='Internet Explorer';
+elseif(stristr($_SERVER['HTTP_USER_AGENT'],'firefox')!==false) $useragentinfo.='Firefox';
+elseif(stristr($_SERVER['HTTP_USER_AGENT'],'netscape')!==false) $useragentinfo.='Netscape';
+elseif(stristr($_SERVER['HTTP_USER_AGENT'],'opera')!==false) $useragentinfo.='Opera';
+elseif(stristr($_SERVER['HTTP_USER_AGENT'],'konqueror')!==false) $useragentinfo.='Konqueror';
+elseif(stristr($_SERVER['HTTP_USER_AGENT'],'seamonkey')!==false) $useragentinfo.='SeaMonkey';
 else $useragentinfo.='Unknown';
 
 $useragent_array=array(
@@ -1182,13 +1182,10 @@ $notjsvarsect='[^a-zA-Z0-9\._\[\]]';
 //$jsend="(?={$anyspace}[;\}\n\r\'\"])";
 //$jsend="(?={$anyspace}(?:[;\}]|{$notoperands}[\n\r]))";
 $jsend="(?={$justspace}(?:[;\}\n\r]|{$notoperands}[\n\r]))";
+$notjsend="(?!{$justspace}(?:[;\}\n\r]|{$notoperands}[\n\r]))";
 $jsbegin="((?:[;\{\}\n\r\(\)]|[\!=]=){$anyspace})";
 //$jsbeginright="((?:[;\{\}\n\r\(\)=\+\-\/\*]){$anyspace})";
 $jsbeginright="((?:[;\{\}\(\)=\+\-\/\*]){$justspace})";
-
-# one of two for notjsendsect, either parse (?:) statements correctly, or allow for [?:] (currently [?:])
-$notjsendsect="(?:(?!<\/script>)(?:[^;\{\}\n\r\"'\+\-\/\*]|{$operands}{$anyspace}))";
-$notjsend="{$notjsendsect}*(?:(?:{$quoteseg}|{$regseg}))?{$notjsendsect}*)*";
 
 $htmlnoquot='(?:[^"\'\\\\][^> ]*)';
 $htmlnoquotnoqm='(?:[^\?"\'\\\\][^\?> ]*)';
@@ -1207,7 +1204,7 @@ $js_string_attrs='(?:constructor|length|prototype)';
 
 $js_regexp_arrays=array(
 	array(1,2,"/{$jsbegin}({$jsvarobj})\.({$jshookgetattrs}){$anyspace}\+=/i",'\1\2.\3='.COOK_PREF.'.getAttr(\2,/\3/)+'),
-	array(1,2,"/{$jsbegin}({$jsvarobj})\.(({$jshookattrs}){$anyspace}=(?:{$anyspace}{$jsvarobj}{$anyspace}=)*{$anyspace})((?!\=)(?!{$jsend}){$notjsend}){$jsend}/i",'\1'.COOK_PREF.'.setAttr(\2,/\4/,\5)'),
+	array(1,2,"/{$jsbegin}({$jsvarobj})\.(({$jshookattrs}){$anyspace}=(?:{$anyspace}{$jsvarobj}{$anyspace}=)*{$anyspace})((?!\=)({$notjsend}.)*){$jsend}/i",'\1'.COOK_PREF.'.setAttr(\2,/\4/,\5)'),
 	array(1,2,"/{$jsbeginright}({$jsvarobj})\.({$jshookgetattrs})([^\.=a-z0-9_\[\]\t\r\n]|\.{$js_string_methods}\(|\.{$js_string_attrs}{$notjsvarsect})/i",'\1'.COOK_PREF.'.getAttr(\2,/\3/)\4'),
 
 	array(1,2,"/([^a-z0-9]{$jsmethods}{$anyspace}\()([^)]*)\)/i",'\1'.COOK_PREF.'.surrogafy_url(\3))'),
@@ -1294,8 +1291,7 @@ unset($jsattrs,$jshookattrs,$jsmethods,$jslochost,$htmlattrs,
       $quoteseg,$regseg,
       $jsvarsect,$jsobjsect,$jsvarobj,$jsquotesect,$jsquotereg,
       $notjsvarsect,
-      $jsend,$jsbegin,$jsbeginright,
-      $notjsendsect,$notjsend,
+      $jsend,$notjsend,$jsbegin,$jsbeginright,
       $htmlnoquot,$htmlnoquotnoqm,$htmlreg,$xmlhttpreq,$jsnewobj,$formnotpost,$frametargets,
       $js_string_methods,$js_string_attrs,
       $js_regexp_arrays
@@ -1410,7 +1406,8 @@ class aurl{
 # PROXY FUNCTIONS: URL PARSING {{{
 function surrogafy_url($url,$topurl=false,$addproxy=true){
 	global $curr_urlobj;
-	if(preg_match('/^(["\']).*\1$/is',$url)>0){
+	//if(preg_match('/^(["\']).*\1$/is',$url)>0){
+	if(($url{0}=='"' && substr($url,-1)=='"') || ($url{0}=='\'' && substr($url,-1)=='\'')){
 		$urlquote=$url{0};
 		$url=substr($url,1,strlen($url)-2);
 	}
@@ -1423,7 +1420,8 @@ function surrogafy_url($url,$topurl=false,$addproxy=true){
 
 function framify_url($url,$frame_type=false){
 	if(($frame_type!==PAGETYPE_FRAME_TOP || !URL_FORM) && ($frame_type!==PAGETYPE_FRAMED_PAGE && !PAGE_FRAMED)) return $url;
-	if(preg_match('/^(["\']).*\1$/is',$url)>0){
+	//if(preg_match('/^(["\']).*\1$/is',$url)>0){
+	if(($url{0}=='"' && substr($url,-1)=='"') || ($url{0}=='\'' && substr($url,-1)=='\'')){
 		$urlquote=$url{0};
 		$url=substr($url,1,strlen($url)-2);
 	}
@@ -1914,7 +1912,7 @@ if(strpos($body,'<base')){
 		$body=preg_replace('/'.BASE_REGEXP.'/i',null,$body);
 
 		//preg_match('/^(["\']).*\1$/i',$base)>0
-		if(($base{0}=='"' && substr($base,-1)=='"') || ($base{1}=='\'' && substr($base,-1)=='\''))
+		if(($base{0}=='"' && substr($base,-1)=='"') || ($base{0}=='\'' && substr($base,-1)=='\''))
 			$base=substr($base,1,strlen($base)-2); #*
 		$curr_url=$base;
 	}
