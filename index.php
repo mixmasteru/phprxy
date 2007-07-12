@@ -414,7 +414,7 @@ advanced_mode=true;
 function toggle_mode(){
 	document.getElementById("mode_toggler").innerHTML=(advanced_mode?"Advanced Mode":"Simple Mode");
 	var advanced_stuff=document.getElementsByTagName("tr");
-	for(var i=1;i<=12;i++) advanced_stuff[i].style.display=(advanced_mode?"none":"");
+	for(var i=1;i<=12;i++) advanced_stuff[i].style.display=(advanced_mode?"none":"table-row");
 	document.getElementById("simple_submit").style.display=(advanced_mode?"inline":"none");
 	document.getElementById("url").style.width=(advanced_mode?"<?php echo(SIMPLE_MODE_URLWIDTH); ?>":"99%");
 	advanced_mode=!advanced_mode;
