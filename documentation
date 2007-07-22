@@ -1,5 +1,5 @@
 
-                      Surrogafier v0.7.9.3b Documentation
+                       Surrogafier v1.0-rc3 Documentation
 --------------------------------------------------------------------------------
 
     Table of Contents
@@ -9,8 +9,13 @@
 
   I: How to Operate this Application
     I.a: Installation
-    I.b: Blocking Addresses
+
+    I.b: Server Side Configuration
+      I.b.i:   Basic Config
+      I.b.ii:  Advanced Config
+
     I.c: Using Surrogafier
+
     I.d: But Wait...
 
 --------------------------------------------------------------------------------
@@ -31,29 +36,121 @@ Copy the PHP file into a directory that Apache  or any other PHP enabled web
 server (with PHP installed and enabled on it), then access it as you would any
 other PHP script on said server.
 
-    I.b: Blocking Addresses
-  ---------------------------
 
-Edit the PHP file with your editor of choice, and at the top is an array with
-the addresses you want blocked as elements.  Currently you can block addresses
-in one of three ways:
+    I.b: Server Side Configuration
+  ----------------------------------
 
-  1.2.3.4     - plain IP address
-  1.2.3.4/24  - subnet blocking
-  php.net     - domain blocking
+If there is something you are wanting to change about the proxy, chances are
+there is a configuration option that can do it for you.  If everything is hunky
+dory to you, then you can skip this section.
 
-The default blocked addresses are:
-  10.0.0.0/24
-  172.0.0.0/24
-  192.168.0/16
-  127.0.0.0/24
+To see the configuration options, edit the PHP file with your editor of choice,
+and at the top there is a series of configuration options you can edit.  These
+configuration options are described in detail below.
 
-These are blocked by default since they are reserved for local
-and internal purposes.  If I have missed some, or if I have one
-of these mistaken, please email me.
+I.b.i: Basic Config
 
-For information on the format of arrays in PHP, please visit:
-http://www.php.net/manual/en/function.array.php
+  DEFAULT_SIMPLE         - Default to simple mode when the page is loaded.
+                           (default value: false)
+
+  FORCE_SIMPLE           - Force the page to always be in simple mode
+                           (no advanced mode option).
+                           (default value: false)
+
+  SIMPLE_MODE_URLWIDTH   - Width for the URL box when in simple mode
+                           (CSS "width" attribute).
+                           (default value: 300px)
+
+  DEFAULT_TUNNEL_PIP     - Default value for tunnel server.
+                           (default value: null string)
+
+  DEFAULT_TUNNEL_PPORT   - Default value for tunnel port.
+                           (default value: null string)
+
+  FORCE_DEFAULT_TUNNEL   - Should the tunnel fields be displayed? "false" value
+                           here will force the defaults above, disallowing user
+                           input.
+                           (default value: true)
+
+  DEFAULT_URL_FORM       - Default value for "Persistent URL" checkbox.
+                           (default value: true)
+
+  DEFAULT_REMOVE_COOKIES - Default value for "Remove Cookies" checkbox.
+                           (default value: false)
+
+  DEFAULT_REMOVE_REFERER - Default value for "Remove Referer Field" checkbox.
+                           (default value: false)
+
+  DEFAULT_REMOVE_SCRIPTS - Default value for "Remove Scripts" checkbox.
+                           (default value: false)
+
+  DEFAULT_REMOVE_OBJECTS - Default value for "Remove Objects" checkbox.
+                           (default value: false)
+
+  DEFAULT_ENCRYPT_URLS   - Default value for "Encrypt URLs" checkbox.
+                           (default value: false)
+
+  DEFAULT_ENCRYPT_COOKS  - Default value for "Encrypt Cookies" checkbox.
+                           (default value: false)
+
+  blocked_addresses      - Formats for address blocking are as follows:
+                             1.2.3.4     - plain IP address
+                             1.0.0.0/16  - subnet blocking
+                             1.0/16      - subnet blocking
+                             1/8         - subnet blocking
+                             php.net     - domain blocking
+
+                           The default blocked addresses are:
+                             '10/8','172/8','192.168/16','127/8','169.254/16'
+
+                           These are blocked by default since they are reserved
+                           for local and internal purposes.  If I have missed
+                           some, or if I have one of these mistaken, please
+                           email me.
+
+                           For information on the format of arrays in PHP,
+                           please visit:
+                           http://www.php.net/manual/en/function.array.php
+
+I.b.ii: Advanced Config
+
+The following options alter the way documents are parsed on the page, and how
+the internals of the script actually function.
+
+ONLY EDIT THIS STUFF IF YOU REALLY KNOW WHAT YOU ARE DOING!
+
+  MAXIMUM_URL_LENGTH - 500 is the most reasonable number I could come up with
+                       as a maximum URL length limit.  I ran into a 1200+
+                       character long URL once and it nearly melted the
+                       processor on my laptop trying to parse it.  Honestly,
+                       who needs this long of a URL anyway?
+                       (default value: 500)
+
+  TIME_LIMIT         - Time limit in seconds for a single request and parse.
+                       (default value: 10)
+
+  DNS_CACHE_EXPIRE   - Time limit in minutes for a DNS entry to be kept in the
+                       cache.
+                       (default value: 10)
+
+  GZIP_PROXY_USER    - Use gzip (if possible) to compress the connection
+                       between the proxy and the user
+                       (less bandwidth, more CPU).
+                       (default value: false)
+
+  GZIP_PROXY_SERVER  - Use gzip (if possible) to compress the connection
+                       between the proxy and the server
+                       (less bandwidth, more CPU).
+                       (default value: false)
+
+  PROTO              - Protocol that proxy is running on.  Uncomment this line
+                       to define it manually.  If you leave this line
+                       commented, the code detects if you are running on an
+                       HTTPS connection.  If you are, then 'https' is used as
+                       the PROTO value, otherwise 'http' is used.  If you need
+                       a different value here, then define it.
+                       (default value: undefined)
+
 
     I.c: Using Surrogafier
   --------------------------
@@ -61,7 +158,9 @@ http://www.php.net/manual/en/function.array.php
 To use the script, just enter the URL you want to send through the proxy, enter
 in a proxy ip/port if you wish, and change all the other options to fit your
 needs, and click "Surrogafy".  Most sites should work flawlessly with this web
-proxy, but if a site does not work, please report it to brad@bcable.net.
+proxy, but if a site does not work, please report it in the Surrogafier "Bugs"
+forum, or email me at brad@bcable.net.
+
 
     I.d: But Wait...
   --------------------
@@ -73,5 +172,6 @@ A: Yeah, that's it... but just a few notes.  I have noticed a few installs of
    put Surrogafier on a server free of filtering, then connect to that server to
    bypass the firewall you are under.  Basically, the operators of said network
    must not have any filtering going on, AND the server must not reside in
-   China.  You may access a server with Surrogafier installed on it while you
-   are residing in a place such as China to bypass the oppressive firewall.
+   China or any other country which censors its population.  You may access a
+   server with Surrogafier installed on it while you are residing in a place
+   such as China to bypass the oppressive firewall.
