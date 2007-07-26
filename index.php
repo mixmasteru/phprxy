@@ -43,6 +43,7 @@ define('DEFAULT_ENCRYPT_URLS',false);
 # Default value for "Encrypt Cookies" checkbox. [false]
 define('DEFAULT_ENCRYPT_COOKS',false);
 
+global $blocked_addresses;
 /*/ Address Blocking Notes \*\
 
 Formats for address blocking are as follows:
@@ -2508,6 +2509,7 @@ while(list($key,$entry)=each($dns_cache_array)){
 
 # PROXY EXECUTION: PAGE RETRIEVAL {{{
 
+global $headers;
 $pagestuff=getpage($curr_url);
 $body=$pagestuff[0];
 
@@ -2812,7 +2814,7 @@ echo $body;
 
 # }}}
 
-finish();
+finish_noexit();
 
 ############
 ## THE END ##
