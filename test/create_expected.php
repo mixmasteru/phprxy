@@ -1,9 +1,9 @@
 <?
 
-if(!empty($_GET['assert'])){
+$ce_assert=$_GET['assert'];
+if(!empty($ce_assert)){
 	include('inc.php');
-	dosandbox();
-	create_expected($_GET['assert']);
+	create_expected($ce_assert);
 	echo 'Success';
 }
 else

@@ -24,9 +24,9 @@ define('SIMPLE_MODE_URLWIDTH','300px');
 define('DEFAULT_TUNNEL_PIP','');
 # Default value for tunnel port. []
 define('DEFAULT_TUNNEL_PPORT','');
-# Should the tunnel fields be displayed? "false" value here will force the
-# defaults above, disallowing user input. [true]
-define('FORCE_DEFAULT_TUNNEL',true);
+# Should the tunnel fields be displayed? "true" value here will force the
+# defaults above, disallowing user input. [false]
+define('FORCE_DEFAULT_TUNNEL',false);
 
 # Default value for "Persistent URL" checkbox. [true]
 define('DEFAULT_URL_FORM',true);
@@ -59,7 +59,6 @@ Default Value: '10/8','172/8','192.168/16','127/8','169.254/16'
 \*\ End Address Blocking Notes /*/
 
 $blocked_addresses=array('10/8','172/8','192.168/16','127/8','169.254/16');
-$blocked_addresses=array(); # DEBUG
 
 # }}}
 
@@ -106,7 +105,7 @@ define('GZIP_PROXY_SERVER',false);
 # COOKIE & SESSION SETUP {{{
 
 //$totstarttime=microtime(true); # BENCHMARK
-//$blocked_addresses=array(); # DEBUG
+$blocked_addresses=array(); # DEBUG
 
 # set error level to not display notices
 error_reporting(E_ALL^E_NOTICE);
@@ -120,10 +119,18 @@ if(GZIP_PROXY_USER && extension_loaded('zlib') &&
 ) ob_start('ob_gzhandler');
 
 # reverse magic quotes if enabled
-if(get_magic_quotes_gpc()){
+if(
+	ini_get('magic_quotes_sybase')==1 ||
+	(ini_get('magic_quotes_sybase')=='' && get_magic_quotes_gpc())
+){
 	function stripslashes_recurse($var){
 		if(is_array($var)) $var=array_map('stripslashes_recurse',$var);
-		else $var=stripslashes($var);
+		else{
+			if(ini_get('magic_quotes_sybase')==1 && get_magic_quotes_gpc())
+				$var=str_replace('\\\'','\'',$var);
+			else
+				$var=stripslashes($var);
+		}
 		return $var;
 	}
 	$_GET=stripslashes_recurse($_GET);
