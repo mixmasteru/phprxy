@@ -172,6 +172,13 @@ define('COOK_PREF',$cookpref);
 define('COOKIE_SEPARATOR','__'.COOK_PREF.'__');
 unset($sesspref,$cookpref);
 
+# ssl domains array handling
+if(!empty($_GET[COOK_PREF.'_ssl_domain'])){
+	if(!is_array($_SESSION['ssl_domains'])) $_SESSION['ssl_domains']=array();
+	$_SESSION['ssl_domains'][]=$_GET[COOK_PREF.'_ssl_domain'];
+	exit();
+}
+
 if(FIRST_LOAD){
 	if(DEFAULT_URL_FORM) dosetcookie(COOK_PREF.'_url_form',true);
 	if(DEFAULT_REMOVE_COOKIES) dosetcookie(COOK_PREF.'_remove_cookies',true);
@@ -238,8 +245,7 @@ $curr_url=ORIG_URL;
 
 function gethardattr($attr){
 	global $postandget;
-	return
-		(empty($postandget[COOK_PREF.'_set_values'])?
+	return (empty($postandget[COOK_PREF.'_set_values'])?
 			!empty($_COOKIE[COOK_PREF."_{$attr}"]):
 			!empty($postandget[COOK_PREF."_{$attr}"]));
 }
@@ -661,7 +667,7 @@ enabled. <b>**</b>
 <br />
 
 <b>**</b> Surrogafier requires Javascript in order to function to its full
-potential. <b>**</b>
+potential. It is highly recommended that you have Javascript enabled for privacy and security reasons. <b>**</b>
 
 </noscript>
 </form>
@@ -774,8 +780,7 @@ function escape_regexp($regexp,$dollar=false){
 		str_replace(chr(9),'\t',
 		$regexp
 	))))));
-	return
-		($dollar?preg_replace('/[\\\\]+(?=[0-9])/','\\\\$',$regexp):
+	return ($dollar?preg_replace('/[\\\\]+(?=[0-9])/','\\\\$',$regexp):
 		 preg_replace('/[\\\\]+(?=[0-9])/','\\\\\\\\',$regexp)); #*
 }
 
@@ -877,8 +882,7 @@ aurl:function(url,topurl){
 		this.servername=servername;
 	}
 	this.get_portval=function(){
-		return
-			((this.portval=="")?(this.get_proto()=="https"?"443":"80"):
+		return (this.portval==""?(this.get_proto()=="https"?"443":"80"):
 			 this.portval);
 	}
 	this.set_portval=function(port){
@@ -911,11 +915,10 @@ aurl:function(url,topurl){
 
 	this.get_url=function(){
 		if(this.locked) return this.url;
-		return
-			this.get_proto()+"://"+
+		return this.get_proto()+"://"+
 			(this.get_userpass()==""?"":this.get_userpass()+"@")+
 			this.get_servername()+
-			(parseInt(this.get_portval())==80?"":
+			(this.get_portval()==undefined || this.get_portval()?"":
 			 ":"+parseInt(this.get_portval()))+
 			this.get_path()+this.get_file()+
 			(this.get_query()==""?"":"?"+this.get_query())+
@@ -945,14 +948,11 @@ aurl:function(url,topurl){
 		return url;
 	}
 
-	if(url.length><?php echo(MAXIMUM_URL_LENGTH)?>){
-		//alert(this.url); // DEBUG
-		//alert(this.url.length); // DEBUG
+	if(url.length><?php echo(MAXIMUM_URL_LENGTH)?>)
 		this.url="";
-	}
 	else{
 		// parse like PHP does for &#num; HTML entities? // TODO?
-		//this.url=preg_replace("/&#([0-9]+);/e","chr(\\1)"
+		//this.url=preg_replace("/&#([0-9]+);/e","chr(\\1)");
 		this.url=this.trim(url.
 			replace("&amp;","&").
 			replace("\r","").
@@ -961,7 +961,8 @@ aurl:function(url,topurl){
 	}
 
 	this.topurl=topurl;
-	this.locked=url.match(<?php echo(AURL_LOCK_REGEXP); ?>); //*
+	this.locked=this.url.match(<?php echo(AURL_LOCK_REGEXP); ?>);
+	this.locked=(this.locked==null?false:true);
 
 	if(!this.locked){
 		var urlwasvalid=true;
@@ -1271,13 +1272,12 @@ getAttr:function(obj,attr){
 		switch(attr){
 			case "userAgent": return this.USERAGENT;
 			case "appCodeName": return this.USERAGENT.replace(UA_REG,"\$1");
-			case "appVersion": return
-				(msie?this.USERAGENT.replace(UA_REG,"\$2 \$3"):
+			case "appVersion":
+				return (msie?this.USERAGENT.replace(UA_REG,"\$2 \$3"):
 				 this.USERAGENT.replace(UA_REG,"\$2 (\$4; \$7)"));
 			case "platform":
 				var tempplatform=this.USERAGENT.replace(UA_REG,"\$4");
-				return
-					(tempplatform=="compatible" || tempplatform=="Windows"?
+				return (tempplatform=="compatible" || tempplatform=="Windows"?
 					 "Win32":this.USERAGENT.replace(UA_REG,"\$6"));
 			case "oscpu":
 				return (msie?undefined:this.USERAGENT.replace(UA_REG,"\$6"));
@@ -1295,8 +1295,7 @@ getAttr:function(obj,attr){
 			case "productSub":
 				return (msie?undefined:this.USERAGENT.replace(UA_REG,"\$10"));
 			case "plugins":
-				return
-					(<?php echo(
+				return (<?php echo(
 						(empty($_COOKIE[COOK_PREF.'_remove_objects'])?'1':'0'));
 					 ?>==1?navigator.plugins:undefined);
 			case "mimeType": return navigator.mimeType;
@@ -1832,8 +1831,7 @@ class aurl{
 	function get_servername(){ return $this->servername; }
 	function set_servername($servername=null){ $this->servername=$servername; }
 	function get_portval(){
-		return
-			(empty($this->portval)?
+		return (empty($this->portval)?
 			 ($this->get_proto()=='https'?'443':'80'):
 			 $this->portval);
 	}
@@ -1861,8 +1859,7 @@ class aurl{
 
 	function get_url($withlabel=true){
 		if($this->locked) return $this->url;
-		return
-			$this->get_proto().'://'.
+		return $this->get_proto().'://'.
 			($this->get_userpass()==null?null:$this->get_userpass().'@').
 			$this->get_servername().
 			(($this->get_proto()=='https' && intval($this->get_portval())==443)
@@ -2013,6 +2010,36 @@ function havok($errorno,$arg1=null,$arg2=null,$arg3=null){
 			$ed='The URL below was detected to be an invalid URL.';
 			$url=$arg1;
 			break;
+		case 8:
+			$et='Trying to A Secure Page Through Insecure Connection';
+			$ed=
+				'The site you are trying to access is secured by SSL, however '.
+				'you are accessing this proxy through an insecure connection. '.
+				'Please realize that any information you pass to this site is '.
+				'going to be transmitted on an insecure connection, with the '.
+				'potential of being intercepted.'.
+				'<br /><br />'.
+				"Domain to unlock: {$arg1}".
+				'<br /><br />'.
+				'If you wish to allow secure connections to this domain for '.
+				'this session, press continue below.  Otherwise, hit back.'.
+				'<br /><br />'.
+				'<input type="button" value="Back" style="float: left"'.
+				' onclick="history.go(-1);" />'.
+				'<input type="button" value="Continue" style="float: right"'.
+				' onclick="'.
+					'var ifrm=document.createElement(\'iframe\');'.
+					'ifrm.onload=function(){ location.reload(true); };'.
+					'ifrm.src=\''.THIS_SCRIPT.'?'.COOK_PREF.'_ssl_domain='.
+					"{$arg1}';".
+					'ifrm.style.height=\'0px\';'.
+					'ifrm.style.width=\'0px\';'.
+					'ifrm.style.border=\'0px\';'.
+					'var body=document.getElementsByTagName(\'body\')[0];'.
+					'body.appendChild(ifrm);'.
+				'" />'.
+				'<br />';
+			break;
 	}
 	$ed.="\n<br /><br />\nURL:&nbsp;{$url}";
 ?>
@@ -2020,8 +2047,7 @@ function havok($errorno,$arg1=null,$arg2=null,$arg3=null){
 <div style="border: 3px solid #FFFFFF; padding: 2px">
 	<div style="
 		float: left; border: 1px solid #602020; padding: 1px;
-		background-color: #FFFFFF"
-	>
+		background-color: #FFFFFF">
 		<div style="
 			float: left; background-color: #801010; color: #FFFFFF;
 			font-weight: bold; font-size: 54px; padding: 2px;
@@ -2063,9 +2089,8 @@ function ipcompare($iprange,$ip){
 
 function ip_check($ip,$mask=false){
 	$ipseg='(?:[01]?[0-9]{1,2}|2(?:5[0-5]|[0-4][0-9]))';
-	return
-		preg_match("/^(?:$ipseg\.){0,3}$ipseg".($mask?'\/[0-9]{1,2}':null).
-			'$/i',$ip); #*
+	return preg_match("/^(?:$ipseg\.){0,3}$ipseg".($mask?'\/[0-9]{1,2}':null).
+		'$/i',$ip); #*
 }
 
 function gethostbyname_cacheit($address){
@@ -2113,8 +2138,7 @@ function get_check($address){
 # PROXY FUNCTIONS: HTTP {{{
 
 function httpclean($str){
-	return
-		str_replace(' ','+',
+	return str_replace(' ','+',
 		preg_replace('/([^":\-_\.0-9a-z ])/ie',
 			'\'%\'.(strlen(dechex(ord(\'\1\')))==1?\'0\':null).'.
 			'strtoupper(dechex(ord(\'\1\')))',
@@ -2125,6 +2149,13 @@ function getpage($url){
 	global $headers,$out,$post_vars,$proxy_variables,$referer;
 
 	$urlobj=new aurl($url);
+	if(
+		$urlobj->get_proto()=='https' && PROTO!='https' &&
+		(!is_array($_SESSION['ssl_domains']) ||
+		 (is_array($_SESSION['ssl_domains']) &&
+		  !in_array($urlobj->get_servername(),$_SESSION['ssl_domains'])))
+	) havok(8,$urlobj->get_servername());
+
 	$query=$urlobj->get_query();
 	$requrl=
 		$urlobj->get_path().
