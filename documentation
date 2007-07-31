@@ -67,10 +67,10 @@ I.b.i: Basic Config
   DEFAULT_TUNNEL_PPORT   - Default value for tunnel port.
                            (default value: null string)
 
-  FORCE_DEFAULT_TUNNEL   - Should the tunnel fields be displayed? "false" value
+  FORCE_DEFAULT_TUNNEL   - Should the tunnel fields be displayed? "true" value
                            here will force the defaults above, disallowing user
                            input.
-                           (default value: true)
+                           (default value: false)
 
   DEFAULT_URL_FORM       - Default value for "Persistent URL" checkbox.
                            (default value: true)
