@@ -2146,9 +2146,97 @@ function httpclean($str){
 }
 
 function getpage($url){
-	global $headers,$out,$post_vars,$proxy_variables,$referer;
+	global $headers,$out,$proxy_variables,$referer;
+
+	# Generate HTTP packet content {{{
+
+	$content=null;
+	$is_formdata=substr($_SERVER['CONTENT_TYPE'],0,19)=='multipart/form-data';
+
+	# Generate for multipart & handle file uploads {{{
+
+	if($is_formdata){
+		$strnum=null;
+		for($i=0; $i<29; $i++) $strnum.=rand(0,9);
+		$boundary="---------------------------{$strnum}";
+
+		// parse POST variables
+		while(list($key,$val)=each($_POST)){
+			if(!is_array($val)){
+				$content.=
+					"--{$boundary}\r\n".
+					"Content-Disposition: form-data; name=\"{$key}\"\r\n".
+					"\r\n{$val}\r\n";
+			}
+			else{
+				while(list($key2,$val2)=each($val)){
+					$content.=
+						"--{$boundary}\r\n".
+						"Content-Disposition: form-data; name=\"{$key}[]\"\r\n".
+						"\r\n{$val2}\r\n";
+				}
+			}
+		}
+
+		// parse uploaded files
+		while(list($key,$val)=each($_FILES)){
+			if(!is_array($val['name'])){
+				$fcont=file_get_contents($val['tmp_name']);
+				@unlink($val['tmp_name']);
+				$content.=
+					"--{$boundary}\r\n".
+					"Content-Disposition: form-data; name=\"{$key}\"; ".
+						"filename=\"{$val['name']}\"\r\n".
+					"Content-Type: {$val['type']}\r\n".
+					"\r\n{$fcont}\r\n";
+			}
+			else{
+				for($i=0; $i<count($val['name']); $i++){
+					$fcont=file_get_contents($val['tmp_name'][$i]);
+					@unlink($val['tmp_name'][$i]);
+					$content.=
+						"--{$boundary}\r\n".
+						"Content-Disposition: form-data; name=\"{$key}[]\"; ".
+							"filename=\"{$val['name'][$i]}\"\r\n".
+						"Content-Type: {$val['type'][$i]}\r\n".
+						"\r\n{$fcont}\r\n";
+				}
+			}
+		}
+		$content.="--{$boundary}--\r\n";
+	}
+
+	# }}}
+
+	# Generate for standard POST {{{
+
+	else{
+		$postkeys=array_keys($_POST);
+		foreach($postkeys as $postkey){
+			if(!in_array($postkey,$proxy_variables)){
+				if(!is_array($_POST[$postkey]))
+					$content.=
+						($content!=null?'&':null).
+						httpclean($postkey).'='.httpclean($_POST[$postkey]);
+				else{
+					foreach($_POST[$postkey] as $postval)
+						$content.=
+							($content!=null?'&':null).
+							httpclean($postkey).'%5B%5D='.httpclean($postval);
+				}
+			}
+		}
+	}
+
+	# }}}
+
+	# }}}
+
+	# URL setup {{{
 
 	$urlobj=new aurl($url);
+
+	// don't access SSL sites unless the proxy is being accessed through SSL too
 	if(
 		$urlobj->get_proto()=='https' && PROTO!='https' &&
 		(!is_array($_SESSION['ssl_domains']) ||
@@ -2156,12 +2244,16 @@ function getpage($url){
 		  !in_array($urlobj->get_servername(),$_SESSION['ssl_domains'])))
 	) havok(8,$urlobj->get_servername());
 
+	# get request URL
 	$query=$urlobj->get_query();
 	$requrl=
 		$urlobj->get_path().
 		$urlobj->get_file().
 		(!empty($query)?"?{$query}":null);
 
+	# }}}
+
+	# HTTP Authorization and Cache stuff {{{
 	$http_auth=null;
 	if(extension_loaded('apache')){
 		$fail=false;
@@ -2192,7 +2284,11 @@ function getpage($url){
 		elseif(!empty($_SERVER['PHP_AUTH_DIGEST']))
 			$http_auth="Digest {$_SERVER['PHP_AUTH_DIGEST']}";
 	}
+	# }}}
 
+	# HTTP packet construction {{{
+
+	// figure out what we are connecting to
 	if(PIP!=null && PPORT!=null){
 		$servername=PIP;
 		$ipaddress=get_check(PIP);
@@ -2207,6 +2303,7 @@ function getpage($url){
 		$portval=$urlobj->get_portval();
 	}
 
+	// begin packet construction
 	$out=
 		"{$_SERVER['REQUEST_METHOD']} ".
 			str_replace(' ','%20',$requrl)." HTTP/1.1\r\n".
@@ -2214,6 +2311,7 @@ function getpage($url){
 			(($portval!=80 && ($urlobj->get_proto()=='https'?
 			 $portval!=443:true))?":$portval":null)."\r\n";
 
+	// user agent and auth headers
 	global $useragent;
 	$useragent=null;
 	if($_COOKIE[COOK_PREF.'_useragent']!='-1'){
@@ -2225,13 +2323,20 @@ function getpage($url){
 	}
 	if(!empty($http_auth)) $out.="Authorization: $http_auth\r\n";
 
+	// referer headers
 	if(empty($_COOKIE[COOK_PREF.'_remove_referer']) && !empty($referer))
 		$out.='Referer: '.str_replace(' ','+',$referer)."\r\n";
+
+	// POST headers
 	if($_SERVER['REQUEST_METHOD']=='POST')
 		$out.=
-			'Content-Length: '.strlen($post_vars)."\r\n".
-			"Content-Type: application/x-www-form-urlencoded\r\n";
+			'Content-Length: '.strlen($content)."\r\n".
+			'Content-Type: '.
+				($is_formdata?"multipart/form-data; boundary={$boundary}":
+				 'application/x-www-form-urlencoded').
+			"\r\n";
 
+	// cookie headers
 	$cook_prefdomain=
 		preg_replace('/^www\./i',null,$urlobj->get_servername()); #*
 	$cook_prefix=str_replace('.','_',$cook_prefdomain).COOKIE_SEPARATOR;
@@ -2241,7 +2346,7 @@ function getpage($url){
 		while(list($key,$val)=each($_COOKIE)){
 			if(ENCRYPT_COOKS){
 				$key=proxdec($key);
-				$val=proxdec($val); #urldecode($val));
+				$val=proxdec($val);
 			}
 			if(str_replace(COOKIE_SEPARATOR,null,$key)==$key) continue;
 			$cook_domain=
@@ -2261,6 +2366,7 @@ function getpage($url){
 		}
 	}
 
+	// final packet headers and content
 	$out.=
 		"Accept: */*;q=0.1\r\n".
 		(GZIP_PROXY_SERVER?"Accept-Encoding: gzip\r\n":null).
@@ -2272,7 +2378,11 @@ function getpage($url){
 		($cache_control!=null?"Cache-Control: $cache_control\r\n":null).
 		($if_modified!=null?"If-Modified-Since: $if_modified\r\n":null).
 		($if_none_match!=null?"If-None-Match: $if_none_match\r\n":null).
-		"\r\n{$post_vars}";
+		"\r\n{$content}";
+
+	# }}}
+
+	# Ignore SSL errors {{{
 
 	// This part ignores any "SSL: fatal protocol error" errors, and makes sure
 	// other errors are still triggered correctly
@@ -2289,16 +2399,24 @@ function getpage($url){
 	}
 	set_error_handler('errorHandle');
 
+	# }}}
+
+	# Send HTTP Packet {{{
+
 	$fp=@fsockopen($ipaddress,$portval,$errno,$errval,5)
 	    or havok(6,$servername,$portval);
 	stream_set_timeout($fp,5);
-	# for persistent connections, this may be necessary
+	// for persistent connections, this may be necessary
 	/*
 	$ub=stream_get_meta_data($fp);
 	$ub=$ub['unread_bytes'];
 	if($ub>0) fread($fp,$ub);
 	*/
 	fwrite($fp,$out);
+
+	# }}}
+
+	# Retrieve and Parse response headers {{{
 
 	$response='100';
 	while($response=='100'){
@@ -2317,7 +2435,7 @@ function getpage($url){
 	#if($headers['last-modified'][0]==null && $headers['expires']==null)
 	#	header('Expires: '.date('D, d M Y H:i:s e',time()+86400));
 
-	# read and store cookies
+	// read and store cookies
 	if(empty($_COOKIE[COOK_PREF.'_remove_cookies'])){
 		for($i=0;$i<count($headers['set-cookie']);$i++){
 			$thiscook=explode('=',$headers['set-cookie'][$i],2);
@@ -2342,6 +2460,7 @@ function getpage($url){
 		}
 	}
 
+	// page redirected, send it back to the user
 	if($response{0}=='3' && $response{1}=='0' && $response{2}!='4'){
 		$urlobj=new aurl($url);
 		$redirurl=framify_url(
@@ -2356,6 +2475,7 @@ function getpage($url){
 		exit();
 	}
 
+	// parse the rest of the headers
 	$oheaders=$headers;
 	$oheaders['location']=$oheaders['content-length']=
 		$oheaders['content-encoding']=$oheaders['set-cookie']=
@@ -2367,6 +2487,10 @@ function getpage($url){
 		if(!empty($val[0])) header("{$key}: {$val[0]}");
 	unset($oheaders);
 	header("Status: {$response}");
+
+	# }}}
+
+	# Retrieve content {{{
 
 	if(
 		substr($headers['content-type'][0],0,4)=='text' ||
@@ -2380,6 +2504,7 @@ function getpage($url){
 		$justoutput=true;
 	}
 
+	// Transfer-Encoding: chunked
 	if($headers['transfer-encoding'][0]=='chunked'){
 		$body=null;
 		$chunksize=null;
@@ -2397,6 +2522,7 @@ function getpage($url){
 	}
 
 	// Content-Length stuff - commented for even more chocolatey goodness
+	// Some servers really botch this up it seems...
 	/*elseif($headers['content-length'][0]!=null){
 		$conlen=$headers['content-length'][0];
 		$body=null;
@@ -2408,6 +2534,7 @@ function getpage($url){
 		}
 	}*/
 
+	// Generic stream getter
 	else{
 		if(function_exists('stream_get_contents')){
 			if($justoutputnow) echo stream_get_contents($fp);
@@ -2427,6 +2554,10 @@ function getpage($url){
 	fclose($fp);
 	restore_error_handler();
 
+	# }}}
+
+	# GZIP, output, and return {{{
+
 	if(GZIP_PROXY_SERVER && $headers['content-encoding'][0]=='gzip')
 		$body=gzinflate(substr($body,10));
 	if($justoutput){
@@ -2434,6 +2565,8 @@ function getpage($url){
 		finish();
 	}
 	return array($body,$url,$cook_prefix);
+
+	# }}}
 
 }
 
@@ -2486,7 +2619,7 @@ define('PPORT',
 define('ENCRYPT_COOKS',gethardattr('encrypt_cooks'));
 
 global $referer;
-if($_SERVER['HTTP_REFERER']==null){
+if($_SERVER['HTTP_REFERER']!=null){
 	$refurlobj=new aurl($_SERVER['HTTP_REFERER']);
 	$referer=proxdec(
 		preg_replace('/^[\s\S]*'.COOK_PREF.'=([^&]*)[\s\S]*$/i','\1',
@@ -2502,25 +2635,6 @@ else $referer=null;
 #			"$getvar=".urlencode($_GET[$getvar]);
 #	}
 #}
-
-global $post_vars;
-$post_vars=null;
-$postkeys=array_keys($_POST);
-foreach($postkeys as $postkey){
-	if(!in_array($postkey,$proxy_variables)){
-		if(!is_array($_POST[$postkey]))
-			$post_vars.=
-				($post_vars!=null?'&':null).
-				httpclean($postkey).'='.httpclean($_POST[$postkey]);
-		else{
-			foreach($_POST[$postkey] as $postval)
-				$post_vars.=
-					($post_vars!=null?'&':null).
-					httpclean($postkey).'%5B%5D='.httpclean($postval);
-		}
-	}
-}
-unset($postkeys);
 
 # }}}
 
