@@ -2,53 +2,82 @@
 <head>
 	<title>Surrogafier Testing</title>
 	<link href="assert.css" rel="stylesheet" type="text/css" />
+	<style> body{ padding: 5px; } </style>
 </head>
 <body>
-<div id="status"></div>
+<div>
+	<font class="working">
+		Working:
+		<font id="working">0</font>
+	</font>
+	&nbsp;<b>&middot;</b>&nbsp;
+	<font class="true">
+		True:
+		<font id="true">0</font>
+	</font>
+	&nbsp;<b>&middot;</b>&nbsp;
+	<font class="false">
+		False:
+		<font id="false">0</font>
+	</font>
+</div>
+<b>DETAILS:</b>
 <div id="iframes"></div>
 <script language="javascript">
 <!--
 
-var status=new Array();
-status['working']=0;
-status['true']=0;
-status['false']=0;
+function incWorking(){
+	var working=document.getElementById('working');
+	working.innerHTML=parseInt(working.innerHTML)+1;
+}
 
-function redraw_status(){
-	var idstatus=document.getElementById('status');
-	idstatus.innerHTML=
-		'Working: '+status['working']+
-		'&nbsp;&nbsp;'+
-		'<font class="true">'+
-		'True: '+status['true']+
-		'</font>'+
-		'&nbsp;&nbsp;'+
-		'<font class="false">'+
-		'False: '+status['false']+
-		'</font>';
+function decWorking(){
+	var working=document.getElementById('working');
+	working.innerHTML=parseInt(working.innerHTML)-1;
+}
+
+function incTrue(){
+	var ttrue=document.getElementById('true');
+	ttrue.innerHTML=parseInt(ttrue.innerHTML)+1;
+}
+
+function incFalse(){
+	var ffalse=document.getElementById('false');
+	ffalse.innerHTML=parseInt(ffalse.innerHTML)+1;
 }
 
 function doassert(name){
 	var iframes=document.getElementById('iframes');
 	iframes.innerHTML+=
-		'<iframe src="doassert.php?assert='+name+'">'+
+		'<iframe id="'+name+'" src="doassert.php?assert='+name+'">'+
 		'</iframe><br />';
-	status['working']++;
+	incWorking();
 }
 
 function endassert(success){
-	if(success)
-		status['true']++;
+	if(success) incTrue();
+	else incFalse();
+	decWorking();
+}
+
+function toggle_expand(name){
+	var ifrm=document.getElementById(name);
+	if(ifrm.offsetHeight==14){
+		var frmheight=
+			ifrm.contentDocument.getElementsByTagName('body')[0].offsetHeight;
+		ifrm.style.height=frmheight;
+	}
 	else
-		status['false']++;
-	status['working']--;
-	redraw_status();
+		ifrm.style.height='14px';
 }
 
 doassert('markup');
 doassert('markup_remove');
-doassert('post');
-redraw_status();
+doassert('post_simple');
+doassert('post_simple_array');
+doassert('post_file');
+doassert('post_file_array');
+doassert('post_all_formdata');
 
 //-->
 </script>

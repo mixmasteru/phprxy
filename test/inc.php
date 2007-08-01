@@ -62,10 +62,10 @@ function dosandbox($_SANDBOX=array()){
 	$_COOKIE=array_merge($_COOKIE,$_SANDBOX['_COOKIE']);
 	$_GET=array_merge($_GET,$_SANDBOX['_GET']);
 	$_POST=array_merge($_POST,$_SANDBOX['_POST']);
-	$_FILES=array_merge($_POST,$_SANDBOX['_FILES']);
-	$_ENV=array_merge($_POST,$_SANDBOX['_ENV']);
-	$_REQUEST=array_merge($_POST,$_SANDBOX['_REQUEST']);
-	$_SESSION=array_merge($_POST,$_SANDBOX['_SESSION']);
+	$_FILES=array_merge($_FILES,$_SANDBOX['_FILES']);
+	$_ENV=array_merge($_ENV,$_SANDBOX['_ENV']);
+	$_REQUEST=array_merge($_REQUEST,$_SANDBOX['_REQUEST']);
+	$_SESSION=array_merge($_SESSION,$_SANDBOX['_SESSION']);
 }
 
 function createsandbox($name){
@@ -140,9 +140,10 @@ function getjs($succ){
 
 function gethtml($name, $succ, $real, $expected){
 	$out=
-		'<font class="'.($succ?'true':'false').'">'.
+		'<a href="#" class="'.($succ?'true':'false').'"'.
+		" onclick=\"parent.toggle_expand('{$name}');\">".
 		"	{$name}:&nbsp;".($succ?'Success':'Failure').
-		'</font>';
+		'</a>';
 	if(!$succ){
 		$real=htmlentities($real);
 		$expected=htmlentities($expected);
