@@ -6,5 +6,4 @@
 }
 
 echo($_COOKIE['asd']);
-include('../include/markup.php');
 ?>

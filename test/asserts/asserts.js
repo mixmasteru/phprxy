@@ -9,6 +9,8 @@ var asserts=new Array(
 
 	'post_simple','post_simple_array',
 	'post_file','post_file_array',
-	'post_all_formdata'
+	'post_all_formdata',
+
+	'cookies'
 
 );

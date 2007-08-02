@@ -676,7 +676,8 @@ enabled. <b>**</b>
 <br />
 
 <b>**</b> Surrogafier requires Javascript in order to function to its full
-potential. It is highly recommended that you have Javascript enabled for privacy and security reasons. <b>**</b>
+potential. It is highly recommended that you have Javascript enabled for
+privacy and security reasons. <b>**</b>
 
 </noscript>
 </form>

@@ -1,0 +1,54 @@
+<html>
+<head>
+</head>
+<body style="background-image: url(&quot;/asd.gif&quot;)">
+
+<form method="post" action="/" target="_parent"></form>
+<form action="/" target="_parent"></form>
+<form target="_parent"></form>
+<form target="_top"></form>
+
+<a target='_parent'></a>
+<a target='_top'></a>
+
+<a target=_parent></a>
+<a target=_top></a>
+
+<a href="http://google.com" target=_top>TOP TARGET CLICK</a>
+
+<a href="/asd.com"></a>
+<a href="//asd.com"></a>
+<a href="://asd.com"></a>
+
+
+<a href=asd.com></a>
+<a href='asd.com'></a>
+<a href="asd.com"></a>
+
+
+<a target="_self" href=asd.com></a>
+<a target="_self" href='asd.com'></a>
+<a target="_self" href="asd.com"></a>
+
+
+<area href=asd.com></a>
+<area href='asd.com'></a>
+<area href="asd.com"></a>
+
+<iframe id="ja" src="http://live.com"></iframe>
+<iframe id="ja2" src="http://www.bcable.net"></iframe>
+
+<select onchange="document.location='bcable.net';"></select>
+<select onchange="alert(location.hostname);"></select>
+
+<select onchange='document.location="bcable.net";'></select>
+<select onchange='alert(location.hostname);'></select>
+
+<select onchange=alert(location.hostname);></select>
+
+<!--[if IE]>
+<a href="http://google.com" target=_top>COMMENT TEST</a>
+<![endif]-->
+<!--
+<a href="http://google.com" target=_top>COMMENT TEST</a>
+-->
