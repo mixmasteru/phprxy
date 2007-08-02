@@ -49,9 +49,12 @@ function incFalse(){
 
 function doassert(name){
 	var iframes=document.getElementById('iframes');
-	iframes.innerHTML+=
-		'<iframe id="'+name+'" src="doassert.php?assert='+name+'">'+
-		'</iframe><br />';
+	var ifrm=document.createElement('iframe');
+	ifrm.setAttribute('id',name);
+	ifrm.setAttribute('src','doassert.php?assert='+name);
+	var br=document.createElement('br');
+	iframes.appendChild(ifrm);
+	iframes.appendChild(br);
 	incWorking();
 }
 
