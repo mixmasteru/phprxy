@@ -23,6 +23,7 @@
 </div>
 <b>DETAILS:</b>
 <div id="iframes"></div>
+<script type="text/javascript" src="asserts/asserts.js"></script>
 <script language="javascript">
 <!--
 
@@ -71,13 +72,9 @@ function toggle_expand(name){
 		ifrm.style.height='14px';
 }
 
-doassert('markup');
-doassert('markup_remove');
-doassert('post_simple');
-doassert('post_simple_array');
-doassert('post_file');
-doassert('post_file_array');
-doassert('post_all_formdata');
+for(var i in asserts){
+	doassert(asserts[i]);
+}
 
 //-->
 </script>

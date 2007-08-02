@@ -23,16 +23,16 @@ function dosandbox($_SANDBOX=array()){
 	$_rFILES=$_FILES;
 	$_rENV=$_ENV;
 	$_rREQUEST=$_REQUEST;
-	$_rSESSION=$_REQUEST;
+	$_rSESSION=$_SESSION;
 
 	$_SERVER=array();
 	$_COOKIE=array();
 	$_GET=array();
 	$_POST=array();
-	$_rFILES=array();
-	$_rENV=array();
-	$_rREQUEST=array();
-	$_rSESSION=array();
+	$_FILES=array();
+	$_ENV=array();
+	$_REQUEST=array();
+	$_SESSION=array();
 
 	$_SERVER['REQUEST_METHOD']='GET';
 	$_SERVER['HTTP_HOST']='HTTP_HOST';
@@ -145,8 +145,8 @@ function gethtml($name, $succ, $real, $expected){
 		"	{$name}:&nbsp;".($succ?'Success':'Failure').
 		'</a>';
 	if(!$succ){
-		$real=htmlentities($real);
-		$expected=htmlentities($expected);
+		$real=nl2br(htmlentities($real));
+		$expected=nl2br(htmlentities($expected));
 		$out.=
 			"<div class=\"real\">{$real}</div>".
 			"<div class=\"expected\">{$expected}</div>".

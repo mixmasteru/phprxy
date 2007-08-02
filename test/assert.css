@@ -25,7 +25,6 @@ body{
 .real {
 	float: left;
 	width: 50%;
-	white-space: pre;
 	border: 1px solid #000000;
 	border-left: 0px;
 	border-right: 0px;
@@ -35,7 +34,6 @@ body{
 
 .expected { float: right;
 	width: 50%;
-	white-space: pre;
 	border: 1px solid #000000;
 	border-left: 0px;
 	border-right: 0px;

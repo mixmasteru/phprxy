@@ -162,7 +162,8 @@ function dosetcookie($cookname,$cookval,$expire=null){
 }
 
 define('FIRST_LOAD',empty($_COOKIE['PHPSESSID']));
-session_start();
+if(!isset($_SESSION)) session_start();
+
 if(empty($_SESSION['sesspref'])){
 	$sesspref=gen_randstr(30);
 	$_SESSION['sesspref']=$sesspref;
@@ -2352,11 +2353,14 @@ function getpage($url){
 		$addtoout=null;
 		reset($_COOKIE);
 		while(list($key,$val)=each($_COOKIE)){
+			if(
+				$key{0}!='~' && strtolower(substr($key,0,3))!='%7e' &&
+				str_replace(COOKIE_SEPARATOR,null,$key)==$key
+			) continue;
 			if(ENCRYPT_COOKS){
 				$key=proxdec($key);
 				$val=proxdec($val);
 			}
-			if(str_replace(COOKIE_SEPARATOR,null,$key)==$key) continue;
 			$cook_domain=
 				substr($key,0,strpos($key,COOKIE_SEPARATOR)).COOKIE_SEPARATOR;
 			if(
