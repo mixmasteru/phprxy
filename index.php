@@ -1472,6 +1472,12 @@ if(<?php echo(COOK_PREF); ?>.PAGE_FRAMED){
 # REGEXPS: CONVERSION TO JAVASCRIPT {{{
 
 function bool_to_js($bool){ return ($bool?'true':'false'); }
+function fix_regexp($regexp){
+	global $jsexprsect, $jsvarsect;
+	$regexp=preg_replace('/\(\?P\<[a-z0-9]+\>/i','(',$regexp);
+	$regexp=preg_replace('/\(\?P\>[a-z0-9]+\)/i',$jsvarsect,$regexp);
+	return $regexp;
+}
 function convertarray_to_javascript(){
 	global $regexp_arrays;
 	$js='regexp_arrays=new Array('.count($regexp_arrays).");\n";
@@ -1482,11 +1488,12 @@ function convertarray_to_javascript(){
 			$js.="regexp_arrays[\"$key\"][$i]=new Array(";
 			if($arr[$i][0]==1)
 				$js.=
-					'1,'.escape_regexp($arr[$i][2]).'g,"'.
-					escape_regexp($arr[$i][3],true).'"';
+					'1,'.escape_regexp(fix_regexp($arr[$i][2])).'g,"'.
+					escape_regexp(fix_regexp($arr[$i][3]),true).'"';
 			elseif($arr[$i][0]==2)
 				$js.=
-					'2,'.escape_regexp($arr[$i][2])."g,{$arr[$i][3]}".
+					'2,'.escape_regexp(fix_regexp($arr[$i][2])).
+					"g,{$arr[$i][3]}".
 					(count($arr[$i])<5?null:','.bool_to_js($arr[$i][4])).
 					(count($arr[$i])<6?null:",{$arr[$i][5]}");
 			$js.=");\n";
@@ -1499,7 +1506,7 @@ function convertarray_to_javascript(){
 
 # REGEXPS: VARIABLES {{{
 
-global $regexp_arrays;
+global $regexp_arrays, $jsexprsect, $jsvarsect;
 
 # 'img' was in $jsattrs... what's that for?
 $jsattrs=
@@ -1517,24 +1524,39 @@ $justspace="[\t ]*";
 $plusjustspace="[\t ]+";
 $anyspace="[\t\r\n ]*";
 $plusspace="[\t\r\n ]+";
-$operands='[\+\-\/\*]';
-$notoperands='[^\+\-\/\*]';
+$operand='[\+\-\/\*]';
+$notoperand='[^\+\-\/\*]';
 
 $quoteseg='(?:"(?:[^"]|[\\\\]")*?"|\'(?:[^\']|[\\\\]\')*?\'';
-$regseg='\/(?:[^\/]|[\\\\]\/)*?\/';
+$regseg='\/(?:[^\/]|[\\\\]\/)*?\/[a-z]*';
 
-$jsvarsect='[a-zA-Z0-9_\$](?:[a-zA-Z0-9\$\._\/\[\]\+-]*[a-zA-Z0-9_\/\]])?';
-$jsobjsect=
-	"{$jsvarsect}(?:\((?:{$quoteseg}|{$jsvarsect}|))\))?".
-	"(?:\[(?:{$quoteseg}|{$jsvarsect}|))\])?";
-$jsvarobj="{$jsobjsect}(?:\.{$jsobjsect})*";
-$jsquotesect="(?:{$anyspace}{$quoteseg}|{$jsvarobj}))";
-$jsquotereg="{$jsquotesect}(?:\+{$jsquotesect})*";
+$jsvarsect=
+	"(?:new{$plusspace})?[a-zA-Z0-9_\$]?".
+	"(?:[a-zA-Z0-9\$\._\/\+-]*[a-zA-Z0-9_\/])?";
+#$jsvarobj="{$quoteseg}|{$regseg}|$jsvarsect)";
+$jsexprsecthelper="{$quoteseg}|{$regseg}|$jsvarsect)";
+$jsexprsect="(?:{$jsexprsecthelper}|\({$jsexprsecthelper}\))";
+$jsexpr=
+	"(?P<jsexpr>{$jsexprsect}(?:{$anyspace}(?:".
+	"\.{$anyspace}(?P>jsexpr)".
+	"|{$operand}{$anyspace}(?P>jsexpr)".
+	"|\({$anyspace}(?P>jsexpr)".
+		"(?:{$anyspace},{$anyspace}(?P>jsexpr))*{$anyspace}\)".
+	"|\[{$anyspace}(?P>jsexpr){$anyspace}\]".
+	"){$anyspace})*)";
+$jsvarobj=str_replace('jsexpr','jsvarobj',$jsexpr);
+$jsvarobj2=str_replace('jsexpr','jsvarobj2',$jsexpr);
+$jsvarobj3=str_replace('jsexpr','jsvarobj3',$jsexpr);
+#$jsobjsecthelper="(?:{$jsobjsect}|\({$jsobjsect}\))";
+#$jsvarobjhelper="{$jsobjsecthelper}(?:\.{$jsobjsecthelper})*";
+#$jsvarobj="(?:{$jsvarobjhelper}|\({$jsvarobjhelper}\))";
+#$jsexprsect="(?:{$anyspace}{$quoteseg}|{$regseg}|{$jsvarobj}))";
+#$jsexpr="{$jsexprsect}(?:{$operand}{$jsexprsect})*";
 
 $notjsvarsect='[^a-zA-Z0-9\._\[\]]';
 
-$jsend="(?={$justspace}(?:[;\}\n\r]|{$notoperands}[\n\r]))";
-$notjsend="(?!{$justspace}(?:[;\}\n\r]|{$notoperands}[\n\r]))";
+$jsend="(?={$justspace}(?:[;\}]|{$notoperand}[\n\r]))";
+$notjsend="(?!{$justspace}(?:[;\}]|{$notoperand}[\n\r]))";
 $jsbegin="((?:[;\{\}\n\r\(\)]|[\!=]=){$anyspace})";
 $jsbeginright="((?:[;\{\}\(\)=\+\-\/\*]){$justspace})";
 
@@ -1561,41 +1583,82 @@ $js_string_attrs='(?:constructor|length|prototype)';
 # REGEXPS: JAVASCRIPT PARSING {{{
 
 $js_regexp_arrays=array(
+
+	#array(1,2,"/({$operand}){$plusjustspace}[\r\n]+/im",'\1'),
+
+	# object.attribute parsing (get and set)
+
+	# set for +=
 	array(1,2,
 		"/{$jsbegin}({$jsvarobj})\.({$jshookgetattrs}){$anyspace}\+=/i",
-		'\1\2.\3='.COOK_PREF.'.getAttr(\2,/\3/)+'),
+		'\1\2.\4='.COOK_PREF.'.getAttr(\2,/\4/)+'),
+	# set for =
 	array(1,2,
 		"/{$jsbegin}({$jsvarobj})\.(({$jshookattrs}){$anyspace}=".
-			"(?:{$anyspace}{$jsvarobj}{$anyspace}=)*{$anyspace})".
-			"((?!\=)({$notjsend}.)*){$jsend}/i",
-		'\1'.COOK_PREF.'.setAttr(\2,/\4/,\5)'),
+			"(?:{$anyspace}{$jsvarobj2}{$anyspace}=)*{$anyspace})".
+			"({$jsexpr}){$jsend}/i",
+		'\1'.COOK_PREF.'.setAttr(\2,/\5/,\7)'),
+	# get
 	array(1,2,
 		"/{$jsbeginright}({$jsvarobj})\.({$jshookgetattrs})".
 			"([^\.=a-z0-9_\[\]\t\r\n]|\.{$js_string_methods}\(|".
 			"\.{$js_string_attrs}{$notjsvarsect})/i",
-		'\1'.COOK_PREF.'.getAttr(\2,/\3/)\4'),
+		'\1'.COOK_PREF.'.getAttr(\2,/\4/)\5'),
 
+
+	# object['attribute'] parsing (get and set)
+
+	# set for +=
+	array(1,2,
+		"/{$jsbegin}({$jsvarobj})\[({$jsexpr})\]{$anyspace}\+=/i",
+		'\1\2[\4]='.COOK_PREF.'.getAttr(\2,\4)+'),
+	# set for =
+	array(1,2,
+		"/{$jsbegin}({$jsvarobj})(\[({$jsvarobj2})\]{$anyspace}=".
+			"(?:{$anyspace}{$jsvarobj3}{$anyspace}=)*{$anyspace})".
+			"({$jsexpr}){$jsend}/i",
+		'\1'.COOK_PREF.'.setAttr(\2,\5,\8)'),
+	# get
+	array(1,2,
+		"/{$jsbeginright}({$jsvarobj})\[({$jsexpr})\]".
+			"([^\.=a-z0-9_\[\]\t\r\n]|\.{$js_string_methods}\(|".
+			"\.{$js_string_attrs}{$notjsvarsect})/i",
+		'\1'.COOK_PREF.'.getAttr(\2,\4)\5'),
+
+
+	# method parsing
 	array(1,2,
 		"/([^a-z0-9]{$jsmethods}{$anyspace}\()([^)]*)\)/i",
 		'\1'.COOK_PREF.'.surrogafy_url(\3))'),
+
+	# eval parsing
 	array(1,2,
 		"/([^a-z0-9])eval{$anyspace}\(({$anyspace}{$jsvarobj})\)/i",
 		'\1eval('.COOK_PREF.'.parse_all_html(\2,"application/x-javascript"))'),
 
+	# action attribute parsing
 	array(1,2,
 		"/{$jsbegin}\.action{$anyspace}=/i",
 		'\1.'.COOK_PREF.'.value='),
-	array(1,2,
+
+	# object.setAttribute parsing
+	/*array(1,2,
 		"/{$jsbegin}({$jsvarobj})\.setAttribute{$anyspace}\({$anyspace}(".
-			"{$jsquotereg}){$anyspace},{$anyspace}({$jsquotereg}){$anyspace}".
+			"{$jsexpr}){$anyspace},{$anyspace}({$jsexpr}){$anyspace}".
 			"\)/i",
-		'\1'.COOK_PREF.'.setAttr(\2,\3,\4)'),
+		'\1'.COOK_PREF.'.setAttr(\2,\3,\4)'),*/
+
+	# XMLHttpRequest parsing
 	array(1,2,
 		"/{$jsbegin}([^\ {>\t\r\n=;]+{$anyspace}=)({$jsnewobj}{$xmlhttpreq})/i",
 		'\1\2'.COOK_PREF.'.XMLHttpRequest_wrap(\3)'),
+
+	# XMLHttpRequest in return statement parsing
 	array(1,2,
 		"/{$jsbegin}(return{$plusspace})({$jsnewobj}{$xmlhttpreq})/i",
 		'\1\2'.COOK_PREF.'.XMLHttpRequest_wrap(\3)'),
+
+	# form.submit() call parsing
 	(ENCRYPT_URLS?array(1,2,
 		"/{$jsbegin}((?:[^\) \{\}]*(?:\)\.{0,1}))+)(\.submit{$anyspace}\(\))".
 			"{$jsend}/i",
@@ -1740,9 +1803,9 @@ define('REGEXP_SCRIPT_ONEVENT',
 
 unset(
 	$jsattrs,$jshookattrs,$jsmethods,$jslochost,$htmlattrs,
-	$anyspace,$plusspace,$operands,$notoperands,
+	$anyspace,$plusspace,$operand,$notoperand,
 	$quoteseg,$regseg,
-	$jsvarsect,$jsobjsect,$jsvarobj,$jsquotesect,$jsquotereg,
+	$jsobjsect,$jsvarobj,$jsexpr,
 	$notjsvarsect,
 	$jsend,$notjsend,$jsbegin,$jsbeginright,
 	$htmlnoquot,$htmlnoquotnoqm,$htmlreg,$xmlhttpreq,$jsnewobj,$formnotpost,
