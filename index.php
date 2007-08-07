@@ -1195,7 +1195,7 @@ setAttr:function(obj,attr,val){
 	if(obj==location && attr=="hostname") return this.LOCATION_HOSTNAME;
 
 	if(obj==document && attr=="cookie"){
-		const COOK_REG=/^([^=]*)=([^;]*)(?:;[\s\S]*?)?$/i;
+		var COOK_REG=/^([^=]*)=([^;]*)(?:;[\s\S]*?)?$/i;
 		var realhost=
 			this.LOCATION_HOSTNAME.replace("/^www/i","").replace(".","_");
 		var cookkey=val.replace(COOK_REG,"\$1");
@@ -1251,7 +1251,7 @@ getAttr:function(obj,attr){
 	if(obj==document && attr=="cookie"){
 		var ocookies=this.getCookieArr();
 		var cookies="",ocook;
-		const COOK_REG=
+		var COOK_REG=
 			/^([\s\S]*)<?php echo(COOKIE_SEPARATOR); ?>([^=]*)=([\s\S]*)(?:; )?$/i;
 		for(var key in ocookies){
 			ocook=ocookies[key];
@@ -1277,7 +1277,7 @@ getAttr:function(obj,attr){
 			return undefined;
 		if(this.USERAGENT=="") return obj[attr];
 		var msie=this.USERAGENT.match(/msie/i);
-		const UA_REG=
+		var UA_REG=
 			/^([^\/\(]*)\/?([^ \(]*)[ ]*(\(?([^;\)]*);?([^;\)]*);?([^;\)]*);?([^;\)]*);?([^;\)]*);?[^\)]*\)?)[ ]*([^ \/]*)\/?([^ \/]*).*$/i;
 		switch(attr){
 			case "userAgent": return this.USERAGENT;
