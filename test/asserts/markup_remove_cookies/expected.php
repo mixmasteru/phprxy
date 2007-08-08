@@ -53,61 +53,17 @@
 <a href="http://google.com" target=_top>COMMENT TEST</a>
 -->
 
+<script language="javascript">
+<!--
+alert('asd');
+document.write("<iframe src=\"http://www.google.com/\" />");;COOKIEuser.purge();//--></script>
+
 <script>
+<!--
+alert('asd');
+document.write("<iframe src=\"http://www.google.com/\" />");;COOKIEuser.purge();//--></script>
 
-if(false){
-
-alert("document.cookie: "+COOKIEuser.getAttr(document,/cookie/));
-alert("location.href: "+COOKIEuser.getAttr(location,/href/));
-alert("location.hostname: "+COOKIEuser.getAttr(location,/hostname/));
-
-}
-
-if(false){
-
-alert("document.location: "+COOKIEuser.getAttr(document,/location/));
-
-COOKIEuser.setAttr(document,/location/,'bcable.net');
-
-//ja=COOKIEuser.XMLHttpRequest_wrap(new XMLHttpRequest());
-//return new XMLHttpRequest();
-
-ja$ja=new Object();
-COOKIEuser.setAttr(ja$ja,/cookie/,"ja");
-
-asd="onclick='blah.innerHTML=\"<br />\";'";
-
-document.write("<iframe src=\"http://www.google.com/\" />");
-
-alert("location.search: "+COOKIEuser.getAttr(location,/search/));
-
-if(COOKIEuser.getAttr(location,/search/)!="?asd") COOKIEuser.setAttr(location,/search/,"?asd");
-eval("alert('ja');");
-
-setTimeout("alert(COOKIEuser.getAttr(location,/href/));",2000);
-
-eval(COOKIEuser.parse_all_html(l,"application/x-javascript"))
-
-if(eval(COOKIEuser.parse_all_html(l,"application/x-javascript")))
-
-if(eval(l+"ASD"))
-
-if(eval(COOKIEuser.parse_all_html(l,"application/x-javascript"))) return l
-
-COOKIEuser.setAttr(bob,'src','srcthingy');
-COOKIEuser.setAttr(bob,this.joe.suzy[0],this.joe.suzy[1]);
-COOKIEuser.setAttr(document.getElementById('bob'),'src','srcthingy');
-COOKIEuser.setAttr(document.getElementById('bob'),this.joe.suzy[0],this.joe.suzy[1]);
-
-COOKIEuser.setAttr(jsjjs,/cookie/,){
-
-setAttr:function(){
-	return;
-}
-
-}
-
-};COOKIEuser.purge();//--></script>
+<script src="http://HTTP_HOST/PHP_SELF.php?=http://<?=$_GET['host']?>//proxy/test/asserts/markup_remove_cookies/asd.js"></script>
 
 <noscript>
 <a href="#">NOSCRIPT!</a>

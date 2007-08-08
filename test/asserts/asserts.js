@@ -1,4 +1,8 @@
 var asserts=new Array(
+	'cookies',
+
+	'javascript_php',
+
 	'markup',
 	'markup_remove_cookies', 'markup_remove_referer',
 	'markup_remove_scripts', 'markup_remove_objects',
@@ -9,8 +13,6 @@ var asserts=new Array(
 
 	'post_simple','post_simple_array',
 	'post_file','post_file_array',
-	'post_all_formdata',
-
-	'cookies'
+	'post_all_formdata'
 
 );
