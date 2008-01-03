@@ -1387,7 +1387,6 @@ purge:function(){
 	if(thehtml=="") return;
 	thehtml=this.parse_all_html(thehtml);
 	this.document_write_queue="";
-	//alert(thehtml); // DEBUG
 	document.write_<?php echo(COOK_PREF); ?>(thehtml);
 },
 
@@ -1474,8 +1473,8 @@ if(<?php echo(COOK_PREF); ?>.PAGE_FRAMED){
 function bool_to_js($bool){ return ($bool?'true':'false'); }
 function fix_regexp($regexp){
 	global $js_varsect;
-	$regexp=preg_replace('/\(\?P\<[a-z0-9]+\>/i','(',$regexp);
-	$regexp=preg_replace('/\(\?P\>[a-z0-9]+\)/i',$js_varsect,$regexp);
+	$regexp=preg_replace('/\(\?P\<[a-z0-9_]+\>/i','(',$regexp);
+	$regexp=preg_replace('/\(\?P\>[a-z0-9_]+\)/i',$js_varsect,$regexp);
 	return $regexp;
 }
 function convertarray_to_javascript(){
@@ -1593,10 +1592,10 @@ $js_expr2, ...:  $js_expr requires use of a named submatch, so there needs
 */
 
 $js_varsect=
-	"(?:new{$g_plusspace})?[a-zA-Z0-9_\$]?".
+	"(?:new{$g_plusspace})?[a-zA-Z0-9_\$]".
 	"(?:[a-zA-Z0-9\$\._\/\+-]*[a-zA-Z0-9_\/])?";
 $js_jsvarsect=
-	"(?:new{$g_plusspace})?[a-zA-Z0-9_\$]?".
+	"(?:new{$g_plusspace})?[a-zA-Z0-9_\$]".
 	"(?:[a-zA-Z0-9\$\._\/\+-]*[a-zA-Z0-9_\/\[\]])?";
 $n_js_varsect='[^a-zA-Z0-9\._\[\]]';
 
@@ -1695,7 +1694,7 @@ $js_regexp_arrays=array(
 		"/{$js_beginright}({$js_expr})\[({$js_expr2})\]".
 			"([^\.=a-z0-9_\[\]\t\r\n]|\.{$js_string_methods}\(|".
 			"\.{$js_string_attrs}{$n_js_varsect})/i",
-		'\1'.COOK_PREF.'.getAttr(\2,\4)\5'),
+		'\1'.COOK_PREF.'.getAttr(\2,\4)\6'),
 
 
 	# method parsing
