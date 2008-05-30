@@ -1,5 +1,5 @@
 
-<meta name="robots" content="noindex, nofollow" /><link rel="shortcut icon" href="http://HTTP_HOST/PHP_SELF.php?=http://<?=$_GET['host']?>/favicon.ico" /><script type="text/javascript" src="http://HTTP_HOST/PHP_SELF.php?js_funcs"></script><script type="text/javascript" src="http://HTTP_HOST/PHP_SELF.php?js_regexps"></script><script language="javascript">COOKIEuser.DOCUMENT_REFERER="";COOKIEuser.CURR_URL="http://<?=$_GET['host']?>//proxy/test/asserts/javascript_php/index.php"+location.hash;COOKIEuser.gen_curr_urlobj();COOKIEuser.LOCATION_SEARCH="";COOKIEuser.LOCATION_HOSTNAME="<?=$_GET['host']?>";COOKIEuser.LOCATION_PORT="80";COOKIEuser.ENCRYPT_URLS=false;COOKIEuser.ENCRYPT_COOKS=false;COOKIEuser.URL_FORM=false;COOKIEuser.PAGE_FRAMED=false;COOKIEuser.USERAGENT="";</script><script language="javascript">
+<meta name="robots" content="noindex, nofollow" /><link rel="shortcut icon" href="http://HTTP_HOST/PHP_SELF.php?=http://<?=$_GET['host']?>/favicon.ico" /><script type="text/javascript" src="http://HTTP_HOST/PHP_SELF.php?js_funcs"></script><script type="text/javascript" src="http://HTTP_HOST/PHP_SELF.php?js_regexps"></script><script type="text/javascript">COOKIEuser.DOCUMENT_REFERER="/";COOKIEuser.CURR_URL="http://<?=$_GET['host']?>//proxy/test/asserts/javascript_php/index.php"+location.hash;COOKIEuser.gen_curr_urlobj();COOKIEuser.LOCATION_SEARCH="";COOKIEuser.LOCATION_HOSTNAME="<?=$_GET['host']?>";COOKIEuser.LOCATION_PORT="80";COOKIEuser.ENCRYPT_URLS=false;COOKIEuser.ENCRYPT_COOKIES=false;COOKIEuser.URL_FORM=true;COOKIEuser.PAGE_FRAMED=false;COOKIEuser.USERAGENT="";</script><script language="javascript">
 
 if(false){
 
@@ -15,8 +15,13 @@ alert("document.location: "+COOKIEuser.getAttr(document,/location/));
 
 COOKIEuser.setAttr(document,/location/,'bcable.net');
 
-//ja=COOKIEuser.XMLHttpRequest_wrap(new XMLHttpRequest());
+//ja=new XMLHttpRequest();
 //return new XMLHttpRequest();
+
+/*
+ja=COOKIEuser.XMLHttpRequest_wrap(new XMLHttpRequest());
+return COOKIEuser.XMLHttpRequest_wrap(new XMLHttpRequest());
+*/
 
 ja$ja=new Object();
 COOKIEuser.setAttr(ja$ja,/cookie/,"ja");
@@ -40,12 +45,12 @@ if(eval(COOKIEuser.parse_all_html(l+"ASD","application/x-javascript")))
 
 if(eval(COOKIEuser.parse_all_html(l,"application/x-javascript"))) return l
 
-bob.setAttribute('src','srcthingy');
-bob.setAttribute(COOKIEuser.getAttr(this.joe.suzy,0)0this.joe.suzy[1]);
-document.getElementById('bob').setAttribute('src','srcthingy');
-document.getElementById('bob').setAttribute(COOKIEuser.getAttr(this.joe.suzy,0)0this.joe.suzy[1]);
+COOKIEuser.setAttr(bob,'src','srcthingy');
+COOKIEuser.setAttr(bob,COOKIEuser.getAttr(this.joe.suzy,0),this.joe.suzy[1]);
+COOKIEuser.setAttr(document.getElementById('bob'),'src','srcthingy');
+COOKIEuser.setAttr(document.getElementById('bob'),COOKIEuser.getAttr(this.joe.suzy,0),this.joe.suzy[1]);
 
-COOKIEuser.setAttr(jsjjs,/cookie/,){
+jsjjs.cookie = {
 
 setAttr:function(){
 	return;
@@ -77,17 +82,21 @@ COOKIEuser.setAttr(document,/cookie/,"TZ="+Date.getTimezoneOffset()+BrowserSuppo
 COOKIEuser.setAttr(document,/cookie/,"TZ="+Date().getTimezoneOffset()+BrowserSupport_.tz_path);
 COOKIEuser.setAttr(document,/cookie/,"TZ="+(Date()).getTimezoneOffset()+BrowserSupport_.tz_path);
 COOKIEuser.setAttr(document,/cookie/,"TZ="+new Date().getTimezoneOffset()+BrowserSupport_.tz_path);
+COOKIEuser.setAttr(document,/cookie/,"TZ="+(new Date()).getTimezoneOffset()+BrowserSupport_.tz_path);
+COOKIEuser.setAttr(document,/cookie/,"TZ="+((new Date()).getTimezoneOffset()+BrowserSupport_.tz_path));
 COOKIEuser.setAttr(document,/cookie/,"TZ="+(new Date(1+(1))).getTimezoneOffset()+BrowserSupport_.tz_path);
 COOKIEuser.setAttr(document,/cookie/,"TZ="+(new Date(1+(1+1))).getTimezoneOffset()+BrowserSupport_.tz_path);
+COOKIEuser.setAttr(document,/cookie/,("TZ="+((new Date()).getTimezoneOffset()+BrowserSupport_.tz_path)));
 COOKIEuser.setAttr(document,/cookie/,"ASD="+(1+1));
 COOKIEuser.setAttr(document,/cookie/,"ASD="+(1+(1+1)));
-COOKIEuser.setAttr(document,/cookie/,("TZ="+((new Date()).getTimezoneOffset()+BrowserSupport_.tz_path)));
 COOKIEuser.setAttr(document,/cookie/,"asd"+
 "qwe");
 COOKIEuser.setAttr(document,/cookie/,(((("TZ="+((((new Date(1+
-(COOKIEuser.getAttr(document.getElementById('asd'),0)0)))).getTimezoneOffset()+BrowserSupport_.tz_path))))));
+(COOKIEuser.getAttr(document.getElementById('asd'),0)))))).getTimezoneOffset()+BrowserSupport_.tz_path))))));
+COOKIEuser.setAttr(document,/cookie/,(((("TZ=" + (((( new Date (1+
+(COOKIEuser.getAttr(document.getElementById('asd'),0)))))).getTimezoneOffset() + BrowserSupport_.tz_path))))));
 
-alert(COOKIEuser.getAttr(document,'cookie')'cookie';
+alert(COOKIEuser.getAttr(document,'cookie'));
 COOKIEuser.setAttr(document,'cookie',COOKIEuser.getAttr(document,'cookie')+'asd');
 COOKIEuser.setAttr(document,'cookie',asd);
 COOKIEuser.setAttr(document,'cookie','asd');

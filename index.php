@@ -1827,13 +1827,17 @@ $n_js_varsect='[^a-zA-Z0-9\._\[\]]';
 $h_js_exprsect="(?:{$g_quoteseg}|{$g_regseg}|{$js_varsect})";
 $js_exprsect="(?:{$h_js_exprsect}|\({$h_js_exprsect}\))";
 $js_expr=
-	"(?P<js_expr>{$js_exprsect}(?:{$g_anyspace}(?:".
-	"\.{$g_anyspace}(?P>js_expr)".
-	"|{$g_operand}{$g_anyspace}(?P>js_expr)".
-	"|\({$g_anyspace}(?P>js_expr)".
-		"(?:{$g_anyspace},{$g_anyspace}(?P>js_expr))*{$g_anyspace}\)".
-	"|\[{$g_anyspace}(?P>js_expr){$g_anyspace}\]".
-	"|\{{$g_anyspace}(?P>js_expr){$g_anyspace}\}".
+	'(?P<js_expr>(?:'.
+		$js_exprsect.
+		"|(?:{$js_exprsect}{$g_anyspace})?\({$g_anyspace}(?:(?P>js_expr)".
+			"(?:{$g_anyspace},{$g_anyspace}(?P>js_expr))*{$g_anyspace})?\)".
+	")(?:{$g_anyspace}(?:".
+			"\.{$g_anyspace}(?P>js_expr)".
+			"|{$g_operand}{$g_anyspace}(?P>js_expr)".
+			"|\[{$g_anyspace}(?P>js_expr){$g_anyspace}\]".
+			"|\({$g_anyspace}(?:(?P>js_expr)".
+				"(?:{$g_anyspace},{$g_anyspace}(?P>js_expr))*{$g_anyspace})?\)".
+			"|\{{$g_anyspace}(?P>js_expr){$g_anyspace}\}".
 	"){$g_anyspace})*)";
 $js_expr2=str_replace('js_expr','js_expr2',$js_expr);
 $js_expr3=str_replace('js_expr','js_expr3',$js_expr);
@@ -1886,40 +1890,40 @@ $js_regexp_arrays=array(
 
 	# set for +=
 	array(1,2,
-		"/{$js_begin}({$js_expr})\.({$hook_js_getattrs}){$g_anyspace}\+=/i",
-		'\1\2.\4='.COOK_PREF.'.getAttr(\2,/\4/)+'),
+		"/{$js_begin}{$js_expr}\.({$hook_js_getattrs}){$g_anyspace}\+=/i",
+		'\1\2.\3='.COOK_PREF.'.getAttr(\2,/\3/)+'),
 	# set for =
 	array(1,2,
-		"/{$js_begin}({$js_expr})\.(({$hook_js_attrs}){$g_anyspace}=".
+		"/{$js_begin}{$js_expr}\.(({$hook_js_attrs}){$g_anyspace}=".
 			"(?:{$g_anyspace}{$js_expr2}{$g_anyspace}=)*{$g_anyspace})".
 			"({$js_expr3}){$l_js_end}/i",
-		'\1'.COOK_PREF.'.setAttr(\2,/\5/,\7)'),
+		'\1'.COOK_PREF.'.setAttr(\2,/\4/,\6)'),
 	# get
 	array(1,2,
-		"/{$js_beginright}({$js_expr})\.({$hook_js_getattrs})".
+		"/{$js_beginright}{$js_expr}\.({$hook_js_getattrs})".
 			"([^\.=a-z0-9_\[\]\t\r\n]|\.{$js_string_methods}\(|".
 			"\.{$js_string_attrs}{$n_js_varsect})/i",
-		'\1'.COOK_PREF.'.getAttr(\2,/\4/)\5'),
+		'\1'.COOK_PREF.'.getAttr(\2,/\3/)\4'),
 
 
 	# object['attribute'] parsing (get and set)
 
 	# set for +=
 	array(1,2,
-		"/{$js_begin}({$js_expr})\[({$js_expr2})\]{$g_anyspace}\+=/i",
-		'\1\2[\4]='.COOK_PREF.'.getAttr(\2,\4)+'),
+		"/{$js_begin}{$js_expr}\[{$js_expr2}\]{$g_anyspace}\+=/i",
+		'\1\2[\3]='.COOK_PREF.'.getAttr(\2,\3)+'),
 	# set for =
 	array(1,2,
-		"/{$js_begin}({$js_expr})(\[({$js_expr2})\]{$g_anyspace}=".
+		"/{$js_begin}{$js_expr}(\[{$js_expr2}\]{$g_anyspace}=".
 			"(?:{$g_anyspace}{$js_expr3}{$g_anyspace}=)*{$g_anyspace})".
-			"({$js_expr4}){$l_js_end}/i",
-		'\1'.COOK_PREF.'.setAttr(\2,\5,\8)'),
+			"{$js_expr4}{$l_js_end}/i",
+		'\1'.COOK_PREF.'.setAttr(\2,\4,\6)'),
 	# get
 	array(1,2,
-		"/{$js_beginright}({$js_expr})\[({$js_expr2})\]".
+		"/{$js_beginright}{$js_expr}\[{$js_expr2}\]".
 			"([^\.=a-z0-9_\[\]\t\r\n]|\.{$js_string_methods}\(|".
 			"\.{$js_string_attrs}{$n_js_varsect})/i",
-		'\1'.COOK_PREF.'.getAttr(\2,\4)\6'),
+		'\1'.COOK_PREF.'.getAttr(\2,\3)\4'),
 
 
 	# method parsing
@@ -1939,9 +1943,9 @@ $js_regexp_arrays=array(
 
 	# object.setAttribute parsing
 	array(1,2,
-		"/{$js_begin}({$js_expr})\.setAttribute{$g_anyspace}\({$g_anyspace}(".
-			"{$js_expr2}){$g_anyspace},{$g_anyspace}({$js_expr3}){$g_anyspace}".
-			"\)/i",
+		"/{$js_begin}{$js_expr}\.setAttribute{$g_anyspace}\({$g_anyspace}".
+			"{$js_expr2}{$g_anyspace},{$g_anyspace}{$js_expr3}".
+			"{$g_anyspace}\)/i",
 		'\1'.COOK_PREF.'.setAttr(\2,\3,\4)'),
 
 	# XMLHttpRequest parsing

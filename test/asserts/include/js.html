@@ -82,15 +82,19 @@ document.cookie="TZ="+Date.getTimezoneOffset()+BrowserSupport_.tz_path;
 document.cookie="TZ="+Date().getTimezoneOffset()+BrowserSupport_.tz_path;
 document.cookie="TZ="+(Date()).getTimezoneOffset()+BrowserSupport_.tz_path;
 document.cookie="TZ="+new Date().getTimezoneOffset()+BrowserSupport_.tz_path;
+document.cookie="TZ="+(new Date()).getTimezoneOffset()+BrowserSupport_.tz_path;
+document.cookie="TZ="+((new Date()).getTimezoneOffset()+BrowserSupport_.tz_path);
 document.cookie="TZ="+(new Date(1+(1))).getTimezoneOffset()+BrowserSupport_.tz_path;
 document.cookie="TZ="+(new Date(1+(1+1))).getTimezoneOffset()+BrowserSupport_.tz_path;
+document.cookie=("TZ="+((new Date()).getTimezoneOffset()+BrowserSupport_.tz_path));
 document.cookie="ASD="+(1+1);
 document.cookie="ASD="+(1+(1+1));
-document.cookie=("TZ="+((new Date()).getTimezoneOffset()+BrowserSupport_.tz_path));
 document.cookie="asd"+
 "qwe";
 document.cookie=(((("TZ="+((((new Date(1+
 (document.getElementById('asd')[0]))))).getTimezoneOffset()+BrowserSupport_.tz_path)))));
+document.cookie=(((("TZ=" + (((( new Date (1+
+(document.getElementById('asd')[0]))))).getTimezoneOffset() + BrowserSupport_.tz_path)))));
 
 alert(document['cookie']);
 document['cookie']+='asd';
