@@ -1,9 +1,9 @@
 array(1) {
-  ["gpikcllsul__PREF"]=>
-  string(66) "ID=2c19eeae6e2309d1:TM=1186014509:LM=1186014509:S=bf7bBws6PU7kWZ-D"
+  ["2pre3Z2Inp9diIjKy4meHlrbmFi"]=>
+  string(109) "~TEcoN0k4ajlCb3BtckR0QkRCTHhGO0pZbWdAT2BNNDs5NDY6PDhCLz5NWVs0Q1VDRExLRkhMTkpUQU9dVig2SGdsPmpLI35CXWNGe2hsQFg="
 }
 <html>
-<head><meta name="robots" content="noindex, nofollow" /><link rel="shortcut icon" href="http://HTTP_HOST/PHP_SELF.php?=~a3d3dCo5SC07UDA%2BU3JwfHZ9OEZbfHgwJH0sLEonZnI%3D" /><script type="text/javascript" src="http://HTTP_HOST/PHP_SELF.php?js_funcs"></script><script type="text/javascript" src="http://HTTP_HOST/PHP_SELF.php?js_regexps"></script><script language="javascript">COOKIEuser.DOCUMENT_REFERER="";COOKIEuser.CURR_URL="http://<?=$_GET['host']?>//proxy/test/asserts/markup_encrypt_all/index.php"+location.hash;COOKIEuser.gen_curr_urlobj();COOKIEuser.LOCATION_SEARCH="";COOKIEuser.LOCATION_HOSTNAME="<?=$_GET['host']?>";COOKIEuser.LOCATION_PORT="80";COOKIEuser.ENCRYPT_URLS=true;COOKIEuser.ENCRYPT_COOKS=true;COOKIEuser.URL_FORM=false;COOKIEuser.PAGE_FRAMED=false;COOKIEuser.USERAGENT="";</script>
+<head><meta name="robots" content="noindex, nofollow" /><link rel="shortcut icon" href="http://HTTP_HOST/PHP_SELF.php?=~a3d3dCo5SC07UDA%2BU3JwfHZ9OEZbfHgwJH0sLEonZnI%3D" /><script type="text/javascript" src="http://HTTP_HOST/PHP_SELF.php?js_funcs"></script><script type="text/javascript" src="http://HTTP_HOST/PHP_SELF.php?js_regexps"></script><script type="text/javascript">COOKIEuser.DOCUMENT_REFERER="/";COOKIEuser.CURR_URL="http://<?=$_GET['host']?>//proxy/test/asserts/markup_encrypt_all/index.php"+location.hash;COOKIEuser.gen_curr_urlobj();COOKIEuser.LOCATION_SEARCH="";COOKIEuser.LOCATION_HOSTNAME="<?=$_GET['host']?>";COOKIEuser.LOCATION_PORT="80";COOKIEuser.ENCRYPT_URLS=true;COOKIEuser.ENCRYPT_COOKIES=false;COOKIEuser.URL_FORM=true;COOKIEuser.PAGE_FRAMED=false;COOKIEuser.USERAGENT="";</script>
 </head>
 <body style="background-image: url(&quot;http://HTTP_HOST/PHP_SELF.php?=~a3d3dCo5SC07UDA%2BU3JwfHZ9OEZbdyx8RyMmJA%3D%3D&quot;)">
 
