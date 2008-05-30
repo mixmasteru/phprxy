@@ -112,7 +112,7 @@ function get_real_contents($name){
 	global $req_dir, $req_pwd;
 	$_SERVER['QUERY_STRING']="={$req_dir}asserts/{$name}/index.php";
 	ob_start();
-	include("../index.php");
+	include('../index.php');
 	$dump=ob_get_contents();
 	ob_end_clean();
 	return $dump;

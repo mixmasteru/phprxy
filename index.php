@@ -2981,6 +2981,7 @@ function getpage($url){
 		if(!$justoutputnow) echo $body;
 		finish();
 	}
+
 	return array($body,$url,$cook_prefix);
 
 	# }}}
@@ -3066,6 +3067,7 @@ while(list($key,$entry)=each($dns_cache_array)){
 
 # PROXY EXECUTION: PAGE RETRIEVAL {{{
 
+global $headers;
 $pagestuff=getpage($curr_url);
 $body=$pagestuff[0];
 
@@ -3285,7 +3287,6 @@ function parse_all_html($html){
 	}
 
 	// OPTION1
-
 	if(!$OPTIONS['REMOVE_SCRIPTS']){
 		for($i=0;$i<count($splitarr);$i+=2){
 			$splitarr[$i]=implode(null,$splitarr2[$i]);
