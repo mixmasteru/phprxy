@@ -60,6 +60,12 @@ setAttr:function(){
 
 }
 
+a.href=foo;
+a.href=bar();
+a.href=function(){};
+a.href={};
+a.href=(a||b)&&(c|d&e)&&f;
+
 alert(document.cookie);
 document.cookie+='asd';
 

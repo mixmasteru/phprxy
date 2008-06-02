@@ -60,6 +60,12 @@ setAttr:function(){
 
 }
 
+COOKIEuser.setAttr(a,/href/,foo);
+COOKIEuser.setAttr(a,/href/,bar());
+COOKIEuser.setAttr(a,/href/,function(){});
+COOKIEuser.setAttr(a,/href/,{});
+COOKIEuser.setAttr(a,/href/,(a||b)&&(c|d&e)&&f);
+
 alert(COOKIEuser.getAttr(document,/cookie/));
 COOKIEuser.setAttr(document,/cookie/,COOKIEuser.getAttr(document,/cookie/)+'asd');
 
