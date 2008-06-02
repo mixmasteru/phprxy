@@ -1839,6 +1839,8 @@ $js_expr=
 	"(?:{$g_anyspace}(?:".
 			"\.{$g_anyspace}(?P>js_expr)".
 			"|{$g_operand}{$g_anyspace}(?P>js_expr)".
+			"|\?{$g_anyspace}(?P>js_expr){$g_anyspace}".
+				":{$g_anyspace}(?P>js_expr)".
 			$h_js_expr.
 	"){$g_anyspace})*)";
 $js_expr2=str_replace('js_expr','js_expr2',$js_expr);
