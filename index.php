@@ -1730,7 +1730,7 @@ function convertarray_to_javascript(){
 
 # REGEXPS: VARIABLES {{{
 
-global $regexp_arrays,  $js_varsect;
+global $regexp_arrays, $js_varsect;
 
 /* Variable Naming Tags
 js:     Javascript
@@ -1819,10 +1819,10 @@ $js_expr2, ...:  $js_expr requires use of a named submatch, so there needs
 
 $js_varsect=
 	"(?:new{$g_plusspace})?[a-zA-Z0-9_\$]".
-	"(?:[a-zA-Z0-9\$\._\/\+-]*[a-zA-Z0-9_\/])?";
+	"(?:[a-zA-Z0-9\$\._]*[a-zA-Z0-9_])?";
 $js_jsvarsect=
 	"(?:new{$g_plusspace})?[a-zA-Z0-9_\$]".
-	"(?:[a-zA-Z0-9\$\._\/\+-]*[a-zA-Z0-9_\/\[\]])?";
+	"(?:[a-zA-Z0-9\$\._]*[a-zA-Z0-9_\[\]])?";
 $n_js_varsect='[^a-zA-Z0-9\._\[\]]';
 
 $h_js_exprsect="(?:{$g_quoteseg}|{$g_regseg}|{$js_varsect})";
@@ -1905,7 +1905,7 @@ $js_regexp_arrays=array(
 	# get
 	array(1,2,
 		"/{$js_beginright}{$js_expr}\.({$hook_js_getattrs})".
-			"([^\.=a-z0-9_\[\]\t\r\n]|\.{$js_string_methods}\(|".
+			"([^\.=a-z0-9_\[\(\t\r\n]|\.{$js_string_methods}\(|".
 			"\.{$js_string_attrs}{$n_js_varsect})/i",
 		'\1'.COOK_PREF.'.getAttr(\2,/\3/)\4'),
 
@@ -1925,7 +1925,7 @@ $js_regexp_arrays=array(
 	# get
 	array(1,2,
 		"/{$js_beginright}{$js_expr}\[{$js_expr2}\]".
-			"([^\.=a-z0-9_\[\]\t\r\n]|\.{$js_string_methods}\(|".
+			"([^\.=a-z0-9_\[\(\t\r\n]|\.{$js_string_methods}\(|".
 			"\.{$js_string_attrs}{$n_js_varsect})/i",
 		'\1'.COOK_PREF.'.getAttr(\2,\3)\4'),
 
