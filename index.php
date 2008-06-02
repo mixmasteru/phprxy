@@ -1448,11 +1448,11 @@ setAttr:function(obj,attr,val){
 		if((obj==location && attr=="href") || attr=="location"){
 			urlobj=this.surrogafy_url_toobj(val);
 			if(!urlobj.locked) proxurl=this.add_querystuff(proxurl,"=&");
-			this.thetop.location.href=proxurl;
+			return this.thetop.location.href=proxurl;
 		}
-		else obj[attr]=proxurl;
+		else return obj[attr]=proxurl;
 	}
-	else obj[attr]=proxurl;
+	else return obj[attr]=proxurl;
 },
 
 getAttr:function(obj,attr){
