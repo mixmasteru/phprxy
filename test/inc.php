@@ -148,6 +148,7 @@ function gethtml($name, $succ, $real, $expected){
 		$real=nl2br(htmlentities($real));
 		$expected=nl2br(htmlentities($expected));
 		$out.=
+			'<div class="clrb"></div>'.
 			"<div class=\"real\">{$real}</div>".
 			"<div class=\"expected\">{$expected}</div>".
 			'<div class="clrb"></div>';

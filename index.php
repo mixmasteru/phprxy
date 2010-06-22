@@ -1,7 +1,7 @@
 <?php
 
 #
-# Surrogafier v1.0-rc4-devel
+# Surrogafier v1.1-devel
 #
 # Author: Brad Cable
 # Email: brad@bcable.net
@@ -126,6 +126,138 @@ $CONFIG['PROTO']=false;
 
 # }}}
 
+# LABEL {{{
+
+global $LABEL;
+$LABEL=array();
+
+# TITLE: title text above form
+$LABEL['TITLE']='Surrogafier';
+# URL: text for URL text field
+$LABEL['URL']='URL:';
+# TUNNEL: text for tunnel proxy text fields
+$LABEL['TUNNEL']='Tunnel Proxy:';
+# USER_AGENT: text for user-agent select field
+$LABEL['USER_AGENT']='User-Agent:';
+# USER_AGENT_CUSTOM: text for user-agent custom text field
+$LABEL['USER_AGENT_CUSTOM']='';
+# URL_FORM: text for persistent URL form checkbox
+$LABEL['URL_FORM']='Persistent URL Form';
+# REMOVE_COOKIES: text for remove cookies checkbox
+$LABEL['REMOVE_COOKIES']='Remove Cookies';
+# REMOVE_REFERER: text for remove referer checkbox
+$LABEL['REMOVE_REFERER']='Remove Referer Field';
+# REMOVE_SCRIPTS: text for remove scripts checkbox
+$LABEL['REMOVE_SCRIPTS']='Remove Scripts (JS, VBS, etc)';
+# REMOVE_OBJECTS: text for remove objects checkbox
+$LABEL['REMOVE_OBJECTS']='Remove Objects (Flash, Java, etc)';
+# ENCRYPT_URLS: text for encrypt URLs checkbox
+$LABEL['ENCRYPT_URLS']='Encrypt URLs';
+# ENCRYPT_COOKIES: text for encrypt cookies checkbox
+$LABEL['ENCRYPT_COOKIES']='Encrypt Cookies';
+# SUBMIT_MAIN: text for the main submit button
+$LABEL['SUBMIT_MAIN']='Surrogafy';
+# SUBMIT_SIMPLE: text for the simple submit button
+$LABEL['SUBMIT_SIMPLE']='Surrogafy';
+
+# }}}
+
+# STYLE {{{
+
+global $STYLE;
+$STYLE=array();
+
+# body of whole document
+$STYLE['body']='
+	font-family: bitstream vera sans, arial;
+	margin: 0px;
+	padding: 0px;
+';
+
+# <form>
+$STYLE['form#proxy_form']='
+	margin: 0px;
+	padding: 0px;
+';
+
+# <table>
+$STYLE['table#proxy_table']='
+	margin: 0px;
+	padding: 0px;
+	margin-left: auto;
+	margin-right: auto;
+';
+
+# the title text above form
+$STYLE['td#proxy_title']='
+	font-weight: bold;
+	font-size: 1.4em;
+	text-align: center;
+';
+
+# class for all text fields
+$STYLE['input.proxy_text']='
+	width: 100%;
+	border: 1px solid #000000;
+';
+
+# class for all select fields
+$STYLE['select.proxy_select']='
+	width: 100%;
+	border: 1px solid #000000;
+';
+
+# class for all proxy defined links
+$STYLE['a.proxy_link']='
+	color: #000000;
+';
+
+# class for all submit buttons
+$STYLE['input.proxy_submit']='
+	border: 1px solid #000000;
+	background-color: #FFFFFF;
+';
+
+# the simple submit button
+$STYLE['input#proxy_submit_simple']='';
+
+# the main submit button
+$STYLE['input#proxy_submit_main']='
+	width: 100%;
+';
+
+# the tunnel proxy ip field
+$STYLE['input#proxy_tunnel_ip']='
+	float: left;
+	width: 73%;
+';
+
+# the tunnel proxy port field
+$STYLE['input#proxy_tunnel_port']='
+	float: right;
+	width: 23%;
+';
+
+# the link for script information and a link to the author
+$STYLE['a#proxy_link_author']='
+	float: left;
+';
+
+# the link for toggling modes
+$STYLE['a#proxy_link_mode']='
+	float: right;
+';
+
+# }}}
+
+# STYLE_URL_FORM {{{
+
+global $STYLE_URL_FORM;
+$STYLE_URL_FORM=array();
+
+# }}}
+
+
 
 // DON'T EDIT ANYTHING AFTER THIS POINT \\
 
@@ -188,11 +320,11 @@ if(
 # script environment constants
 if($CONFIG['PROTO']===false)
 	$CONFIG['PROTO']=($_SERVER['HTTPS']=='on'?'https':'http');
-define('VERSION','1.0-rc4-devel');
+define('VERSION','1.1-devel');
 define('THIS_SCRIPT',
 	$CONFIG['PROTO']."://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}");
 
-# Randomized cookie prefixes #
+# randomized cookie prefixes
 function gen_randstr($len){
 	$chars=null;
 	for($i=0;$i<$len;$i++){
@@ -300,9 +432,10 @@ else{
 	$oenc_url=QUERY_STRING;
 }
 
-if(strpos(substr($oenc_url,0,6),'%')!==false ||
-   strpos($oenc_url,'%')<strpos($oenc_url,'/') ||
-   strpos($oenc_url,'%')<strpos($oenc_url,':')
+if(
+	strpos(substr($oenc_url,0,6),'%')!==false ||
+	strpos($oenc_url,'%')<strpos($oenc_url,'/') ||
+	strpos($oenc_url,'%')<strpos($oenc_url,':')
 ) $oenc_url=urldecode($oenc_url);
 
 define('OENC_URL',preg_replace('/^([^\?\&]+)\&/i','\1?',$oenc_url));
@@ -323,6 +456,8 @@ define('PAGE_FRAMED',
 global $OPTIONS;
 $OPTIONS=array();
 
+define('IS_FORM_INPUT',!empty($postandget[COOK_PREF.'_set_values']));
+
 // registers an option with the OPTIONS array
 function register_option(
 	$config_type,
@@ -336,33 +471,25 @@ function register_option(
 
 	// get user input
 	$user_input=(
-		!empty($postandget[COOK_PREF.'_set_values'])?
+		IS_FORM_INPUT?
 		$postandget[COOK_PREF."_{$cookie_name}"]:
 		$_COOKIE[COOK_PREF."_{$cookie_name}"]
 	);
-
-	// set option value
-	$OPTIONS[$config_name]=(
-		$CONFIG["FORCE_DEFAULT_{$config_name}"] || empty($user_input)?
-		$CONFIG["DEFAULT_{$config_name}"]:
-		$user_input
-	);
-
-	// set cookie value
-	$cook_value=$_COOKIE[COOK_PREF."_{$cookie_name}"];
 
 	// option parsers
 	switch($config_type){
 		// integer option
 		case 2:
-			$OPTIONS[$config_name]=intval($OPTIONS[$config_name]);
-			$cook_value=intval($cook_value);
+			$user_input=intval($user_input);
 			break;
 
 		// true/false option
 		case 1:
-			$OPTIONS[$config_name]=!empty($OPTIONS[$config_name]);
-			$cook_value=!empty($cook_value);
+			$user_input=(
+				IS_FORM_INPUT?
+				!empty($user_input):
+				$user_input=='true'
+			);
 			break;
 
 		// standard option
@@ -371,9 +498,29 @@ function register_option(
 			break;
 	}
 
+	// set option value
+	$OPTIONS[$config_name]=(
+		$CONFIG["FORCE_DEFAULT_{$config_name}"] || (
+			!IS_FORM_INPUT && !isset($_COOKIE[COOK_PREF."_{$cookie_name}"])
+		)?
+		$CONFIG["DEFAULT_{$config_name}"]:
+		$user_input
+	);
+
 	// set cookies
-	if($cook_value!=$OPTIONS[$config_name])
-		dosetcookie(COOK_PREF."_{$cookie_name}",$OPTIONS[$config_name]);
+	if(IS_FORM_INPUT){
+		dosetcookie(COOK_PREF."_{$cookie_name}",false,0);
+
+		if($OPTIONS[$config_name]!=$CONFIG["DEFAULT_{$config_name}"]){
+			if($config_type==1)
+				dosetcookie(
+					COOK_PREF."_{$cookie_name}",
+					($OPTIONS[$config_name]?'true':'false')
+				);
+			else
+				dosetcookie(COOK_PREF."_{$cookie_name}",$OPTIONS[$config_name]);
+		}
+	}
 }
 
 // register standard options
@@ -391,13 +538,14 @@ $OPTIONS['USER_AGENT']=(
 	$CONFIG['FORCE_DEFAULT_USER_AGENT'] || empty($_COOKIE['_useragent'])?
 	$CONFIG['DEFAULT_USER_AGENT']:(
 		$_COOKIE[COOK_PREF.'_useragent']=='1'?
-		$_COOKIE[COOK_PREF.'_useragenttext']:
+		$_COOKIE[COOK_PREF.'_useragent_custom']:
 		$_COOKIE[COOK_PREF.'_useragent']
 	)
 );
 
 register_option(2,'TUNNEL_PORT');
-if($OPTIONS['TUNNEL_PORT']==0) $OPTIONS['TUNNEL_PORT']=null;
+if($OPTIONS['TUNNEL_PORT']<1 || $OPTIONS['TUNNEL_PORT']>65535)
+	$OPTIONS['TUNNEL_PORT']=null;
 
 $OPTIONS['SIMPLE_MODE']=$CONFIG['DEFAULT_SIMPLE'] || $CONFIG['FORCE_SIMPLE'];
 
@@ -432,11 +580,617 @@ function proxdec($url){
 
 # }}}
 
-# JAVASCRIPT ENCODING FUNCTIONS {{{
+# FIRST PAGE DISPLAYED WHEN ACCESSING PROXY {{{
 
-function js_proxenc(){ ?>
-//<script type="text/javascript">
+if(
+	PAGETYPE_ID===PAGETYPE_FORCE_MAIN ||
+	(substr(QUERY_STRING,0,3)!='js_' && ORIG_URL==null)
+){
+
+$useragent_platforms=array(
+	array('Windows', 'windows', 'win32'),
+	array('Linux', 'linux'),
+	array('Macintosh', 'macintosh', 'mac_powerpc'),
+	array('BSD', 'bsd')
+);
+
+$useragent_browsers=array(
+	'firefox' => 'Firefox',
+	'iceweasel' => 'Iceweasel',
+	'konqueror' => 'Konqueror',
+	'msie' => 'Internet Explorer',
+	'netscape' => 'Netscape',
+	'opera' => 'Opera',
+	'safari' => 'Safari',
+	'seamonkey' => 'SeaMonkey'
+);
+
+$useragentinfo=null;
+
+// parse platform
+$dobreak=false;
+foreach($useragent_platforms as $platform){
+	for($i=1; $i<count($platform); $i++){
+		if(stristr($_SERVER['HTTP_USER_AGENT'], $platform[$i])!==false){
+			$useragentinfo.=$platform[0];
+			$dobreak=true;
+			break;
+		}
+	}
+
+	if($dobreak)
+		break;
+}
+
+if(!$dobreak)
+	$useragentinfo.='Unknown';
+
+// separator
+$useragentinfo.=' / ';
+
+// parse browser
+$found=false;
+foreach($useragent_browsers as $substr=>$browser){
+	if(stristr($_SERVER['HTTP_USER_AGENT'],$browser)!==false){
+		$useragentinfo.=$browser;
+		$found=true;
+		break;
+	}
+}
+if(!$found)
+	$useragentinfo.='Unknown';
+
+// construct useragent options
+$ver=array(
+	'dillo' => '0.8.6',
+	'firefox' => '2.0',
+	'gecko' => '20061024',
+	'konq' => '3.5',
+	'konq_minor' => '3.5.5',
+	'links' => '2.1pre19',
+	'lynx' => '2.8.5rel.1',
+	'moz_rev' => '1.8.1',
+	'msie6' => '6.0',
+	'msie7' => '7.0',
+	'opera' => '9.02',
+	'safari' => '3.0',
+	'webkit' => '521.25',
+	'wget' => '1.10.2',
+	'windows' => 'NT 5.1'
+);
+
+$useragent_array=array(
+	array(null,"Actual ({$useragentinfo})"),
+	array('-1',' [ Don\'t Send ] '),
+	array("Mozilla/5.0 (Windows; U; Windows {$ver['windows']}; en-US; ".
+	      "rv:{$ver['moz_rev']}) Gecko/{$ver['gecko']} Firefox/".
+	      $ver['firefox'],
+	      "Windows XP / Firefox {$ver['firefox']}"),
+	array("Mozilla/4.0 (compatible; MSIE {$ver['msie7']}; Windows ".
+	      "{$ver['windows']}; SV1)", 'Windows XP / Internet Explorer 7'),
+	array("Mozilla/4.0 (compatible; MSIE {$ver['msie6']}; Windows ".
+	      "{$ver['windows']}; SV1)", 'Windows XP / Internet Explorer 6'),
+	array("Opera/{$ver['opera']} (Windows {$ver['windows']}; U; en)",
+	      "Windows XP / Opera {$ver['opera']}"),
+	array("Mozilla/5.0 (Macintosh; U; PPC Mac OS X; en-US; rv:".
+	      "{$ver['moz_rev']}) Gecko/{$ver['gecko']} Firefox/{$ver['firefox']}",
+	      "Mac OS X / Firefox {$ver['firefox']}"),
+	array("Mozilla/5.0 (Macintosh; U; PPC Mac OS X; en) AppleWebKit/".
+	      "{$ver['webkit']} (KHTML, like Gecko) Safari/{$ver['webkit']}",
+	      'Mac OS X / Safari 3.0'),
+	array("Opera/{$ver['opera']} (Macintosh; PPC Mac OS X; U; en)",
+	      "Mac OS X / Opera {$ver['opera']}"),
+	array("Mozilla/5.0 (X11; U; Linux i686; en-US; rv:{$ver['moz_rev']}) ".
+	      "Gecko/{$ver['gecko']} Firefox/{$ver['firefox']}",
+	      "Linux / Firefox {$ver['firefox']}"),
+	array("Opera/{$ver['opera']} (X11; Linux i686; U; en)",
+	      "Linux / Opera {$ver['opera']}"),
+	array("Mozilla/5.0 (compatible; Konqueror/{$ver['konq']}; Linux) KHTML/".
+	      "{$ver['konq_minor']} (like Gecko)",
+	      "Linux / Konqueror {$ver['konq_minor']}"),
+	array("Links ({$ver['links']}; Linux 2.6 i686; x)",
+	      "Linux / Links ({$ver['links']})"),
+	array("Lynx/{$ver['lynx']}","Any / Lynx {$ver['lynx']}"),
+	array("Dillo/{$ver['dillo']}","Any / Dillo {$ver['dillo']}"),
+	array("Wget/{$ver['wget']}","Any / Wget {$ver['wget']}"),
+	array('1',' [ Custom ]')
+);
+
+define('IPREGEXP',
+	'/^((?:[0-2]{0,2}[0-9]{1,2}\.){3}[0-2]{0,2}[0-9]{1,2})\:([0-9]{1,5}$/');
+
+$checkbox_array=array(
+	'URL_FORM',
+	'REMOVE_COOKIES',
+	'REMOVE_REFERER',
+	'REMOVE_SCRIPTS',
+	'REMOVE_OBJECTS',
+	'ENCRYPT_URLS',
+	'ENCRYPT_COOKIES'
+);
+
+?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" 
+ "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html>
+
+<head>
+
+<title><?php echo($LABEL['TITLE']); ?></title>
+<link rel="stylesheet" type="text/css"
+      href="<?php echo(THIS_SCRIPT); ?>?css_main" />
+
+<style>
+	input#proxy_submit_simple {
+		display: <?php echo(($OPTIONS['SIMPLE_MODE']?'inline':'none')); ?>;
+	}
+</style>
+
+<noscript><style>
+	input#proxy_url { display: none; }
+	a#proxy_link_author { float: none; }
+	a#proxy_link_mode { display: none; }
+	td#proxy_links_td { text-align: center; }
+</style></noscript>
+
+<!-- TODO: REDO PATH -->
+<script type="text/javascript"
+        src="<?php echo(THIS_SCRIPT); ?>?js_funcs_nowrap"></script>
+
+<script type="text/javascript" language="javascript"><!--
+var advanced_mode=<?php echo(($OPTIONS['SIMPLE_MODE']?'false':'true')); ?>;
+//--></script>
+
+</head>
+
+<body>
+
+<form method="post" id="proxy_form" onsubmit="return main_submit_code();">
+<input type="hidden" name="<?php echo(COOK_PREF); ?>_set_values" value="1" />
+<input type="hidden" id="proxy_url_hidden" disabled="disabled"
+       name="<?php echo(COOK_PREF); ?>" />
+<table id="proxy_table" cellpadding="0" cellspacing="4">
+
+<tr>
+	<td colspan="2" id="proxy_title"><?php echo($LABEL['TITLE']); ?></td>
+</tr>
+
+<tr>
+	<td><?php echo($LABEL['URL']); ?></td>
+	<td>
+		<input type="text" id="proxy_url" class="proxy_text"
+		       value="<?php echo(ORIG_URL); ?>" />
+		<noscript>
+			<input type="text" id="proxy_url_noscript" class="proxy_text"
+			       name="<?php echo(COOK_PREF); ?>"
+			       value="<?php echo(ORIG_URL); ?>" />
+		</noscript>
+		<input type="submit" id="proxy_submit_simple" class="proxy_submit"
+		       value="<?php echo($LABEL['SUBMIT_SIMPLE']); ?>" />
+	</td>
+</tr>
+
+<?php if(!$CONFIG['FORCE_DEFAULT_TUNNEL']){ ?>
+<tr name="advanced_mode">
+	<td><?php echo($LABEL['TUNNEL']); ?></td>
+	<td>
+		<input type="text" id="proxy_tunnel_ip" class="proxy_text"
+		       name="<?php echo(COOK_PREF); ?>_tunnel_ip"
+		       value="<?php echo($CONFIG['TUNNEL_IP']); ?>" />
+		<input type="text" size="5" maxlength="5"
+		       id="proxy_tunnel_port" class="proxy_text"
+		       name="<?php echo(COOK_PREF); ?>_tunnel_port"
+		       value="<?php echo($CONFIG['TUNNEL_PORT']); ?>" />
+	</td>
+</tr>
+<?php } ?>
+
+<?php if(!$CONFIG['FORCE_DEFAULT_USER_AGENT']){ ?>
+<tr name="advanced_mode">
+	<td><?php echo($LABEL['USER_AGENT']); ?></td>
+	<td>
+		<select name="<?php echo(COOK_PREF); ?>_useragent"
+		        id="proxy_useragent" class="proxy_select"
+		        onchange="useragent_change();">
+			<?php foreach($useragent_array as $useragent){ ?>
+			<option value="<?php echo($useragent[0]); ?>"
+			 <?php if($OPTIONS['USER_AGENT']==$useragent[0])
+			 	echo ' selected="selected"'; ?>
+			><?php echo($useragent[1]); ?></option>
+			<?php } ?>
+		</select>
+	</td>
+</tr>
+<tr id="proxy_useragent_custom_tr" name="advanced_mode"
+    class="display_<?php echo(($OPTIONS['USER_AGENT']=='1'?'tr':'none')); ?>">
+	<td><?php echo($LABEL['USER_AGENT_CUSTOM']); ?></td>
+	<td>
+		<input type="text" id="proxy_useragent_custom" class="proxy_text"
+		       name="<?php echo(COOK_PREF); ?>_useragent_custom"
+		       value="<?php echo($OPTIONS['USER_AGENT']); ?>" />
+	</td>
+</tr>
+<?php } ?>
+
+<?php
+foreach($checkbox_array as $checkbox){
+	if(!$CONFIG['FORCE_DEFAULT_'.$checkbox]){
+		$lowername=strtolower($checkbox);
+?>
+
+<tr name="advanced_mode">
+	<td>&nbsp;</td>
+	<td>
+		<input type="checkbox" id="proxy_<?php echo($lowername); ?>"
+		       class="proxy_checkbox"
+		       name="<?php echo(COOK_PREF); ?>_<?php echo($lowername); ?>"
+		       <?php if($OPTIONS[$checkbox]) echo 'checked="checked"'; ?>
+		/>&nbsp;<?php echo($LABEL[$checkbox]); ?>
+	</td>
+</tr>
+<?php }
+} ?>
+
+<tr name="advanced_mode">
+	<td colspan="2">
+		<input type="submit" id="proxy_submit_main" class="proxy_submit"
+		       value="<?php echo($LABEL['SUBMIT_MAIN']); ?>" />
+	</td>
+</tr>
+
+<tr>
+	<td colspan="2" id="proxy_links_td">
+		<a id="proxy_link_author" class="proxy_link" href="http://bcable.net/">
+			Surrogafier&nbsp;v<?php echo(VERSION); ?>
+			<b>&middot;</b>&nbsp;Brad&nbsp;Cable
+		</a>
+		<a id="proxy_link_mode" class="proxy_link" href="#"
+		   onclick="toggle_mode();">
+			<?php echo($OPTIONS['SIMPLE_MODE']?'Advanced':'Simple');
+			?>&nbsp;Mode
+		</a>
+	</td>
+</tr>
+
+</table>
+</form>
+
+<noscript>
+<br />
+<b>**</b> Surrogafier has detected that your browser does not have Javascript
+enabled. <b>**</b>
+<br />
+<b>**</b> Surrogafier requires Javascript in order to function to its full
+potential. It is highly recommended that you have Javascript enabled for
+privacy and security reasons. <b>**</b>
+</noscript>
+
+</body>
+
+</html>
+
+<?php exit(); }
+
+# }}}
+
+# FRAMED PAGE WITH URL FORM {{{
+
+if(
+	PAGETYPE_ID===PAGETYPE_FRAME_TOP &&
+	$OPTIONS['URL_FORM'] &&
+	ORIG_URL!=null
+){ ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" 
+ "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<title><?php echo($LABEL['TITLE']); ?></title>
+<style>
+
+html, body {
+	font-family: bitstream vera sans, arial;
+	margin: 0px;
+	padding: 0px;
+	height: 100%;
+	overflow: hidden;
+}
+
+form#url_form {
+	margin: 0px;
+	padding: 0px;
+	height: 100%;
+}
+
+table#url_table {
+	margin: 0px;
+	padding: 0px;
+	height: 100%;
+	width: 100%;
+}
+
+td#url_table_td_input {
+	width: 100%;
+	padding: 3px;
+	padding-left: 10px;
+}
+
+td#url_table_td_iframe {
+	margin: 0px;
+	padding: 0px;
+	height: 100%;
+}
+
+a#url_link {
+	color: #000000;
+	font-weight: bold;
+	padding: 8px;
+	text-decoration: none;
+}
+
+a#url_link:hover {
+	color: #000000;
+	font-weight: bold;
+	padding: 8px;
+	text-decoration: underline;
+}
+
+input {
+	border: 1px solid #000000;
+	color: #000000;
+}
+
+input#url_input {
+	width: 100%;
+}
+
+input#url_submit {
+	background-color: #FFFFFF;
+	margin-right: 3px;
+}
+
+iframe#url_iframe {
+	border: 0px;
+	border-top: 1px solid #000000;
+	width: 100%;
+	height: 100%;
+}
+
+</style>
+
+<script type="text/javascript">
+<!--
+
+<?php echo(COOK_PREF); ?>=true;
+
+function submit_code(){
+<?php if($OPTIONS['ENCRYPT_URLS']){ ?>
+	document.forms[0].<?php echo(COOK_PREF); ?>.value=
+		<?php echo(COOK_PREF); ?>_pe.proxenc(
+			document.forms[0].<?php echo(COOK_PREF); ?>.value
+		);
+<?php } ?>
+	return true;
+}
+
+//-->
+</script>
+
+</head>
+<body>
+
+<form id="url_form" method="get" onsubmit="return submit_code();">
+<input type="hidden" name="" value="" />
+
+<table cellspacing="0" cellpadding="0" id="url_table">
+<tr>
+	<td>
+		<a href="<?php echo(THIS_SCRIPT.'?=-&='.OENC_URL); ?>"
+		   id="url_link">Surrogafier
+		</a>
+	</td>
+	<td>&nbsp;</td>
+	<td id="url_table_td_input">
+		<input type="text" id="url_input" name=""
+			   value="<?php echo(ORIG_URL); ?>" />
+	</td>
+	<td>&nbsp;</td>
+	<td>
+		<input type="submit" id="url_submit"
+		       value="<?php echo($LABEL['SUBMIT_SIMPLE']); ?>" />
+	</td>
+</tr>
+
+<tr>
+	<td colspan="5" id="url_table_td_iframe">
+		<iframe frameborder="0" id="url_iframe"
+		        name="<?php echo(COOK_PREF); ?>_top"
+		        src="<?php echo(THIS_SCRIPT.'?=_&='.OENC_URL); ?>"></iframe>
+	</td>
+</tr>
+
+</table>
+
+</form>
+
+</body>
+</html>
+<?php exit(); }
+
+# }}}
+
+# PRE-JAVASCRIPT CONSTANTS & FUNCTIONS {{{
+# these constants and functions must be defined before JS is output, but would
+# be more readably located later.
+
+#define('AURL_LOCK_REGEXP','(?:(?:javascript|mailto|about):|~|%7e)');
+define('FRAME_LOCK_REGEXP','/^(?:(?:javascript|mailto|about):|#)/i');
+define('AURL_LOCK_REGEXP',
+	'/^(?:(?:javascript|mailto|about):|#|'.
+	str_replace(array('/','.'),array('\/','\.'),addslashes(THIS_SCRIPT)).')/i');
+define('URLREG','/^'.
+	'(?:([a-z]*)?(?:\:?\/\/))'.      # proto
+	'(?:([^\@\/]*)\@)?'.             # userpass
+	'([^\/:\?\#\&]*)'.               # servername
+	'(?:\:([0-9]+))?'.               # portval
+	'(\/[^\&\?\#]*?)?'.              # path
+	'([^\/\?\#\&]*(?:\&[^\?\#]*)?)'. # file
+	'(?:\?([\s\S]*?))?'.             # query
+	'(?:\#([\s\S]*))?'.              # label
+'$/ix');
+
+function escape_regexp($regexp,$dollar=false){
+	$regexp=
+		str_replace('\\','\\\\',
+		str_replace('\'','\\\'',
+		str_replace('"','\\"',
+		str_replace(chr(10),'\n',
+		str_replace(chr(13),'\r',
+		str_replace(chr(9),'\t',
+		$regexp
+	))))));
+	return ($dollar?preg_replace('/[\\\\]+(?=[0-9])/','\\\\$',$regexp):
+		 preg_replace('/[\\\\]+(?=[0-9])/','\\\\\\\\',$regexp)); #*
+}
+
+# }}}
+
+# STATIC CACHING FUNCTION {{{
+function static_cache(){
+	# headers
+	header('Cache-Control: must-revalidate');
+	header('Pragma: cache');
+
+	# last modified
+	$lastmod=filemtime(THIS_FILE);
+	$ifmod=$_SERVER['HTTP_IF_MODIFIED_SINCE'];
+
+	if(!empty($ifmod)){
+		if(strpos($ifmod,';'))
+			$ifmod=substr($ifmod,0,strpos($ifmod,';'));
+		$ifmod=strtotime($ifmod);
+
+		if($ifmod==$lastmod){
+			header('HTTP/1.1: 304 Not Modified');
+			exit();
+		}
+	}
+	header('Last-Modified: '.gmdate('D, d M Y H:i:s',$lastmod).' GMT');
+}
+
+# }}}
+
+# CSS STATIC CONTENT {{{
+
+# CSS MAIN {{{
+
+if(QUERY_STRING=='css_main'){
+	header('Content-Type: text/css');
+	static_cache();
+
+	foreach($STYLE as $id=>$style){
+		echo "{$id} {{$style}}\n\n";
+	}
+
+	echo ".display_none { display: none !important; }\n";
+	echo ".display_tr { display: table-row !important; }\n";
+
+	exit();
+}
+
+# }}}
+
+# CSS URL FRAME {{{
+
+if(QUERY_STRING=='css_url_frame'){
+	header('Content-Type: text/css');
+	static_cache();
+
+	foreach($STYLE_URL_FORM as $id=>$style){
+		echo "{$id} {{$style}}\n\n";
+	}
+
+	exit();
+}
+
+# }}}
+
+# }}}
+
+# JAVASCRIPT STATIC CONTENT/FUNCTIONS {{{
+
+if(
+	QUERY_STRING=='js_funcs' ||
+	QUERY_STRING=='js_funcs_framed' ||
+	QUERY_STRING=='js_funcs_nowrap'
+){
+
+	if(QUERY_STRING=='js_funcs_nowrap')
+		$do_wrap=false;
+	else $do_wrap=true;
+
+	static_cache();
+
+?>//<script type="text/javascript">
+
+// JAVASCRIPT FUNCS: FUNCTIONS FOR NON-WRAPPED PAGES {{{
+
+<?php if(!$do_wrap){ ?>
+
+function useragent_change(){
+	var ua=document.getElementById('proxy_useragent');
+	var uac=document.getElementById('proxy_useragent_custom');
+	var uacTR=document.getElementById('proxy_useragent_custom_tr');
+
+	if(parseInt(ua.value)==1) uacTR.className="display_tr";
+	else uacTR.className="display_none";
+}
+
+function toggle_mode(){
+	var url=document.getElementById('proxy_url');
+	var simpBut=document.getElementById('proxy_submit_simple');
+	var modeLink=document.getElementById('proxy_link_mode');
+	var advTR=document.getElementsByName('advanced_mode');
+
+	for(var i=0; i<advTR.length; i++){
+		if(advanced_mode) advTR[i].style.display="none";
+		else advTR[i].style.display="table-row";
+	}
+
+	if(advanced_mode){
+		url.style.width="<?php echo($CONFIG['SIMPLE_MODE_URLWIDTH']) ?>";
+		simpBut.style.display="inline";
+		modeLink.innerHTML="Advanced&nbsp;Mode";
+	}
+
+	else{
+		url.style.width="100%";
+		simpBut.style.display="none";
+		modeLink.innerHTML="Simple&nbsp;Mode";
+	}
+
+	advanced_mode=!advanced_mode;
+}
+
+function main_submit_code(){
+	var dgEBI=function(id){ return document.getElementById(id); }
+	dgEBI('proxy_url_hidden').disabled=false;
+	if(dgEBI('proxy_encrypt_urls').checked)
+		dgEBI('proxy_url_hidden').value=
+			<?php echo(COOK_PREF); ?>_pe.proxenc(dgEBI('proxy_url').value);
+	else dgEBI('proxy_url_hidden').value=dgEBI('proxy_url').value;
+	return true;
+}
+
+<?php } ?>
+
+// }}}
+
+// JAVASCRIPT FUNCS: CRYPTOGRAPHIC FUNCTIONS {{{
+
 <?php echo(COOK_PREF); ?>_pe={
+
 expon:function(a,b){
 	var num;
 	if(b==0) return 1;
@@ -499,515 +1253,14 @@ proxenc:function(url){
 		new_url+=String.fromCharCode(charnum);
 	}
 	return "~"+encodeURIComponent(this.b64e(new_url));
-}
-}
-<? }
+},
 
-# }}}
-
-# FIRST PAGE DISPLAYED WHEN ACCESSING PROXY {{{
-
-if(
-	PAGETYPE_ID===PAGETYPE_FORCE_MAIN ||
-	(substr(QUERY_STRING,0,3)!='js_' && ORIG_URL==null)
-){
-
-$useragentinfo=null;
-
-if(stristr($_SERVER['HTTP_USER_AGENT'],'windows')!==false ||
-   stristr($_SERVER['HTTP_USER_AGENT'],'win32')!==false
-) $useragentinfo.='Windows';
-
-elseif(stristr($_SERVER['HTTP_USER_AGENT'],'linux')!==false)
-	$useragentinfo.='Linux';
-
-elseif(stristr($_SERVER['HTTP_USER_AGENT'],'macintosh')!==false ||
-       stristr($_SERVER['HTTP_USER_AGENT'],'mac_powerpc')!==false
-) $useragentinfo.='Macintosh';
-
-elseif(stristr($_SERVER['HTTP_USER_AGENT'],'bsd')!==false)
-	$useragentinfo.='BSD';
-
-else $useragentinfo.='Unknown';
-
-$useragentinfo.=' / ';
-
-if(stristr($_SERVER['HTTP_USER_AGENT'],'msie')!==false)
-	$useragentinfo.='Internet Explorer';
-
-elseif(stristr($_SERVER['HTTP_USER_AGENT'],'firefox')!==false)
-	$useragentinfo.='Firefox';
-
-elseif(stristr($_SERVER['HTTP_USER_AGENT'],'iceweasel')!==false)
-	$useragentinfo.='Iceweasel';
-
-elseif(stristr($_SERVER['HTTP_USER_AGENT'],'safari')!==false)
-	$useragentinfo.='Safari';
-
-elseif(stristr($_SERVER['HTTP_USER_AGENT'],'netscape')!==false)
-	$useragentinfo.='Netscape';
-
-elseif(stristr($_SERVER['HTTP_USER_AGENT'],'opera')!==false)
-	$useragentinfo.='Opera';
-
-elseif(stristr($_SERVER['HTTP_USER_AGENT'],'konqueror')!==false)
-	$useragentinfo.='Konqueror';
-
-elseif(stristr($_SERVER['HTTP_USER_AGENT'],'seamonkey')!==false)
-	$useragentinfo.='SeaMonkey';
-
-else $useragentinfo.='Unknown';
-
-$useragent_array=array(
-	array(null,"Actual ({$useragentinfo})"),
-	array('-1',' [ Don\'t Send ] '),
-	array('Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1) '.
-	      'Gecko/20061024 Firefox/2.0','Windows XP / Firefox 2.0'),
-	array('Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; SV1)',
-	      'Windows XP / Internet Explorer 7'),
-	array('Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1)',
-	      'Windows XP / Internet Explorer 6'),
-	array('Opera/9.02 (Windows NT 5.1; U; en)','Windows XP / Opera 9.02'),
-	array('Mozilla/5.0 (Macintosh; U; PPC Mac OS X; en-US; rv:1.8.1) '.
-	      'Gecko/20061024 Firefox/2.0','Mac OS X / Firefox 2.0'),
-	array('Mozilla/5.0 (Macintosh; U; PPC Mac OS X; en) AppleWebKit/521.25 '.
-	      '(KHTML, like Gecko) Safari/521.24','Mac OS X / Safari 3.0'),
-	array('Opera/9.02 (Macintosh; PPC Mac OS X; U; en)','Mac OS X / Opera 9.02'),
-	array('Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.8.1) Gecko/20061024 '.
-	      'Firefox/2.0','Linux / Firefox 2.0'),
-	array('Opera/9.02 (X11; Linux i686; U; en)','Linux / Opera 9.02'),
-	array('Mozilla/5.0 (compatible; Konqueror/3.5; Linux) KHTML/3.5.5 (like '.
-	      'Gecko)','Linux / Konqueror 3.5.5'),
-	array('Links (2.1pre19; Linux 2.6 i686; x)','Linux / Links (2.1pre19)'),
-	array('Lynx/2.8.5rel.1','Any / Lynx 2.8.5rel.1'),
-	array('Dillo/0.8.6','Any / Dillo 0.8.6'),
-	array('Wget/1.10.2','Any / Wget 1.10.2'),
-	array('1',' [ Custom ] <noscript><b>**</b></noscript>')
-);
-
-define('IPREGEXP',
-	'/^((?:[0-2]{0,2}[0-9]{1,2}\.){3}[0-2]{0,2}[0-9]{1,2})\:([0-9]{1,5}$/');
-
-?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" 
- "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<head>
-<title>Surrogafier</title>
-<meta name="robots" content="index, nofollow" />
-<style type="text/css">
-	body{font-family: bitstream vera sans, trebuchet ms}
-	input{border: 1px solid #000000}
-	select{border: 1px solid #000000}
-	a{color: #000000}
-	a:hover{text-decoration: none}
-	.advanced_stuff{display: <?php
-		echo($OPTIONS['SIMPLE_MODE']?'none':'table-row'); ?>}
-	.simple_stuff{display: <?php
-		echo($OPTIONS['SIMPLE_MODE']?'table-row':'none'); ?>}
-	.url{width: <?php
-		echo($OPTIONS['SIMPLE_MODE']?$CONFIG['SIMPLE_MODE_URLWIDTH']:'99%'); ?>}
-	.signature{float: left}
-<?php if($CONFIG['FORCE_SIMPLE']){ ?>
-	.noscript_stuff{display: none}
-	.signature{text-align: center; float: none}
-<?php } ?>
-</style>
-<?php if(!$CONFIG['FORCE_SIMPLE']){ ?><noscript><style type="text/css">
-	.advanced_stuff{display: table-row}
-	.simple_stuff{display: none}
-	.noscript_stuff{display: none}
-	.noscripturl{width: 99%}
-	.url{display: none}
-	.signature{text-align: center; float: none}
-</style></noscript><?php } ?>
-<script type="text/javascript">
-<!--
-
-<?php js_proxenc(); ?>
-
-function useragent_check(focus){
-	var name='<?php echo(COOK_PREF); ?>_useragent';
-	if(document.getElementsByName(name)[0].value=='1'){
-		document.getElementById('useragent_texttr').style.display="";
-		if(focus) document.getElementById(name+'text').focus();
-	}
-	else document.getElementById('useragent_texttr').style.display='none';
-}
-
-<?php if(!$CONFIG['FORCE_SIMPLE']){ ?>
-advanced_mode=true;
-function toggle_mode(){
-	document.getElementById("mode_toggler").innerHTML=
-		(advanced_mode?"Advanced Mode":"Simple Mode");
-	var advanced_stuff=document.getElementsByTagName("tr");
-	for(var i=1;i<=12;i++)
-		advanced_stuff[i].style.display=(advanced_mode?"none":"table-row");
-	document.getElementById("simple_submit").style.display=
-		(advanced_mode?"inline":"none");
-	document.getElementById("url").style.width=
-		(advanced_mode?"<?php echo($CONFIG['SIMPLE_MODE_URLWIDTH']); ?>":"99%");
-	advanced_mode=!advanced_mode;
-	if(advanced_mode) useragent_check(false);
-	setTimeout("document.getElementById('url').focus();",100);
-}
-<?php } ?>
-
-function submit_code(){
-	document.forms[0].<?php echo(COOK_PREF); ?>.disabled=false;
-	if(document.forms[0].<?php echo(COOK_PREF); ?>_encrypt_urls.checked)
-		document.forms[0].<?php echo(COOK_PREF); ?>.value=
-			<?php echo(COOK_PREF); ?>_pe.proxenc(
-				document.getElementById('url').value);
-	else
-
-		document.forms[0].<?php echo(COOK_PREF); ?>.value=
-			document.getElementById('url').value;
-	return true;
-}
-
-//-->
-</script>
-</head>
-<body<?php echo($OPTIONS['SIMPLE_MODE']?' onload="toggle_mode();"':null); ?>>
-<center>
-<span style="font-size: 18pt; font-weight: bold; margin-bottom: 5px">
-	Surrogafier
-</span>
-<form method="post" style="margin: 0px; padding: 0px"
- onsubmit="return submit_code();">
-<input type="hidden" name="<?php echo(COOK_PREF); ?>_set_values" value="1" />
-<input type="hidden" name="<?php echo(COOK_PREF); ?>" disabled="disabled" />
-<table>
-<tr>
-<td style="text-align: left">URL:&nbsp;&nbsp;</td>
-<td>
-	<input type="text" class="url" id="url" value="<?php echo(ORIG_URL); ?>" />
-	<noscript>
-		<input type="text" class="noscripturl" id="url"
-		 name="<?php echo(COOK_PREF); ?>"
-		 value="<?php echo(ORIG_URL); ?>" />
-	</noscript>
-	<input type="submit" class="simple_stuff" id="simple_submit"
-	 value="Surrogafy" style="background-color: #F0F0F0" />
-</td>
-</tr>
-
-<?php if(!$CONFIG['FORCE_DEFAULT_TUNNEL']){ ?>
-<tr class="advanced_stuff">
-<td style="text-align: left">Tunnel Proxy:</td>
-<td><table cellspacing="0" cellpadding="0">
-<tr>
-	<td style="width: 100%">
-		<input type="text" name="<?php echo(COOK_PREF); ?>_tunnel_ip"
-		 onkeyup="
-		 	if(this.value.match(<?php echo(IPREGEXP); ?>)){
-		 		document.forms[0].<?php echo(COOK_PREF); ?>_tunnel_port.value=
-		 			this.value.replace(<?php echo(IPREGEXP); ?>,'\$2');
-		 		this.value=this.value.replace(<?php echo(IPREGEXP); ?>,'\$1');
-		 		document.forms[0].<?php echo(COOK_PREF); ?>_tunnel_port.focus();
-		 	};
-		 "
-		 style="width: 100%; text-align: left"
-		 value="<?php echo($OPTIONS['TUNNEL_IP']); ?>"
-		/>
-	</td>
-	<td style="width: 5px">&nbsp;&nbsp;</td>
-	<td style="width: 50px">
-		<input type="text" name="<?php echo(COOK_PREF); ?>_tunnel_port"
-		 maxlength="5" size="5" style="width: 50px"
-		 value="<?php echo($OPTIONS['TUNNEL_PORT']); ?>" />
-	</td>
-</tr>
-</table></td>
-</tr>
-<?php } ?>
-
-<?php if(!$CONFIG['FORCE_DEFAULT_USER_AGENT']){ ?>
-<tr class="advanced_stuff">
-<td style="text-align: left">User-Agent:</td>
-<td>
-	<select name="<?php echo(COOK_PREF); ?>_useragent" style="width: 100%"
-	 onchange="useragent_check(true);">
-<?php foreach($useragent_array as $useragent){ ?>
-	<option value="<?php echo($useragent[0]); ?>"
-	 <?php if($OPTIONS['USER_AGENT']==$useragent[0])
-	 	echo ' selected="selected"'; ?>
-	><?php echo($useragent[1]); ?></option>
-<?php } ?>
-</select></td>
-</tr>
-
-<tr class="advanced_stuff" id="useragent_texttr"
-	<?php echo(
-		$OPTIONS['USER_AGENT_CUSTOM']?
-		null:' style="display: none"'
-	); ?>>
-	<td>&nbsp;</td>
-	<td>
-		<input type="text" id="<?php echo(COOK_PREF); ?>_useragenttext"
-		 name="<?php echo(COOK_PREF); ?>_useragenttext"
-		 value="<?php echo($OPTIONS['USER_AGENT']); ?>"
-		 style="width: 99%" />
-	</td>
-</tr>
-<?php } ?>
-
-<?php if(!$CONFIG['FORCE_DEFAULT_URL_FORM']){ ?>
-<tr class="advanced_stuff"><td>&nbsp;</td><td style="text-align: left">
-	<input type="checkbox" style="border: 0px"
-	 name="<?php echo(COOK_PREF); ?>_url_form"
-	 <?php if($OPTIONS['URL_FORM'])
-	 	echo 'checked="checked" '; ?>
-	/>&nbsp;Persistent URL Form
-</td></tr>
-<?php } ?>
-
-<?php if(!$CONFIG['FORCE_DEFAULT_REMOVE_COOKIES']){ ?>
-<tr class="advanced_stuff"><td>&nbsp;</td><td style="text-align: left">
-	<input type="checkbox" style="border: 0px"
-	 name="<?php echo(COOK_PREF); ?>_remove_cookies"
-	 <?php if($OPTIONS['REMOVE_COOKIES'])
-	 	echo 'checked="checked" '; ?>
-	/>&nbsp;Remove Cookies
-</td></tr>
-<?php } ?>
-
-<?php if(!$CONFIG['FORCE_DEFAULT_REMOVE_REFERER']){ ?>
-<tr class="advanced_stuff"><td>&nbsp;</td><td style="text-align: left">
-	<input type="checkbox" style="border: 0px"
-	 name="<?php echo(COOK_PREF); ?>_remove_referer"
-	 <?php if($OPTIONS['REMOVE_REFERER'])
-	 	echo 'checked="checked" '; ?>
-	/>&nbsp;Remove Referer Field
-</td></tr>
-<?php } ?>
-
-<?php if(!$CONFIG['FORCE_DEFAULT_REMOVE_SCRIPTS']){ ?>
-<tr class="advanced_stuff"><td>&nbsp;</td><td style="text-align: left">
-	<input type="checkbox" style="border: 0px"
-	 name="<?php echo(COOK_PREF); ?>_remove_scripts"
-	 <?php if($OPTIONS['REMOVE_SCRIPTS'])
-	 	echo 'checked="checked" '; ?>
-	/>&nbsp;Remove Scripts (JS, VBS, etc)
-</td></tr>
-<?php } ?>
-
-<?php if(!$CONFIG['FORCE_DEFAULT_REMOVE_OBJECTS']){ ?>
-<tr class="advanced_stuff"><td>&nbsp;</td><td style="text-align: left">
-	<input type="checkbox" style="border: 0px"
-	 name="<?php echo(COOK_PREF); ?>_remove_objects"
-	 <?php if($OPTIONS['REMOVE_OBJECTS'])
-	 	echo 'checked="checked" '; ?>
-	/>&nbsp;Remove Objects (Flash, Java, etc)
-</td></tr>
-<?php } ?>
-
-<?php if(!$CONFIG['FORCE_DEFAULT_ENCRYPT_URLS']){ ?>
-<tr class="advanced_stuff"><td>&nbsp;</td><td style="text-align: left">
-	<input type="checkbox" name="<?php echo(COOK_PREF); ?>_encrypt_urls"
-	 style="border: 0px" <?php if($OPTIONS['ENCRYPT_URLS'])
-	 	echo 'checked="checked" '; ?>
-	/>&nbsp;Encrypt URLs<noscript><b>**</b></noscript>
-</td></tr>
-<?php } ?>
-
-<?php if(!$CONFIG['FORCE_DEFAULT_ENCRYPT_COOKIES']){ ?>
-<tr class="advanced_stuff"><td>&nbsp;</td><td style="text-align: left">
-	<input type="checkbox" name="<?php echo(COOK_PREF); ?>_encrypt_cookies"
-	 style="border: 0px" <?php if($OPTIONS['ENCRYPT_COOKIES'])
-	 	echo 'checked="checked" '; ?>
-	/>&nbsp;Encrypt Cookies<noscript><b>**</b></noscript>
-</td></tr>
-<?php } ?>
-
-<tr class="advanced_stuff"><td colspan="2">
-	<input type="submit" value="Surrogafy"
-	 style="width: 100%; background-color: #F0F0F0" />
-</td></tr>
-<tr><td style="font-size: 8pt" colspan="2">
-<div class="signature"><a href="http://bcable.net/">
-	Surrogafier&nbsp;v<?php echo(VERSION); ?>
-	<b>&middot;</b>&nbsp;Brad&nbsp;Cable
-</a></div>
-<div class="noscript_stuff" style="float: right">
-	<a href="#" onclick="toggle_mode();" id="mode_toggler">
-		<?php echo($OPTIONS['SIMPLE_MODE']?'Advanced':'Simple'); ?> Mode</a>
-</div>
-</td></tr>
-</table>
-<noscript>
-<br />
-
-<b>**</b> Surrogafier has detected that your browser does not have Javascript
-enabled. <b>**</b>
-
-<br />
-
-<b>**</b> Surrogafier requires Javascript in order to function to its full
-potential. It is highly recommended that you have Javascript enabled for
-privacy and security reasons. <b>**</b>
-
-</noscript>
-</form>
-</center>
-</body>
-</html>
-
-<?php exit(); }
-
-# }}}
-
-# FRAMED PAGE WITH URL FORM {{{
-
-if(PAGETYPE_ID===PAGETYPE_FRAME_TOP && ORIG_URL!=null){ ?>
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<head>
-<title><?php echo(ORIG_URL); ?></title>
-<style>
-	body{font-family: bitstream vera sans, trebuchet ms; margin: 0px;
-	     padding: 0px; font-size: 12px; overflow: hidden}
-	input{border: 1px solid #000000}
-	td{font-size: 12px}
-	a{text-decoration: none; color: #000000}
-	a:hover{text-decoration: underline}
-</style>
-<script type="text/javascript">
-<!--
-
-<?php echo(COOK_PREF); ?>=true;
-
-<?php if($OPTIONS['ENCRYPT_URLS']) js_proxenc(); ?>
-
-function submit_code(){
-<?php if($OPTIONS['ENCRYPT_URLS']){ ?>
-	document.forms[0].<?php echo(COOK_PREF); ?>.value=
-		<?php echo(COOK_PREF); ?>_pe.proxenc(
-			document.forms[0].<?php echo(COOK_PREF); ?>.value);
-<?php } ?>
-	return true;
-}
-
-//-->
-</script>
-</head>
-<body>
-<form method="get" onsubmit="return submit_code();">
-<input type="hidden" name="" value="" />
-<table cellpadding="0" cellspacing="0"
- style="width: 100%; height: 100%; padding: 0px; margin: 0px">
-<tr><td>
-	<table cellpadding="0" cellspacing="0" style="width: 100%; padding: 3px">
-<tr>
-	<td>
-		&nbsp;<b><a href="<?php echo(THIS_SCRIPT.'?=-&='.OENC_URL); ?>"
-		          id="proxy_link">Surrogafier</a></b>&nbsp;&nbsp;
-	</td>
-	<td style="width: 100%">
-		<input type="text" class="url" name=""
-		 style="width: 100%; padding-left: 4px" id="url"
-		 value="<?php echo(ORIG_URL); ?>" />
-	</td>
-	<td>&nbsp;</td>
-	<td>
-		<input type="submit" class="simple_stuff" id="simple_submit"
-		 value="Surrogafy" style="background-color: #F0F0F0" />
-	</td>
-</tr>
-</table></td></tr>
-<tr><td style="height: 100%; border-top: 1px solid #000000">
-
-<iframe name="<?php echo(COOK_PREF); ?>_top"
- src="<?php echo(THIS_SCRIPT.'?=_&='.OENC_URL); ?>" frameborder="0"
- style="border: 0px; width: 100%; height: 100%"></iframe>
-
-</td></tr>
-</table>
-</form>
-</body>
-</html>
-<?php exit(); }
-
-# }}}
-
-# PRE-JAVASCRIPT CONSTANTS & FUNCTIONS {{{
-# these constants and functions must be defined before JS is output, but would
-# be more readably located later.
-
-#define('AURL_LOCK_REGEXP','(?:(?:javascript|mailto|about):|~|%7e)');
-define('FRAME_LOCK_REGEXP','/^(?:(?:javascript|mailto|about):|#)/i');
-define('AURL_LOCK_REGEXP',
-	'/^(?:(?:javascript|mailto|about):|#|'.
-	str_replace(array('/','.'),array('\/','\.'),addslashes(THIS_SCRIPT)).')/i');
-define('URLREG','/^'.
-	'(?:([a-z]*)?(?:\:?\/\/))'.		# proto
-	'(?:([^\@\/]*)\@)?'.			# userpass
-	'([^\/:\?\#\&]*)'.			# servername
-	'(?:\:([0-9]+))?'.			# portval
-	'(\/[^\&\?\#]*?)?'.			# path
-	'([^\/\?\#\&]*(?:\&[^\?\#]*)?)'.	# file
-	'(?:\?([\s\S]*?))?'.			# query
-	'(?:\#([\s\S]*))?'.			# label
-'$/ix');
-
-function escape_regexp($regexp,$dollar=false){
-	$regexp=
-		str_replace('\\','\\\\',
-		str_replace('\'','\\\'',
-		str_replace('"','\\"',
-		str_replace(chr(10),'\n',
-		str_replace(chr(13),'\r',
-		str_replace(chr(9),'\t',
-		$regexp
-	))))));
-	return ($dollar?preg_replace('/[\\\\]+(?=[0-9])/','\\\\$',$regexp):
-		 preg_replace('/[\\\\]+(?=[0-9])/','\\\\\\\\',$regexp)); #*
-}
-
-# }}}
-
-# STATIC CACHING FUNCTION {{{
-function static_cache(){
-	# headers
-	header('Cache-Control: must-revalidate');
-	header('Pragma: cache');
-
-	# last modified
-	$lastmod=filemtime(THIS_FILE);
-	$ifmod=$_SERVER['HTTP_IF_MODIFIED_SINCE'];
-
-	if(!empty($ifmod)){
-		if(strpos($ifmod,';'))
-			$ifmod=substr($ifmod,0,strpos($ifmod,';'));
-		$ifmod=strtotime($ifmod);
-
-		if($ifmod==$lastmod){
-			header('HTTP/1.1: 304 Not Modified');
-			exit();
-		}
-	}
-	header('Last-Modified: '.gmdate('D, d M Y H:i:s',$lastmod).' GMT');
-}
-
-# }}}
-
-# JAVASCRIPT STATIC CONTENT/FUNCTIONS {{{
-
-if(QUERY_STRING=='js_funcs' || QUERY_STRING=='js_funcs_framed'){
-	static_cache();
-
-?>//<script type="text/javascript">
-
-// JAVASCRIPT FUNCS: DECODING {{{
-<?php js_proxenc(); ?>
-
-<?php echo(COOK_PREF); ?>_pe.b64d=function(string){
+b64d:function(str){
 	var binrep="",decstr="";
 	var charnum,charbin;
-	string=string.replace(/[=]*$/,"");
-	for(var i=0;i<string.length;i++){
-		charnum=string.charCodeAt(i);
+	str=str.replace(/[=]*$/,"");
+	for(var i=0;i<str.length;i++){
+		charnum=str.charCodeAt(i);
 		if(charnum>=97) charnum-=71;
 		else if(charnum>=65) charnum-=65;
 		else if(charnum>=48) charnum+=4;
@@ -1020,9 +1273,9 @@ if(QUERY_STRING=='js_funcs' || QUERY_STRING=='js_funcs_framed'){
 		decstr+=String.fromCharCode(this.bintodec(charbin));
 	}
 	return decstr;
-}
+},
 
-<?php echo(COOK_PREF); ?>_pe.proxdec=function(url){
+proxdec:function(url){
 	var new_url,charnum;
 	if(url.substr(0,1)!='~' && url.substr(0,3).toLowerCase()!='%7e') return url;
 	while(url.substr(0,1)=='~' || url.substr(0,3).toLowerCase()=='%7e'){
@@ -1039,13 +1292,27 @@ if(QUERY_STRING=='js_funcs' || QUERY_STRING=='js_funcs_framed'){
 		url=new_url;
 	}
 	return decodeURIComponent(url); // urldecode()
+},
+
 }
 
 // }}}
 
 // JAVASCRIPT FUNCS: COOK_PREF OBJECT {{{
 
+<?php if($do_wrap){ ?>
+
 <?php echo(COOK_PREF); ?>={
+
+parse_attrs:new Array(
+	'action',
+	'backgroundImage',
+	'codebase',
+	'href',
+	'location',
+	'pluginspage',
+	'src'
+),
 
 URLREG:<?php echo(substr(URLREG,0,strlen(URLREG)-1)); ?>,
 THIS_SCRIPT:"<?php echo(THIS_SCRIPT); ?>",
@@ -1292,10 +1559,8 @@ preg_match_all:function(regexpstr,string){
 },
 
 framify_url:function(url,frame_type){
-	if(
-		(frame_type!==<?php echo(PAGETYPE_FRAME_TOP); ?> || !this.URL_FORM) &&
-		(frame_type!==<?php echo(PAGETYPE_FRAMED_PAGE); ?> && !this.PAGE_FRAMED)
-	) return url;
+	if(frame_type===<?php echo(PAGETYPE_NULL); ?>)
+		return url;
 	var urlquote="";
 	if(
 		(url.substring(0,1)=="\"" || url.substring(0,1)=="'") &&
@@ -1306,7 +1571,7 @@ framify_url:function(url,frame_type){
 	}
 	if(!url.match(<?php echo(FRAME_LOCK_REGEXP); ?>)){
 		var query;
-		if(frame_type===<?php echo(PAGETYPE_FRAME_TOP); ?> && this.URL_FORM)
+		if(frame_type===<?php echo(PAGETYPE_FRAME_TOP); ?>)
 			query='&=';
 		else if(frame_type===<?php echo(PAGETYPE_FRAMED_CHILD); ?>) query='.&=';
 		else if(
@@ -1405,8 +1670,6 @@ setAttr:function(obj,attr,val){
 		return obj[attr];
 	}
 
-	if(obj==location && attr=="hostname") return this.LOCATION_HOSTNAME;
-
 	if(obj==document && attr=="cookie"){
 		var COOK_REG=/^([^=]*)=([^;]*)(?:;[\s\S]*?)?$/i;
 		var realhost=
@@ -1424,6 +1687,8 @@ setAttr:function(obj,attr,val){
 		return newcookie;
 	}
 
+	if(obj==location && attr=="hostname") return this.LOCATION_HOSTNAME;
+
 	if(obj==location && attr=="search"){
 		if(val.substr(0,1)=="?") val=val.substr(1);
 		this.curr_urlobj.set_query(val);
@@ -1431,28 +1696,36 @@ setAttr:function(obj,attr,val){
 		attr="href";
 	}
 
-	var proxurl=val;
-	if(attr!="cookie" && attr!="search" && attr!="hostname"){
-		proxurl=this.surrogafy_url(val);
+	var is_parse_attr=false;
+	for(var parse_attr in this.parse_attrs){
+		if(attr==parse_attr){
+			is_parse_attr=true;
+			break;
+		}
+	}
+
+	var proxval=val;
+	if(is_parse_attr){
+		proxval=this.surrogafy_url(val);
 
 		// tags framified must match REGEXPS with regexp_array[5]
 		if(obj.tagName=="A" || obj.tagName=="AREA")
-			proxurl=this.framify_url(
-				proxurl,<?php echo(NEW_PAGETYPE_FRAME_TOP); ?>);
+			proxval=this.framify_url(
+				proxval,<?php echo(COOK_PREF); ?>.NEW_PAGETYPE_FRAME_TOP);
 		else if(obj.tagName=="FRAME" || obj.tagName=="IFRAME")
-			proxurl=this.framify_url(
-				proxurl,<?php echo(PAGETYPE_FRAMED_CHILD); ?>);
+			proxval=this.framify_url(
+				proxval,<?php echo(PAGETYPE_FRAMED_CHILD); ?>);
 	}
 
 	if(this.URL_FORM){
 		if((obj==location && attr=="href") || attr=="location"){
 			urlobj=this.surrogafy_url_toobj(val);
-			if(!urlobj.locked) proxurl=this.add_querystuff(proxurl,"=&");
-			return this.thetop.location.href=proxurl;
+			if(!urlobj.locked) proxval=this.add_querystuff(proxval,"=&");
+			return this.thetop.location.href=proxval;
 		}
-		else return obj[attr]=proxurl;
+		else return obj[attr]=proxval;
 	}
-	else return obj[attr]=proxurl;
+	else return obj[attr]=proxval;
 },
 
 getAttr:function(obj,attr){
@@ -1493,25 +1766,6 @@ getAttr:function(obj,attr){
 		var UA_REG=
 			/^([^\/\(]*)\/?([^ \(]*)[ ]*(\(?([^;\)]*);?([^;\)]*);?([^;\)]*);?([^;\)]*);?([^;\)]*);?[^\)]*\)?)[ ]*([^ \/]*)\/?([^ \/]*).*$/i;
 		switch(attr){
-			case "userAgent": return this.USERAGENT;
-			case "appCodeName": return this.USERAGENT.replace(UA_REG,"\$1");
-			case "appVersion":
-				return (
-					msie?
-					this.USERAGENT.replace(UA_REG,"\$2 \$3"):
-					this.USERAGENT.replace(UA_REG,"\$2 (\$4; \$7)")
-				);
-			case "platform":
-				var tempplatform=this.USERAGENT.replace(UA_REG,"\$4");
-				return (
-					tempplatform=="compatible" || tempplatform=="Windows"?
-					"Win32":
-					this.USERAGENT.replace(UA_REG,"\$6")
-				);
-			case "oscpu":
-				return (msie?undefined:this.USERAGENT.replace(UA_REG,"\$6"));
-			case "language":
-				return (msie?undefined:this.USERAGENT.replace(UA_REG,"\$7"));
 			case "appName":
 				var tempappname=(
 					msie?
@@ -1521,26 +1775,57 @@ getAttr:function(obj,attr){
 				if(tempappname=="Opera" || tempappname=="Mozilla")
 					tempappname="Netscape";
 				return tempappname;
+			case "appCodeName": return this.USERAGENT.replace(UA_REG,"\$1");
+			case "appVersion":
+				return (
+					msie?
+					this.USERAGENT.replace(UA_REG,"\$2 \$3"):
+					this.USERAGENT.replace(UA_REG,"\$2 (\$4; \$7)")
+				);
+			case "language":
+				return (msie?undefined:this.USERAGENT.replace(UA_REG,"\$7"));
+			case "mimeType": return navigator.mimeType;
+			case "oscpu":
+				return (msie?undefined:this.USERAGENT.replace(UA_REG,"\$6"));
+			case "platform":
+				var tempplatform=this.USERAGENT.replace(UA_REG,"\$4");
+				return (
+					tempplatform=="compatible" || tempplatform=="Windows"?
+					"Win32":
+					this.USERAGENT.replace(UA_REG,"\$6")
+				);
+			case "plugins":
+				return (
+					!<?php echo(COOK_PREF); ?>.REMOVE_OBJECTS?
+					navigator.plugins:
+					undefined
+				);
 			case "product":
 				return (msie?undefined:this.USERAGENT.replace(UA_REG,"\$9"));
 			case "productSub":
 				return (msie?undefined:this.USERAGENT.replace(UA_REG,"\$10"));
-			case "plugins":
-				return (
-					<?php echo(!$OPTIONS['REMOVE_OBJECTS']?'1':'0'); ?>==1?
-					navigator.plugins:
-					undefined
-				);
-			case "mimeType": return navigator.mimeType;
+			case "userAgent": return this.USERAGENT;
 			default: return undefined;
 		}
 	}
 
-	if(obj==location && attr=="search") url=location.href;
-	else url=obj[attr];
-	url=this.de_surrogafy_url(url);
-	if(obj==location && attr=="search") url=url.replace(/^[^?]*/,"");
-	return url;
+	var val;
+	if(obj==location && attr=="search") val=location.href;
+	else val=obj[attr];
+
+	var is_parse_attr=false;
+	for(var parse_attr in this.parse_attrs){
+		if(attr==parse_attr){
+			is_parse_attr=true;
+			break;
+		}
+	}
+
+	if(is_parse_attr)
+		val=this.de_surrogafy_url(val);
+
+	if(obj==location && attr=="search") val=val.replace(/^[^?]*/,"");
+	return val;
 },
 
 eventify:function(a1,a2){
@@ -1624,9 +1909,13 @@ purge_noparse:function(){
 
 }
 
+<?php } ?>
+
 // }}}
 
-// JAVASCRIPT FUNCS: WRAPPING {{{
+// JAVASCRIPT FUNCS: WRAPPING/HOOKING {{{
+
+<?php if($do_wrap){ ?>
 
 document.write_<?php echo(COOK_PREF); ?>=document.write;
 document.writeln_<?php echo(COOK_PREF); ?>=document.writeln;
@@ -1678,6 +1967,8 @@ if(<?php echo(COOK_PREF); ?>.PAGE_FRAMED){
 	if(parent==top) parent=self;
 	if(top!=self) top=<?php echo(COOK_PREF); ?>.thetop.frames[0];
 }
+
+<?php } ?>
 
 // }}}
 
@@ -1759,8 +2050,8 @@ $g_justspace="[\t ]*";
 $g_plusjustspace="[\t ]+";
 $g_anyspace="[\t\r\n ]*";
 $g_plusspace="[\t\r\n ]+";
-$g_operand='(?:\|\||\&\&|[\+\-\/\*\|\&])';
-$g_n_operand='[^\+\-\/\*]';
+$g_operand='(?:\|\||\&\&|[\+\-\/\*\|\&\%\?\:])';
+$g_n_operand='[^\+\-\/\*\|\&\%\?\:]';
 $g_quoteseg='(?:"(?:[^"]|[\\\\]")*?"|\'(?:[^\']|[\\\\]\')*?\')';
 $g_regseg='\/(?:[^\/]|[\\\\]\/)*?\/[a-z]*';
 
@@ -1783,12 +2074,12 @@ $hook_html_attrs='(data|href|src|background|pluginspage|codebase|action)';
 $html_frametargets='_(?:top|parent|self)';
 
 # Javascript
-$hook_js_attrs=
+/*$hook_js_attrs=
 	'(?:href|src|location|action|backgroundImage|pluginspage|codebase|'.
 	'location\.href|innerHTML|cookie|search|hostname)';
 $hook_js_getattrs=
 	"(?:{$hook_js_attrs}|userAgent|platform|appCodeName|appName|appVersion|".
-	'language|oscpu|product|productSub|plugins)';
+	'language|oscpu|product|productSub|plugins)';*/
 $hook_js_methods='(location\.(?:replace|assign))';
 // unused? wtf? TODO - figure out why this isn't used and if it should be
 //$js_lochost='(location\.host(?:name){0,1})';
@@ -1818,14 +2109,14 @@ $js_expr2, ...:  $js_expr requires use of a named submatch, so there needs
 */
 
 $js_varsect=
-	"(?:new{$g_plusspace})?[a-zA-Z0-9_\$]".
+	"(?:new{$g_plusspace})?[a-zA-Z_\$]".
 	"(?:[a-zA-Z0-9\$\._]*[a-zA-Z0-9_])?";
 $js_jsvarsect=
-	"(?:new{$g_plusspace})?[a-zA-Z0-9_\$]".
+	"(?:new{$g_plusspace})?[a-zA-Z_\$]".
 	"(?:[a-zA-Z0-9\$\._]*[a-zA-Z0-9_\[\]])?";
-$n_js_varsect='[^a-zA-Z0-9\._\[\]]';
+$n_js_varsect='[^a-zA-Z\._\[\]]';
 
-$h_js_exprsect="(?:{$g_quoteseg}|{$g_regseg}|{$js_varsect})";
+$h_js_exprsect="(?:{$g_quoteseg}|{$g_regseg}|{$js_varsect}|[0-9\.]+)";
 $js_exprsect="(?:{$h_js_exprsect}|\({$h_js_exprsect}\))";
 $h_js_expr=
 	"|\[{$g_anyspace}(?:(?P>js_expr)".
@@ -1837,11 +2128,11 @@ $h_js_expr=
 $js_expr=
 	"(?P<js_expr>(?:{$js_exprsect}{$h_js_expr})".
 	"(?:{$g_anyspace}(?:".
-			"\.{$g_anyspace}(?P>js_expr)".
-			"|{$g_operand}{$g_anyspace}(?P>js_expr)".
-			"|\?{$g_anyspace}(?P>js_expr){$g_anyspace}".
-				":{$g_anyspace}(?P>js_expr)".
-			$h_js_expr.
+		"\.{$g_anyspace}(?P>js_expr)".
+		"|{$g_operand}{$g_anyspace}(?P>js_expr)".
+		"|\?{$g_anyspace}(?P>js_expr){$g_anyspace}".
+			":{$g_anyspace}(?P>js_expr)".
+		$h_js_expr.
 	"){$g_anyspace})*)";
 $js_expr2=str_replace('js_expr','js_expr2',$js_expr);
 $js_expr3=str_replace('js_expr','js_expr3',$js_expr);
@@ -1867,6 +2158,7 @@ $l_js_end="(?={$g_justspace}(?:[;\}]|{$g_n_operand}[\n\r]))";
 #$n_l_js_end="(?!{$g_justspace}(?:[;\}]|{$g_n_operand}[\n\r]))";
 $js_begin=
 	"((?:[;\{\}\n\r\(\)]|[\!=]=)(?!{$g_anyspace}(?:#|\/\*|\/\/)){$g_anyspace})";
+# TODO - need to get rid of js_beginright or something
 $js_beginright="((?:[;\{\}\(\)=\+\-\/\*]){$g_justspace})";
 
 $js_xmlhttpreq=
@@ -1898,13 +2190,13 @@ $js_regexp_arrays=array(
 		'\1\2.\3='.COOK_PREF.'.getAttr(\2,/\3/)+'),
 	# set for =
 	array(1,2,
-		"/{$js_begin}{$js_expr}\.(({$hook_js_attrs}){$g_anyspace}=".
+		"/{$js_begin}{$js_expr}\.(({$js_varsect}){$g_anyspace}=".
 			"(?:{$g_anyspace}{$js_expr2}{$g_anyspace}=)*{$g_anyspace})".
 			"{$js_expr3}{$l_js_end}/i",
 		'\1'.COOK_PREF.'.setAttr(\2,/\4/,\6)'),
 	# get
 	array(1,2,
-		"/{$js_beginright}{$js_expr}\.({$hook_js_getattrs})".
+		"/{$js_beginright}{$js_expr}\.({$js_varsect})".
 			"([^\.=a-z0-9_\[\(\t\r\n]|\.{$js_string_methods}\(|".
 			"\.{$js_string_attrs}{$n_js_varsect})/i",
 		'\1'.COOK_PREF.'.getAttr(\2,/\3/)\4'),
@@ -2140,10 +2432,10 @@ unset(
 
 # class for URL
 class aurl{
-	var $url,$topurl,$locked;
+	var $url,$topurl,$locked,$force_unlocked;
 	var $proto,$userpass,$servername,$portval,$path,$file,$query,$label;
 
-	function aurl($url,$topurl=null){
+	function aurl($url,$topurl=null,$force_unlocked=false){
 		global $CONFIG;
 		if(strlen($url)>$CONFIG['MAXIMUM_URL_LENGTH']) $this->url=null;
 		else $this->url=
@@ -2154,6 +2446,7 @@ class aurl{
 			$url)))));
 		$this->topurl=$topurl;
 
+		$this->force_unlocked=$force_unlocked;
 		$this->determine_locked();
 		if($this->locked) return;
 
@@ -2201,7 +2494,9 @@ class aurl{
 	}
 
 	function determine_locked(){
-		$this->locked=preg_match(AURL_LOCK_REGEXP,$this->url)>0;
+		if($this->force_unlocked)
+			$this->locked=false;
+		else $this->locked=preg_match(AURL_LOCK_REGEXP,$this->url)>0;
 	} #*
 
 	function get_fieldreq($fieldno,$value){
@@ -2314,10 +2609,11 @@ function surrogafy_url($url,$topurl=false,$addproxy=true){
 
 function framify_url($url,$frame_type=false){
 	global $OPTIONS;
-	if(
+/*	if(
 		($frame_type!==PAGETYPE_FRAME_TOP || !$OPTIONS['URL_FORM']) &&
 		($frame_type!==PAGETYPE_FRAMED_PAGE && !PAGE_FRAMED)
-	) return $url;
+	) return $url;*/
+	if($frame_type===PAGETYPE_NULL) return $url;
 	//if(preg_match('/^(["\']).*\1$/is',$url)>0){
 	if(
 		($url{0}=='"' && substr($url,-1)=='"') ||
@@ -2327,15 +2623,14 @@ function framify_url($url,$frame_type=false){
 		$url=substr($url,1,strlen($url)-2);
 	}
 	if(preg_match(FRAME_LOCK_REGEXP,$url)<=0){
-		if($frame_type===PAGETYPE_FRAME_TOP && $OPTIONS['URL_FORM'])
+		if($frame_type===PAGETYPE_FRAME_TOP) # && $OPTIONS['URL_FORM'])
 			$query='&=';
 		elseif($frame_type===PAGETYPE_FRAMED_CHILD) $query='.&=';
 		elseif($frame_type===PAGETYPE_FRAMED_PAGE || PAGE_FRAMED) $query='_&=';
 		else $query=null;
-		$url=
-			preg_replace(
-				'/^([^\?]*)[\?]?'.PAGETYPE_MINIREGEXP.'([^#]*?[#]?.*?)$/',
-				"\\1?={$query}\\3",$url,1);
+		$url=preg_replace(
+			'/^([^\?]*)[\?]?'.PAGETYPE_MINIREGEXP.'([^#]*?[#]?.*?)$/',
+			"\\1?={$query}\\3",$url,1);
 	}
 	if(!empty($urlquote)) $url="{$urlquote}{$url}{$urlquote}";
 	return $url;
@@ -2485,7 +2780,7 @@ function ipbitter($ipaddr){
 }
 
 function ipcompare($iprange,$ip){
-	$iprarr=split('/',$iprange);
+	$iprarr=explode('/',$iprange);
 	$ipaddr=$iprarr[0];
 	$mask=$iprarr[1];
 	$maskbits=str_repeat('1',$mask).str_repeat('0',$mask);
@@ -2890,7 +3185,8 @@ function getpage($url){
 		$urlobj=new aurl($url);
 		$redirurl=framify_url(
 			surrogafy_url($headers['location'][0],$urlobj),
-			NEW_PAGETYPE_FRAMED_PAGE);
+			NEW_PAGETYPE_FRAMED_PAGE
+		);
 
 		fclose($fp);
 		restore_error_handler();
@@ -3006,9 +3302,9 @@ function getpage($url){
 
 global $proxy_variables;
 $proxy_variables=array(
-	COOK_PREF,COOK_PREF.'_set_values',
+	'user', COOK_PREF, COOK_PREF.'_set_values',
 	COOK_PREF.'_tunnel_ip',COOK_PREF.'_tunnel_port',
-	COOK_PREF.'_useragent',COOK_PREF.'_useragenttext',
+	COOK_PREF.'_useragent',COOK_PREF.'_useragent_custom',
 	COOK_PREF.'_url_form',
 	COOK_PREF.'_remove_cookies',COOK_PREF.'_remove_referer',
 	COOK_PREF.'_remove_scripts',COOK_PREF.'_remove_objects',
@@ -3016,21 +3312,9 @@ $proxy_variables=array(
 
 # }}}
 
-# PROXY EXECUTION: GET/POST/COOKIES {{{
+# PROXY_EXECUTION: REDIRECT IF FORM INPUT {{{
 
-if($postandget[COOK_PREF.'_set_values']){
-	$proxy_varblacklist=array(COOK_PREF);
-	if($postandget[COOK_PREF.'_useragent']!='1'){
-		unset($postandget[COOK_PREF.'_useragenttext']);
-		dosetcookie(COOK_PREF.'_useragenttext',false,0);
-	}
-	while(list($key,$val)=each($proxy_variables)){
-		if(!in_array($val,$proxy_varblacklist)){
-			dosetcookie($val,false,0);
-			if(isset($postandget[$val]) && !empty($postandget[$val]))
-				dosetcookie($val,$postandget[$val]);
-		}
-	}
+if(IS_FORM_INPUT){
 	$theurl=framify_url(surrogafy_url(ORIG_URL),PAGETYPE_FRAME_TOP);
 	header("Location: {$theurl}");
 	finish();
@@ -3042,10 +3326,11 @@ if($postandget[COOK_PREF.'_set_values']){
 
 global $referer;
 if($_SERVER['HTTP_REFERER']!=null && !$OPTIONS['REMOVE_REFERER']){
-	$refurlobj=new aurl($_SERVER['HTTP_REFERER']);
-	$referer=proxdec(
-		preg_replace('/^[\s\S]*'.COOK_PREF.'=([^&]*)[\s\S]*$/i','\1',
-			$refurlobj->get_path())); #*
+	$refurlobj=new aurl($_SERVER['HTTP_REFERER'], null, true);
+	$referer=proxdec(preg_replace(
+		'/^=(?:\&=|_\&=|\.\&=)?([^\&]*)[\s\S]*$/i','\1',
+		$refurlobj->get_query()
+	));
 }
 else $referer=null;
 
@@ -3316,7 +3601,8 @@ $body=parse_all_html($body);
 if(CONTENT_TYPE=='text/html'){
 	$big_headers=
 		'<meta name="robots" content="noindex, nofollow" />'.
-		(PAGETYPE_ID===PAGETYPE_FRAMED_PAGE?'<base target="_top">':null).
+		($OPTIONS['URL_FORM'] && PAGETYPE_ID===PAGETYPE_FRAMED_PAGE?
+			'<base target="_top">':null).
 		'<link rel="shortcut icon" href="'.
 			surrogafy_url(
 				$curr_urlobj->get_proto().'://'.
@@ -3328,29 +3614,46 @@ if(CONTENT_TYPE=='text/html'){
 				'?js_regexps'.(PAGE_FRAMED?'_framed':null).'"></script>'.
 			'<script type="text/javascript">'.
 			//'<!--'.
-			COOK_PREF.'.DOCUMENT_REFERER="'.(
-				$OPTIONS['URL_FORM']?
-				str_replace('"','\\"',$referer):
-				null).'";'.
+
+			COOK_PREF.'_do_proxy=true;'.
+
 			COOK_PREF.'.CURR_URL="'.
 				str_replace(
 					'"','\\"',$curr_urlobj->get_url()).'"+location.hash;'.
 						COOK_PREF.'.gen_curr_urlobj();'.
+
+			COOK_PREF.'.DOCUMENT_REFERER="'.(
+				$OPTIONS['URL_FORM']?
+				str_replace('"','\\"',$referer):
+				null).'";'.
+
+			COOK_PREF.'.ENCRYPT_COOKIES='.
+				bool_to_js($OPTIONS['ENCRYPT_COOKIES']).';'.
+
+			COOK_PREF.'.ENCRYPT_URLS='.bool_to_js($OPTIONS['ENCRYPT_URLS']).
+				';'.
+
+			COOK_PREF.'.LOCATION_HOSTNAME="'.
+				str_replace('"','\\"',$curr_urlobj->get_servername()).'";'.
+
+			COOK_PREF.'.LOCATION_PORT="'.
+				str_replace('"','\\"',$curr_urlobj->get_portval()).'";'.
+
 			COOK_PREF.'.LOCATION_SEARCH="'.(
 					$curr_urlobj->get_query()!=null?
 					'?'.str_replace('"','\\"',$curr_urlobj->get_query()):
 					null
 				).'";'.
-			COOK_PREF.'.LOCATION_HOSTNAME="'.
-				str_replace('"','\\"',$curr_urlobj->get_servername()).'";'.
-			COOK_PREF.'.LOCATION_PORT="'.
-				str_replace('"','\\"',$curr_urlobj->get_portval()).'";'.
-			COOK_PREF.'.ENCRYPT_URLS='.bool_to_js($OPTIONS['ENCRYPT_URLS']).
-				';'.
-			COOK_PREF.'.ENCRYPT_COOKIES='.
-				bool_to_js($OPTIONS['ENCRYPT_COOKIES']).';'.
-			COOK_PREF.'.URL_FORM='.bool_to_js($OPTIONS['URL_FORM']).';'.
+
+			COOK_PREF.'.NEW_PAGETYPE_FRAME_TOP='.NEW_PAGETYPE_FRAME_TOP.';'.
+
 			COOK_PREF.'.PAGE_FRAMED='.bool_to_js(PAGE_FRAMED).';'.
+
+			COOK_PREF.'.REMOVE_OBJECTS='.
+				bool_to_js($OPTIONS['REMOVE_OBJECTS']).';'.
+
+			COOK_PREF.'.URL_FORM='.bool_to_js($OPTIONS['URL_FORM']).';'.
+
 			COOK_PREF.".USERAGENT=\"{$useragent}\";".
 				(
 					$OPTIONS['URL_FORM'] && PAGETYPE_ID==PAGETYPE_FRAMED_PAGE?
@@ -3359,6 +3662,7 @@ if(CONTENT_TYPE=='text/html'){
 						'","'.$curr_urlobj->get_servername().'");':
 					null
 				).
+
 			//'//-->'.
 			'</script>':
 		null);

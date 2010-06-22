@@ -32,7 +32,8 @@ body{
 	margin: 2px 0px 2px 0px;
 }
 
-.expected { float: right;
+.expected {
+	float: right;
 	width: 50%;
 	border: 1px solid #000000;
 	border-left: 0px;
