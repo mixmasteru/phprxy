@@ -285,6 +285,7 @@ if(file_exists(CONFIG_FILE))
 
 //$totstarttime=microtime(true); # BENCHMARK
 $CONFIG['BLOCKED_ADDRESSES']=array(); # DEBUG
+#$CONFIG['BLOCKED_ADDRESSES']=array('127.0.0.1','localhost'); # PRODUCTION
 
 # set error level to not display notices
 error_reporting(E_ALL^E_NOTICE);
@@ -341,7 +342,6 @@ function dosetcookie($cookname,$cookval,$expire=null){
 	else setcookie($cookname,$cookval,$expire);
 }
 
-#define('FIRST_LOAD',empty($_COOKIE['PHPSESSID'])); # TODO: remove
 if(!isset($_SESSION)) session_start();
 
 if(empty($_SESSION['sesspref'])){
@@ -367,25 +367,6 @@ if(!empty($_GET[COOK_PREF.'_ssl_domain'])){
 	$_SESSION['ssl_domains'][]=$_GET[COOK_PREF.'_ssl_domain'];
 	exit();
 }
-
-/*if(FIRST_LOAD){ # TODO: remove
-	if($CONFIG['DEFAULT_USER_AGENT'])
-		dosetcookie(COOK_PREF.'_useragent',$CONFIG['DEFAULT_USER_AGENT']);
-	if($CONFIG['DEFAULT_URL_FORM'])
-		dosetcookie(COOK_PREF.'_url_form',true);
-	if($CONFIG['DEFAULT_REMOVE_COOKIES'])
-		dosetcookie(COOK_PREF.'_remove_cookies',true);
-	if($CONFIG['DEFAULT_REMOVE_REFERER'])
-		dosetcookie(COOK_PREF.'_remove_referer',true);
-	if($CONFIG['DEFAULT_REMOVE_SCRIPTS'])
-		dosetcookie(COOK_PREF.'_remove_scripts',true);
-	if($CONFIG['DEFAULT_REMOVE_OBJECTS'])
-		dosetcookie(COOK_PREF.'_remove_objects',true);
-	if($CONFIG['DEFAULT_ENCRYPT_URLS'])
-		dosetcookie(COOK_PREF.'_encrypt_urls',true);
-	if($CONFIG['DEFAULT_ENCRYPT_COOKIES'])
-		dosetcookie(COOK_PREF.'_encrypt_cookies',true);
-}*/
 
 # }}}
 
@@ -458,7 +439,7 @@ $OPTIONS=array();
 
 define('IS_FORM_INPUT',!empty($postandget[COOK_PREF.'_set_values']));
 
-// registers an option with the OPTIONS array
+# registers an option with the OPTIONS array
 function register_option(
 	$config_type,
 	$config_name,
@@ -469,21 +450,21 @@ function register_option(
 
 	global $CONFIG,$OPTIONS,$postandget;
 
-	// get user input
+	# get user input
 	$user_input=(
 		IS_FORM_INPUT?
 		$postandget[COOK_PREF."_{$cookie_name}"]:
 		$_COOKIE[COOK_PREF."_{$cookie_name}"]
 	);
 
-	// option parsers
+	# option parsers
 	switch($config_type){
-		// integer option
+		# integer option
 		case 2:
 			$user_input=intval($user_input);
 			break;
 
-		// true/false option
+		# true/false option
 		case 1:
 			$user_input=(
 				IS_FORM_INPUT?
@@ -492,13 +473,13 @@ function register_option(
 			);
 			break;
 
-		// standard option
+		# standard option
 		case 0:
 		default:
 			break;
 	}
 
-	// set option value
+	# set option value
 	$OPTIONS[$config_name]=(
 		$CONFIG["FORCE_DEFAULT_{$config_name}"] || (
 			!IS_FORM_INPUT && !isset($_COOKIE[COOK_PREF."_{$cookie_name}"])
@@ -507,7 +488,7 @@ function register_option(
 		$user_input
 	);
 
-	// set cookies
+	# set cookies
 	if(IS_FORM_INPUT){
 		dosetcookie(COOK_PREF."_{$cookie_name}",false,0);
 
@@ -523,7 +504,7 @@ function register_option(
 	}
 }
 
-// register standard options
+# register standard options
 register_option(0,'TUNNEL_IP');
 register_option(1,'URL_FORM');
 register_option(1,'REMOVE_COOKIES');
@@ -533,7 +514,7 @@ register_option(1,'REMOVE_OBJECTS');
 register_option(1,'ENCRYPT_URLS');
 register_option(1,'ENCRYPT_COOKIES');
 
-// register custom defined options
+# register custom defined options
 $OPTIONS['USER_AGENT']=(
 	$CONFIG['FORCE_DEFAULT_USER_AGENT'] || empty($_COOKIE['_useragent'])?
 	$CONFIG['DEFAULT_USER_AGENT']:(
@@ -607,7 +588,7 @@ $useragent_browsers=array(
 
 $useragentinfo=null;
 
-// parse platform
+# parse platform
 $dobreak=false;
 foreach($useragent_platforms as $platform){
 	for($i=1; $i<count($platform); $i++){
@@ -625,10 +606,10 @@ foreach($useragent_platforms as $platform){
 if(!$dobreak)
 	$useragentinfo.='Unknown';
 
-// separator
+# separator
 $useragentinfo.=' / ';
 
-// parse browser
+# parse browser
 $found=false;
 foreach($useragent_browsers as $substr=>$browser){
 	if(stristr($_SERVER['HTTP_USER_AGENT'],$browser)!==false){
@@ -640,7 +621,7 @@ foreach($useragent_browsers as $substr=>$browser){
 if(!$found)
 	$useragentinfo.='Unknown';
 
-// construct useragent options
+# construct useragent options
 $ver=array(
 	'dillo' => '0.8.6',
 	'firefox' => '2.0',
@@ -734,7 +715,6 @@ $checkbox_array=array(
 	td#proxy_links_td { text-align: center; }
 </style></noscript>
 
-<!-- TODO: REDO PATH -->
 <script type="text/javascript"
         src="<?php echo(THIS_SCRIPT); ?>?js_funcs_nowrap"></script>
 
@@ -2060,8 +2040,8 @@ $g_regseg='\/(?:[^\/]|[\\\\]\/)*?\/[a-z]*';
 # REGEXPS: VARIABLES: Parsing Config {{{
 
 /*
-$hook_html_attrs:    hook html attributes
 $html_frametargets:  html list of frame targets to look out for
+$hook_html_attrs:    hook html attributes
 $hook_js_attrs:      js hook attributes for getting and setting
 $hook_js_getattrs:   js hook attributes for getting only
 $hook_js_methods:    js hook methods
@@ -2070,8 +2050,8 @@ $js_string_attrs:    js attributes for the String() object
 */
 
 # HTML
-$hook_html_attrs='(data|href|src|background|pluginspage|codebase|action)';
 $html_frametargets='_(?:top|parent|self)';
+$hook_html_attrs='(data|href|src|background|pluginspage|codebase|action)';
 
 # Javascript
 /*$hook_js_attrs=
@@ -2159,7 +2139,9 @@ $l_js_end="(?={$g_justspace}(?:[;\}]|{$g_n_operand}[\n\r]))";
 $js_begin=
 	"((?:[;\{\}\n\r\(\)]|[\!=]=)(?!{$g_anyspace}(?:#|\/\*|\/\/)){$g_anyspace})";
 # TODO - need to get rid of js_beginright or something
-$js_beginright="((?:[;\{\}\(\)=\+\-\/\*]){$g_justspace})";
+# (?<!:[\/])[\/](?![\/]) - this matches a slash ('/') without being a part of
+#                          "://"
+$js_beginright="((?:[;\{\}\(\)=\+\-\*]|(?<!:[\/])[\/](?![\/])){$g_justspace})";
 
 $js_xmlhttpreq=
 	"(?:XMLHttpRequest{$g_anyspace}(?:\({$g_anyspace}\)|)|".
@@ -2186,7 +2168,7 @@ $js_regexp_arrays=array(
 
 	# prepare for set for +=
 	array(1,2,
-		"/{$js_begin}{$js_expr}\.({$hook_js_getattrs}){$g_anyspace}\+=/i",
+		"/{$js_begin}{$js_expr}\.({$js_varsect}){$g_anyspace}\+=/i",
 		'\1\2.\3='.COOK_PREF.'.getAttr(\2,/\3/)+'),
 	# set for =
 	array(1,2,
@@ -2862,7 +2844,7 @@ function getpage($url){
 		for($i=0; $i<29; $i++) $strnum.=rand(0,9);
 		$boundary="---------------------------{$strnum}";
 
-		// parse POST variables
+		# parse POST variables
 		while(list($key,$val)=each($_POST)){
 			if(!is_array($val)){
 				$content.=
@@ -2880,7 +2862,7 @@ function getpage($url){
 			}
 		}
 
-		// parse uploaded files
+		# parse uploaded files
 		while(list($key,$val)=each($_FILES)){
 			if(!is_array($val['name'])){
 				$fcont=file_get_contents($val['tmp_name']);
@@ -2938,7 +2920,7 @@ function getpage($url){
 
 	$urlobj=new aurl($url);
 
-	// don't access SSL sites unless the proxy is being accessed through SSL too
+	# don't access SSL sites unless the proxy is being accessed through SSL too
 	if(
 		$urlobj->get_proto()=='https' && $CONFIG['PROTO']!='https' &&
 		(
@@ -2994,7 +2976,7 @@ function getpage($url){
 
 	# HTTP packet construction {{{
 
-	// figure out what we are connecting to
+	# figure out what we are connecting to
 	if($OPTIONS['TUNNEL_IP']!=null && $OPTIONS['TUNNEL_PORT']!=null){
 		$servername=$OPTIONS['TUNNEL_IP'];
 		$ipaddress=get_check($servername);
@@ -3013,7 +2995,7 @@ function getpage($url){
 		$portval=$urlobj->get_portval();
 	}
 
-	// begin packet construction
+	# begin packet construction
 	$out=
 		($content==null?'GET':'POST').' '.
 			str_replace(' ','%20',$requrl)." HTTP/1.1\r\n".
@@ -3026,7 +3008,7 @@ function getpage($url){
 				null
 			)."\r\n";
 
-	// user agent and auth headers
+	# user agent and auth headers
 	global $useragent;
 	$useragent=null;
 	if($OPTIONS['USER_AGENT']!='-1'){
@@ -3036,13 +3018,12 @@ function getpage($url){
 	}
 	if(!empty($http_auth)) $out.="Authorization: $http_auth\r\n";
 
-	// referer headers
+	# referer headers
 	if(!$OPTIONS['REMOVE_REFERER'] && !empty($referer))
 		$out.='Referer: '.str_replace(' ','+',$referer)."\r\n";
 
-	// POST headers
+	# POST headers
 	if($content!=null)
-	//if($_SERVER['REQUEST_METHOD']=='POST') # TODO: remove
 		$out.=
 			'Content-Length: '.strlen($content)."\r\n".
 			'Content-Type: '.
@@ -3052,7 +3033,7 @@ function getpage($url){
 					'application/x-www-form-urlencoded'
 				)."\r\n";
 
-	// cookie headers
+	# cookie headers
 	$cook_prefdomain=
 		preg_replace('/^www\./i',null,$urlobj->get_servername()); #*
 	$cook_prefix=str_replace('.','_',$cook_prefdomain).COOKIE_SEPARATOR;
@@ -3085,7 +3066,7 @@ function getpage($url){
 		}
 	}
 
-	// final packet headers and content
+	# final packet headers and content
 	$out.=
 		"Accept: */*;q=0.1\r\n".
 		($CONFIG['GZIP_PROXY_SERVER']?"Accept-Encoding: gzip\r\n":null).
@@ -3103,8 +3084,8 @@ function getpage($url){
 
 	# Ignore SSL errors {{{
 
-	// This part ignores any "SSL: fatal protocol error" errors, and makes sure
-	// other errors are still triggered correctly
+	# This part ignores any "SSL: fatal protocol error" errors, and makes sure
+	# other errors are still triggered correctly
 	function errorHandle($errno,$errmsg){
 		if(
 			$errno<=E_PARSE && (
@@ -3126,7 +3107,7 @@ function getpage($url){
 	$fp=@fsockopen($ipaddress,$portval,$errno,$errval,5)
 	    or havok(6,$servername,$portval);
 	stream_set_timeout($fp,5);
-	// for persistent connections, this may be necessary
+	# for persistent connections, this may be necessary
 	/*
 	$ub=stream_get_meta_data($fp);
 	$ub=$ub['unread_bytes'];
@@ -3150,12 +3131,12 @@ function getpage($url){
 		}
 	}
 
-	#if($headers['pragma'][0]==null) header('Pragma: public');
-	#if($headers['cache-control'][0]==null) header('Cache-Control: public');
-	#if($headers['last-modified'][0]==null && $headers['expires']==null)
-	#	header('Expires: '.date('D, d M Y H:i:s e',time()+86400));
+	//if($headers['pragma'][0]==null) header('Pragma: public');
+	//if($headers['cache-control'][0]==null) header('Cache-Control: public');
+	//if($headers['last-modified'][0]==null && $headers['expires']==null)
+	//	header('Expires: '.date('D, d M Y H:i:s e',time()+86400));
 
-	// read and store cookies
+	# read and store cookies
 	if(!$OPTIONS['REMOVE_COOKIES']){
 		for($i=0;$i<count($headers['set-cookie']);$i++){
 			$thiscook=explode('=',$headers['set-cookie'][$i],2);
@@ -3180,7 +3161,7 @@ function getpage($url){
 		}
 	}
 
-	// page redirected, send it back to the user
+	# page redirected, send it back to the user
 	if($response{0}=='3' && $response{1}=='0' && $response{2}!='4'){
 		$urlobj=new aurl($url);
 		$redirurl=framify_url(
@@ -3196,7 +3177,7 @@ function getpage($url){
 		exit();
 	}
 
-	// parse the rest of the headers
+	# parse the rest of the headers
 	$oheaders=$headers;
 	$oheaders['location']=$oheaders['content-length']=
 		$oheaders['content-encoding']=$oheaders['set-cookie']=
@@ -3225,7 +3206,7 @@ function getpage($url){
 		$justoutput=true;
 	}
 
-	// Transfer-Encoding: chunked
+	# Transfer-Encoding: chunked
 	if($headers['transfer-encoding'][0]=='chunked'){
 		$body=null;
 		$chunksize=null;
@@ -3242,8 +3223,8 @@ function getpage($url){
 		}
 	}
 
-	// Content-Length stuff - commented for even more chocolatey goodness
-	// Some servers really botch this up it seems...
+	# Content-Length stuff - commented for even more chocolatey goodness
+	# Some servers really botch this up it seems...
 	/*elseif($headers['content-length'][0]!=null){
 		$conlen=$headers['content-length'][0];
 		$body=null;
@@ -3255,7 +3236,7 @@ function getpage($url){
 		}
 	}*/
 
-	// Generic stream getter
+	# Generic stream getter
 	else{
 		if(function_exists('stream_get_contents')){
 			if($justoutputnow) echo stream_get_contents($fp);
@@ -3547,18 +3528,45 @@ function parse_all_html($html){
 					strtolower(substr($splitarr[$i],0,7))=='<script'
 				) $splitarr[$i]=null;
 
-				# parse valid stuff
+				# parse valid HTML in HTML section
+				elseif($i%2==0 && $regexp_array[1]==1)
+					$splitarr[$i]=regular_express($regexp_array,$splitarr[$i]);
+
+				# parse valid other things
 				elseif(
-					($i%2==0 && $regexp_array[1]==1) ||
 					(
-						$regexp_array[1]==2 &&
-						strtolower(substr($splitarr[$i],0,7))=='<script'
-					) ||
-					(
-						$key=='text/css' &&
-						strtolower(substr($splitarr[$i],0,6))=='<style'
-					)
-				) $splitarr[$i]=regular_express($regexp_array,$splitarr[$i]);
+						# HTML key but not in HTML section
+						$regexp_array[1]==1 ||
+
+						( # javascript section
+							$regexp_array[1]==2 &&
+							strtolower(substr($splitarr[$i],0,7))=='<script'
+						) ||
+
+						( # CSS section
+							$key=='text/css' &&
+							strtolower(substr($splitarr[$i],0,6))=='<style'
+						)
+
+					) && # not in comment
+					substr($splitarr[$i],0,4)!="<!--"
+				){
+					# DE-STROY!
+					$pos=strpos($splitarr[$i],'>');
+					$l_html=substr($splitarr[$i],0,$pos+1);
+					$l_body=substr($splitarr[$i],$pos+1);
+
+					# HTML parses just HTML
+					if($key=='text/html')
+						$l_html=regular_express($regexp_array,$l_html);
+
+					# javascript, CSS, and such parses just their own
+					else
+						$l_body=regular_express($regexp_array,$l_body);
+
+					# put humpty-dumpty together again
+					$splitarr[$i]=$l_html.$l_body;
+				}
 
 				# script purge cleanup
 				if(
