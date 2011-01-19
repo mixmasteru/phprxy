@@ -2141,7 +2141,10 @@ $js_begin=
 # TODO - need to get rid of js_beginright or something
 # (?<!:[\/])[\/](?![\/]) - this matches a slash ('/') without being a part of
 #                          "://"
-$js_beginright="((?:[;\{\}\(\)=\+\-\*]|(?<!:[\/])[\/](?![\/])){$g_justspace})";
+$js_beginright=
+	"((?:[;\{\(=\+\-\*]|[\}\)]{$g_anyspace};{$g_anyspace}|".
+	"(?<!:[\/])[\/](?![\/])){$g_justspace})";
+#$js_beginright="((?:[;\{\}\(\)=\+\-\*]|(?<!:[\/])[\/](?![\/])){$g_justspace})";
 
 $js_xmlhttpreq=
 	"(?:XMLHttpRequest{$g_anyspace}(?:\({$g_anyspace}\)|)|".
