@@ -111,5 +111,15 @@ document['cookie']=asd+'asd';
 document['cookie']="TZ="+(new Date()).getTimezoneOffset()+
 BrowserSupport_.tz_path;
 
+document.all.style = "none";
+document.all.nr.style.display.fake = "none";
+document.all[nr].style.display.fake = "none";
+document.all[nr].style.display="none";
+alert(document.all[nr].style.display);
+document.all(nr).style.display="none";
+alert(document.all(nr).style.display);
+document.all{nr}.style.display="none";
+alert(document.all{nr}.style.display);
+
 //--></script>
 

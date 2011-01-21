@@ -1971,6 +1971,7 @@ function fix_regexp($regexp){
 	global $js_varsect;
 	$regexp=preg_replace('/\(\?P\<[a-z0-9_]+\>/i','(',$regexp);
 	$regexp=preg_replace('/\(\?P\>[a-z0-9_]+\)/i',$js_varsect,$regexp);
+	$regexp=preg_replace('/\(\?\<\!\:[^\)]+?\)/i',$js_varsect,$regexp);
 	return $regexp;
 }
 function convertarray_to_javascript(){
@@ -2020,6 +2021,10 @@ $g_justspace:      just space characters (no newlines)   0+
 $g_plusjustspace:  just space characters (no newlines)   1+
 $g_anyspace:       any space characters at all           0+
 $g_plusspace:      any space characters at all           1+
+$g_anynewline:     any newline characters                0+
+$g_plusnewline:    any newline characters                1+
+$g_n_anynewline:   not any newline characters            0+
+$g_n_plusnewline:  not any newline characters            1+
 $g_operand:        any operand                           1
 $g_n_operand:      anything but an operand               1
 $g_quoteseg:       any quote segment                     2+
@@ -2030,6 +2035,10 @@ $g_justspace="[\t ]*";
 $g_plusjustspace="[\t ]+";
 $g_anyspace="[\t\r\n ]*";
 $g_plusspace="[\t\r\n ]+";
+$g_anynewline="[\r\n]*";
+$g_plusnewline="[\r\n]+";
+$g_n_anynewline="[^\r\n]*";
+$g_n_plusnewline="[^\r\n]+";
 $g_operand='(?:\|\||\&\&|[\+\-\/\*\|\&\%\?\:])';
 $g_n_operand='[^\+\-\/\*\|\&\%\?\:]';
 $g_quoteseg='(?:"(?:[^"]|[\\\\]")*?"|\'(?:[^\']|[\\\\]\')*?\')';
@@ -2102,13 +2111,14 @@ $h_js_expr=
 	"|\[{$g_anyspace}(?:(?P>js_expr)".
 		"(?:{$g_anyspace},{$g_anyspace}(?P>js_expr))*{$g_anyspace})?\]".
 	"|\({$g_anyspace}(?:(?P>js_expr)".
-		"(?:{$g_anyspace},{$g_anyspace}(?P>js_expr))*{$g_anyspace})?\)".
+		"(?:{$g_anyspace},{$g_anyspace}(?P>js_expr))*{$g_anyspace})?\)";
 	"|\{{$g_anyspace}(?:(?P>js_expr)".
 		"(?:{$g_anyspace},{$g_anyspace}(?P>js_expr))*{$g_anyspace})?\}";
 $js_expr=
 	"(?P<js_expr>(?:{$js_exprsect}{$h_js_expr})".
 	"(?:{$g_anyspace}(?:".
 		"\.{$g_anyspace}(?P>js_expr)".
+		"|\.{$g_anyspace}{$js_exprsect}".
 		"|{$g_operand}{$g_anyspace}(?P>js_expr)".
 		"|\?{$g_anyspace}(?P>js_expr){$g_anyspace}".
 			":{$g_anyspace}(?P>js_expr)".

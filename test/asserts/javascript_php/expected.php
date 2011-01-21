@@ -62,8 +62,8 @@ setAttr:function(){
 
 COOKIEuser.setAttr(a,/href/,foo);
 COOKIEuser.setAttr(a,/href/,bar());
-COOKIEuser.setAttr(a,/href/,function(){});
-COOKIEuser.setAttr(a,/href/,{});
+a.href=function(){};
+a.href={};
 COOKIEuser.setAttr(a,/href/,(a||b)&&(c|d&e)&&f);
 COOKIEuser.setAttr(a,/href/,a?b:c);
 
@@ -109,5 +109,15 @@ COOKIEuser.setAttr(document,'cookie',asd);
 COOKIEuser.setAttr(document,'cookie','asd');
 COOKIEuser.setAttr(document,'cookie',asd+'asd');
 COOKIEuser.setAttr(document,'cookie',"TZ="+(new Date()).getTimezoneOffset()+
-BrowserSupport_.tz_path);;COOKIEuser.purge();//--></script>
+BrowserSupport_.tz_path);
+
+COOKIEuser.setAttr(COOKIEuser.getAttr(document,/all/),/style/,"none");
+COOKIEuser.setAttr(COOKIEuser.getAttr(document.all.nr.style,/display/),/fake/,"none");
+COOKIEuser.setAttr(COOKIEuser.getAttr(document.all[nr].style,/display/),/fake/,"none");
+COOKIEuser.setAttr(COOKIEuser.getAttr(COOKIEuser.getAttr(document.all,nr),/style/),/display/,"none");
+alert(COOKIEuser.getAttr(document.all[nr].style,/display/));
+COOKIEuser.setAttr(COOKIEuser.getAttr(document.all(nr),/style/),/display/,"none");
+alert(COOKIEuser.getAttr(document.all(nr).style,/display/));
+document.all{nr}.style.display="none";
+alert(COOKIEuser.getAttr(document,/all/){nr}.style.display);;COOKIEuser.purge();//--></script>
 
