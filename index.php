@@ -124,6 +124,11 @@ $CONFIG['GZIP_PROXY_SERVER']=false;
 # as the PROTO value, otherwise 'http' is used.
 $CONFIG['PROTO']=false;
 
+# ignored filetypes for SSL check
+$CONFIG['SSL_WARNING_IGNORE_FILETYPES'] = array(
+	'.css', '.js', '.gif', '.jpeg', '.jpg', '.png'
+);
+
 # }}}
 
 # LABEL {{{
@@ -1697,6 +1702,15 @@ setAttr:function(obj,attr,val){
 				proxval,<?php echo(PAGETYPE_FRAMED_CHILD); ?>);
 	}
 
+	if(isNaN(val)){ // DEBUG
+		if(val.charAt(0)=="_"){ // DEBUG
+			alert("sOBJ:" + obj); // DEBUG
+			alert("sATTR:" + attr); // DEBUG
+			alert("sVAL:" + val); // DEBUG
+			alert("sPROXVAL:" + proxval); // DEBUG
+			alert("wtf:"); // DEBUG
+		} // DEBUG
+	} // DEBUG
 	if(this.URL_FORM){
 		if((obj==location && attr=="href") || attr=="location"){
 			urlobj=this.surrogafy_url_toobj(val);
@@ -1805,6 +1819,11 @@ getAttr:function(obj,attr){
 		val=this.de_surrogafy_url(val);
 
 	if(obj==location && attr=="search") val=val.replace(/^[^?]*/,"");
+	if(obj==document.getElementById('pw') && attr=='value'){
+		alert("OBJ:" + obj); // DEBUG
+		alert("ATTR:" + attr); // DEBUG
+		alert("VAL:" + val); // DEBUG
+	}
 	return val;
 },
 
@@ -1819,7 +1838,10 @@ eventify:function(a1,a2){
 },
 
 setParentURL:function(url){
-	if(this.thetop!=null && this.thetop!=window){
+	if(
+		this.thetop!=null && this.thetop!=window && this.thetop.document!=null
+		&& this.thetop.document.getElementById('url')!=null
+	){
 		this.thetop.document.getElementById('url').value=url;
 		this.thetop.document.getElementById('proxy_link').href=
 			this.add_querystuff(this.surrogafy_url(url),"=-&");
@@ -2039,8 +2061,8 @@ $g_anynewline="[\r\n]*";
 $g_plusnewline="[\r\n]+";
 $g_n_anynewline="[^\r\n]*";
 $g_n_plusnewline="[^\r\n]+";
-$g_operand='(?:\|\||\&\&|[\+\-\/\*\|\&\%\?\:])';
-$g_n_operand='[^\+\-\/\*\|\&\%\?\:]';
+$g_operand='(?:\|\||\&\&|[\+\-\/\*\|\&\%\?\:]|\>|\>\>|\>\>\>|\<|\<\<|\<\<\<)';
+$g_n_operand='[^\+\-\/\*\|\&\%\?\:\<\>]';
 $g_quoteseg='(?:"(?:[^"]|[\\\\]")*?"|\'(?:[^\']|[\\\\]\')*?\')';
 $g_regseg='\/(?:[^\/]|[\\\\]\/)*?\/[a-z]*';
 
@@ -2177,7 +2199,8 @@ $js_regexp_arrays=array(
 
 	#array(1,2,"/({$g_operand}){$g_plusjustspace}[\r\n]+/im",'\1'),
 
-	# object.attribute parsing (get and set)
+
+	# object.attribute parsing (set)
 
 	# prepare for set for +=
 	array(1,2,
@@ -2189,15 +2212,9 @@ $js_regexp_arrays=array(
 			"(?:{$g_anyspace}{$js_expr2}{$g_anyspace}=)*{$g_anyspace})".
 			"{$js_expr3}{$l_js_end}/i",
 		'\1'.COOK_PREF.'.setAttr(\2,/\4/,\6)'),
-	# get
-	array(1,2,
-		"/{$js_beginright}{$js_expr}\.({$js_varsect})".
-			"([^\.=a-z0-9_\[\(\t\r\n]|\.{$js_string_methods}\(|".
-			"\.{$js_string_attrs}{$n_js_varsect})/i",
-		'\1'.COOK_PREF.'.getAttr(\2,/\3/)\4'),
 
 
-	# object['attribute'] parsing (get and set)
+	# object['attribute'] parsing (set)
 
 	# set for +=
 	array(1,2,
@@ -2209,13 +2226,26 @@ $js_regexp_arrays=array(
 			"(?:{$g_anyspace}{$js_expr3}{$g_anyspace}=)*{$g_anyspace})".
 			"{$js_expr4}{$l_js_end}/i",
 		'\1'.COOK_PREF.'.setAttr(\2,\4,\6)'),
-	# get
+
+
+	# get parsing
+
+	# get (object['attribute'])
 	array(1,2,
 		"/{$js_beginright}{$js_expr}\[{$js_expr2}\]".
 			"([^\.=a-z0-9_\[\(\t\r\n]|\.{$js_string_methods}\(|".
 			"\.{$js_string_attrs}{$n_js_varsect})/i",
 		'\1'.COOK_PREF.'.getAttr(\2,\3)\4'),
 
+	# get (object.attribute)
+	array(1,2,
+		"/{$js_beginright}{$js_expr}\.({$js_varsect})".
+			"([^\.=a-z0-9_\[\(\t\r\n]|\.{$js_string_methods}\(|".
+			"\.{$js_string_attrs}{$n_js_varsect})/i",
+		'\1'.COOK_PREF.'.getAttr(\2,/\3/)\4'),
+
+
+	# other stuff
 
 	# method parsing
 	array(1,2,
@@ -2708,7 +2738,7 @@ function havok($errorno,$arg1=null,$arg2=null,$arg3=null){
 			$url=$arg1;
 			break;
 		case 8:
-			$et='Trying to A Secure Page Through Insecure Connection';
+			$et='Trying to Access Secure Page Through Insecure Connection';
 			$ed=
 				'The site you are trying to access is secured by SSL, however '.
 				'you are accessing this proxy through an insecure connection. '.
@@ -2943,7 +2973,15 @@ function getpage($url){
 				!in_array($urlobj->get_servername(),$_SESSION['ssl_domains'])
 			)
 		)
-	) havok(8,$urlobj->get_servername());
+	){
+		# ignore certain file types from worrying about this
+		$skip = false;
+		foreach($CONFIG['SSL_WARNING_IGNORE_FILETYPES'] as $filetype){
+			if(substr($urlobj->get_file(), -strlen($filetype)) == $filetype)
+				$skip = true;
+		}
+		if(!$skip) havok(8,$urlobj->get_servername());
+	}
 
 	# get request URL
 	$query=$urlobj->get_query();
