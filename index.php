@@ -91,6 +91,7 @@ Default Value: '10/8','172/8','192.168/16','127/8','169.254/16'
 
 $CONFIG['BLOCKED_ADDRESSES']=
 	array('10/8','172/8','192.168/16','127/8','169.254/16');
+$CONFIG['BLOCKED_ADDRESSES']=array(); # DEBUG
 
 # }}}
 
@@ -126,7 +127,7 @@ $CONFIG['PROTO']=false;
 
 # ignored filetypes for SSL check
 $CONFIG['SSL_WARNING_IGNORE_FILETYPES'] = array(
-	'.css', '.js', '.gif', '.jpeg', '.jpg', '.png'
+	'.css', '.js', '.gif', '.jpeg', '.jpg', '.png', '.bmp'
 );
 
 # }}}
@@ -289,8 +290,6 @@ if(file_exists(CONFIG_FILE))
 # COOKIE & SESSION SETUP {{{
 
 //$totstarttime=microtime(true); # BENCHMARK
-$CONFIG['BLOCKED_ADDRESSES']=array(); # DEBUG
-#$CONFIG['BLOCKED_ADDRESSES']=array('127.0.0.1','localhost'); # PRODUCTION
 
 # set error level to not display notices
 error_reporting(E_ALL^E_NOTICE);
@@ -1645,7 +1644,7 @@ form_encrypt:function(form){
 },
 
 setAttr:function(obj,attr,val){
-	if(typeof(attr)!=typeof("")){
+	if(typeof(attr)==typeof(/ /)){
 		attr=attr.toString();
 		attr=attr.substr(1,attr.length-2);
 	}
@@ -1683,7 +1682,7 @@ setAttr:function(obj,attr,val){
 
 	var is_parse_attr=false;
 	for(var parse_attr in this.parse_attrs){
-		if(attr==parse_attr){
+		if(attr==this.parse_attrs[parse_attr]){
 			is_parse_attr=true;
 			break;
 		}
@@ -1707,8 +1706,6 @@ setAttr:function(obj,attr,val){
 			alert("sOBJ:" + obj); // DEBUG
 			alert("sATTR:" + attr); // DEBUG
 			alert("sVAL:" + val); // DEBUG
-			alert("sPROXVAL:" + proxval); // DEBUG
-			alert("wtf:"); // DEBUG
 		} // DEBUG
 	} // DEBUG
 	if(this.URL_FORM){
@@ -1819,6 +1816,7 @@ getAttr:function(obj,attr){
 		val=this.de_surrogafy_url(val);
 
 	if(obj==location && attr=="search") val=val.replace(/^[^?]*/,"");
+	if(obj==document && attr=="domain") val=val.replace
 	if(obj==document.getElementById('pw') && attr=='value'){
 		alert("OBJ:" + obj); // DEBUG
 		alert("ATTR:" + attr); // DEBUG
@@ -2169,7 +2167,8 @@ $html_formnotpost:  matches a form, given it's not of method POST
 $l_js_end="(?={$g_justspace}(?:[;\}]|{$g_n_operand}[\n\r]))";
 #$n_l_js_end="(?!{$g_justspace}(?:[;\}]|{$g_n_operand}[\n\r]))";
 $js_begin=
-	"((?:[;\{\}\n\r\(\)]|[\!=]=)(?!{$g_anyspace}(?:#|\/\*|\/\/)){$g_anyspace})";
+	"((?:[;\{\}\n\r\(\)\&\!]|[\!=]=)(?!{$g_anyspace}(?:#|\/\*|\/\/)){$g_anyspace})";
+$js_end="({$g_anyspace}[;\)\}\r\n=\'\",\!\|\+\-\/\*\/\%\&])";
 # TODO - need to get rid of js_beginright or something
 # (?<!:[\/])[\/](?![\/]) - this matches a slash ('/') without being a part of
 #                          "://"
@@ -2229,6 +2228,14 @@ $js_regexp_arrays=array(
 
 
 	# get parsing
+
+	array(1,2,
+		"/{$js_beginright}{$js_expr}\[{$js_expr2}\]{$js_end}/i",
+		'\1'.COOK_PREF.'.getAttr(\2,\3)\4'),
+
+	array(1,2,
+		"/{$js_beginright}{$js_expr}\.({$js_varsect}){$js_end}/i",
+		'\1'.COOK_PREF.'.getAttr(\2,/\3/)\4'),
 
 	# get (object['attribute'])
 	array(1,2,
@@ -2377,6 +2384,7 @@ $regexp_arrays=array(
 			2)
 	),
 
+	'application/javascript' => $js_regexp_arrays,
 	'application/x-javascript' => $js_regexp_arrays,
 	'text/javascript' => $js_regexp_arrays
 );
@@ -3247,6 +3255,7 @@ function getpage($url){
 
 	if(
 		substr($headers['content-type'][0],0,4)=='text' ||
+		substr($headers['content-type'][0],0,24)=='application/javascript' ||
 		substr($headers['content-type'][0],0,24)=='application/x-javascript'
 	){
 		$justoutput=false;
@@ -3497,7 +3506,10 @@ function parse_all_html($html){
 		// regexps.  This gives a pretty significant speed boost.  If used,
 		// make sure "OPTION2" lines are commented, and other "OPTION1" lines
 		// AREN'T.
-		if($firstjsrun && $key=='application/x-javascript'){
+		if($firstjsrun && (
+			$key=='application/javascript' ||
+			$key=='application/x-javascript'
+		)){
 			if($OPTIONS['REMOVE_SCRIPTS']) break;
 			$splitarr2=array();
 			for($i=0;$i<count($splitarr);$i+=2){
@@ -3633,7 +3645,10 @@ function parse_all_html($html){
 			}
 
 			$firstrun=false;
-			if($firstjsrun && $key=='application/x-javascript')
+			if($firstjsrun && (
+				$key=='application/javascript' ||
+				$key=='application/x-javascript'
+			))
 				$firstjsrun=false;
 		}
 	}
@@ -3732,6 +3747,7 @@ if(CONTENT_TYPE=='text/html'){
 	unset($big_headers);
 }
 elseif(
+	CONTENT_TYPE=='application/javascript' ||
 	CONTENT_TYPE=='application/x-javascript' ||
 	CONTENT_TYPE=='text/javascript'
 ) $body.=';'.COOK_PREF.'.purge();';
