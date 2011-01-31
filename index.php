@@ -1649,6 +1649,9 @@ setAttr:function(obj,attr,val){
 		attr=attr.substr(1,attr.length-2);
 	}
 
+	console.log(obj);
+	console.log(attr);
+	console.log(val);
 	if(attr=="innerHTML"){
 		obj[attr]=this.parse_all_html(val);
 		return obj[attr];
@@ -1701,28 +1704,33 @@ setAttr:function(obj,attr,val){
 				proxval,<?php echo(PAGETYPE_FRAMED_CHILD); ?>);
 	}
 
-	if(isNaN(val)){ // DEBUG
-		if(val.charAt(0)=="_"){ // DEBUG
-			alert("sOBJ:" + obj); // DEBUG
-			alert("sATTR:" + attr); // DEBUG
-			alert("sVAL:" + val); // DEBUG
-		} // DEBUG
-	} // DEBUG
 	if(this.URL_FORM){
 		if((obj==location && attr=="href") || attr=="location"){
 			urlobj=this.surrogafy_url_toobj(val);
 			if(!urlobj.locked) proxval=this.add_querystuff(proxval,"=&");
-			return this.thetop.location.href=proxval;
+			ret=this.thetop.location.href=proxval;
 		}
-		else return obj[attr]=proxval;
+		else ret=this.doSet(obj,attr,proxval);
 	}
-	else return obj[attr]=proxval;
+	else ret=this.doSet(obj,attr,proxval);
+	return ret;
+},
+
+doSet:function(obj,attr,val){
+	if(isNaN(val) || typeof(val)==typeof("")){
+		val="\""+val+"\"";
+	}
+	obj[attr]=eval(val);
 },
 
 getAttr:function(obj,attr){
-	if(typeof(attr)!=typeof("")){
+	if(typeof(attr)==typeof(/ /)){
 		attr=attr.toString();
 		attr=attr.substr(1,attr.length-2);
+	}
+
+	if(obj==window && attr=="top"){
+		return window.self;
 	}
 
 	if(obj==document && attr=="cookie"){
@@ -1817,11 +1825,6 @@ getAttr:function(obj,attr){
 
 	if(obj==location && attr=="search") val=val.replace(/^[^?]*/,"");
 	if(obj==document && attr=="domain") val=val.replace
-	if(obj==document.getElementById('pw') && attr=='value'){
-		alert("OBJ:" + obj); // DEBUG
-		alert("ATTR:" + attr); // DEBUG
-		alert("VAL:" + val); // DEBUG
-	}
 	return val;
 },
 
@@ -1965,7 +1968,9 @@ eval=function(){
 // wrap top and parent objects for anti-frame breaking
 if(<?php echo(COOK_PREF); ?>.PAGE_FRAMED){
 	if(parent==top) parent=self;
+	if(window.parent==top) window.parent=self;
 	if(top!=self) top=<?php echo(COOK_PREF); ?>.thetop.frames[0];
+	if(window.top!=self) window.top=<?php echo(COOK_PREF); ?>.thetop.frames[0];
 }
 
 <?php } ?>
@@ -2261,7 +2266,8 @@ $js_regexp_arrays=array(
 
 	# eval parsing
 	array(1,2,
-		"/([^a-z0-9])eval{$g_anyspace}\(({$g_anyspace}{$js_expr})\)/i",
+		"/([^a-z0-9])eval{$g_anyspace}\(".
+			"(?!".COOK_PREF.")({$g_anyspace}{$js_expr})\)/i",
 		'\1eval('.COOK_PREF.'.parse_all_html(\2,"application/x-javascript"))'),
 
 	# action attribute parsing

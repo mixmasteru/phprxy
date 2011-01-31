@@ -46,9 +46,9 @@ if(eval(COOKIEuser.parse_all_html(l+"ASD","application/x-javascript")))
 if(eval(COOKIEuser.parse_all_html(l,"application/x-javascript"))) return l
 
 COOKIEuser.setAttr(bob,'src','srcthingy');
-COOKIEuser.setAttr(bob,COOKIEuser.getAttr(this.joe.suzy,0),this.joe.suzy[1]);
+COOKIEuser.setAttr(bob,COOKIEuser.getAttr(COOKIEuser.getAttr(COOKIEuser.getAttr(this,/joe/),/suzy/),0),this.joe.suzy[1]);
 COOKIEuser.setAttr(document.getElementById('bob'),'src','srcthingy');
-COOKIEuser.setAttr(document.getElementById('bob'),COOKIEuser.getAttr(this.joe.suzy,0),this.joe.suzy[1]);
+COOKIEuser.setAttr(document.getElementById('bob'),COOKIEuser.getAttr(COOKIEuser.getAttr(COOKIEuser.getAttr(this,/joe/),/suzy/),0),this.joe.suzy[1]);
 
 COOKIEuser.getAttr(jsjjs,/cookie/) = {
 
@@ -62,8 +62,8 @@ setAttr:function(){
 
 COOKIEuser.setAttr(a,/href/,foo);
 COOKIEuser.setAttr(a,/href/,bar());
-a.href=function(){};
-a.href={};
+COOKIEuser.getAttr(a,/href/)=function(){};
+COOKIEuser.getAttr(a,/href/)={};
 COOKIEuser.setAttr(a,/href/,(a||b)&&(c|d&e)&&f);
 COOKIEuser.setAttr(a,/href/,a?b:c);
 
@@ -84,7 +84,7 @@ COOKIEuser.setAttr(document,/cookie/,$('asd').asd);
 COOKIEuser.setAttr(document,/cookie/,$('asd')[1].asd);
 COOKIEuser.setAttr(document,/cookie/,document.getElementById[asd].asd);
 COOKIEuser.setAttr(document,/cookie/,document.getElementById[1]('asd').asd);
-COOKIEuser.setAttr(document,/cookie/,"TZ="+COOKIEuser.getAttr(Date,/getTimezoneOffset/)+BrowserSupport_.tz_path);
+COOKIEuser.setAttr(document,/cookie/,"TZ="+COOKIEuser.getAttr(Date,/getTimezoneOffset/)+COOKIEuser.getAttr(BrowserSupport_,/tz_path/));
 COOKIEuser.setAttr(document,/cookie/,"TZ="+Date.getTimezoneOffset()+COOKIEuser.getAttr(BrowserSupport_,/tz_path/));
 COOKIEuser.setAttr(document,/cookie/,"TZ="+Date().getTimezoneOffset()+COOKIEuser.getAttr(BrowserSupport_,/tz_path/));
 COOKIEuser.setAttr(document,/cookie/,"TZ="+(Date()).getTimezoneOffset()+COOKIEuser.getAttr(BrowserSupport_,/tz_path/));
@@ -112,12 +112,11 @@ COOKIEuser.setAttr(document,'cookie',"TZ="+(new Date()).getTimezoneOffset()+
 BrowserSupport_.tz_path);
 
 COOKIEuser.setAttr(COOKIEuser.getAttr(document,/all/),/style/,"none");
-COOKIEuser.setAttr(COOKIEuser.getAttr(document.all.nr.style,/display/),/fake/,"none");
-COOKIEuser.setAttr(COOKIEuser.getAttr(document.all[nr].style,/display/),/fake/,"none");
-COOKIEuser.setAttr(COOKIEuser.getAttr(COOKIEuser.getAttr(document.all,nr),/style/),/display/,"none");
-alert(COOKIEuser.getAttr(document.all[nr].style,/display/));
+COOKIEuser.setAttr(COOKIEuser.getAttr(COOKIEuser.getAttr(COOKIEuser.getAttr(COOKIEuser.getAttr(document,/all/),/nr/),/style/),/display/),/fake/,"none");
+COOKIEuser.setAttr(COOKIEuser.getAttr(COOKIEuser.getAttr(COOKIEuser.getAttr(COOKIEuser.getAttr(document,/all/),nr),/style/),/display/),/fake/,"none");
+COOKIEuser.setAttr(COOKIEuser.getAttr(COOKIEuser.getAttr(COOKIEuser.getAttr(document,/all/),nr),/style/),/display/,"none");
+alert(COOKIEuser.getAttr(COOKIEuser.getAttr(COOKIEuser.getAttr(COOKIEuser.getAttr(document,/all/),nr),/style/),/display/));
 COOKIEuser.setAttr(COOKIEuser.getAttr(document.all(nr),/style/),/display/,"none");
-alert(COOKIEuser.getAttr(document.all(nr).style,/display/));
-document.all{nr}.style.display="none";
+alert(COOKIEuser.getAttr(COOKIEuser.getAttr(document.all(nr),/style/),/display/));
+COOKIEuser.getAttr(document,/all/){nr}.style.display="none";
 alert(COOKIEuser.getAttr(document,/all/){nr}.style.display);;COOKIEuser.purge();//--></script>
-
