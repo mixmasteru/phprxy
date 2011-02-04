@@ -1644,14 +1644,14 @@ form_encrypt:function(form){
 },
 
 setAttr:function(obj,attr,val){
+	if(obj==undefined)
+		return undefined;
+
 	if(typeof(attr)==typeof(/ /)){
 		attr=attr.toString();
 		attr=attr.substr(1,attr.length-2);
 	}
 
-	console.log(obj);
-	console.log(attr);
-	console.log(val);
 	if(attr=="innerHTML"){
 		obj[attr]=this.parse_all_html(val);
 		return obj[attr];
@@ -1713,17 +1713,37 @@ setAttr:function(obj,attr,val){
 		else ret=this.doSet(obj,attr,proxval);
 	}
 	else ret=this.doSet(obj,attr,proxval);
+
 	return ret;
 },
 
 doSet:function(obj,attr,val){
-	if(isNaN(val) || typeof(val)==typeof("")){
-		val="\""+val+"\"";
+	if(typeof(val)!="function" && typeof(val)!="object"){
+		if(isNaN(val) || typeof(val)==typeof(""))
+			val="\""+this.doEscape(val)+"\"";
+		obj[attr]=eval(val);
 	}
-	obj[attr]=eval(val);
+	else obj[attr]=val;
+
+	return obj[attr];
+},
+
+doEscape:function(val){
+	if(val!==undefined){
+		val=val.replace(/\\/,"\\\\",val);
+		val=val.replace(/\n/,"\\n",val);
+		val=val.replace(/\"/,"\\\"",val);
+	}
+	return val;
 },
 
 getAttr:function(obj,attr){
+	if(this.log == undefined) // DEBUG
+		this.log = 0; // DEBUG
+
+	if(obj===undefined)
+		return undefined;
+
 	if(typeof(attr)==typeof(/ /)){
 		attr=attr.toString();
 		attr=attr.substr(1,attr.length-2);
@@ -1814,7 +1834,7 @@ getAttr:function(obj,attr){
 
 	var is_parse_attr=false;
 	for(var parse_attr in this.parse_attrs){
-		if(attr==parse_attr){
+		if(attr==this.parse_attrs[parse_attr]){
 			is_parse_attr=true;
 			break;
 		}
@@ -1824,7 +1844,16 @@ getAttr:function(obj,attr){
 		val=this.de_surrogafy_url(val);
 
 	if(obj==location && attr=="search") val=val.replace(/^[^?]*/,"");
-	if(obj==document && attr=="domain") val=val.replace
+	if(obj==document && attr=="domain") val=this.aurl.get_servername();
+	if(this.log < 50){ // DEBUG
+		//console.log("OBJ:"+obj.toString()); // DEBUG
+		//console.log(typeof(obj)); // DEBUG
+		//console.log("ATTR:"+attr.toString()); // DEBUG
+		//console.log(typeof(attr)); // DEBUG
+		//console.log("VAL:"+val.toString()); // DEBUG
+		//console.log(typeof(val)); // DEBUG
+		this.log++; // DEBUG
+	} // DEBUG
 	return val;
 },
 
@@ -1996,10 +2025,10 @@ function fix_regexp($regexp){
 	global $js_varsect;
 	$regexp=preg_replace('/\(\?P\<[a-z0-9_]+\>/i','(',$regexp);
 	$regexp=preg_replace('/\(\?P\>[a-z0-9_]+\)/i',$js_varsect,$regexp);
-	$regexp=preg_replace('/\(\?\<\!\:[^\)]+?\)/i',$js_varsect,$regexp);
+	$regexp=preg_replace('/\(\?\<\![^\)]+?\)/i',$js_varsect,$regexp);
 	return $regexp;
 }
-function convertarray_to_javascript(){
+function convert_array_to_javascript(){
 	global $regexp_arrays;
 	$js='regexp_arrays=new Array('.count($regexp_arrays).");\n";
 	reset($regexp_arrays);
@@ -2130,7 +2159,9 @@ $js_jsvarsect=
 	"(?:[a-zA-Z0-9\$\._]*[a-zA-Z0-9_\[\]])?";
 $n_js_varsect='[^a-zA-Z\._\[\]]';
 
-$h_js_exprsect="(?:{$g_quoteseg}|{$g_regseg}|{$js_varsect}|[0-9\.]+)";
+$h_js_exprsect=
+	"(?!function|return|\/\*|\/)".
+	"(?:{$g_quoteseg}|{$g_regseg}|{$js_varsect}|[0-9\.]+)";
 $js_exprsect="(?:{$h_js_exprsect}|\({$h_js_exprsect}\))";
 $h_js_expr=
 	"|\[{$g_anyspace}(?:(?P>js_expr)".
@@ -2174,6 +2205,8 @@ $l_js_end="(?={$g_justspace}(?:[;\}]|{$g_n_operand}[\n\r]))";
 $js_begin=
 	"((?:[;\{\}\n\r\(\)\&\!]|[\!=]=)(?!{$g_anyspace}(?:#|\/\*|\/\/)){$g_anyspace})";
 $js_end="({$g_anyspace}[;\)\}\r\n=\'\",\!\|\+\-\/\*\/\%\&])";
+$n_js_set="(?!{$g_anyspace}(?:(?:=(?!=))|\+=|\-=|\*=|\/=|\+\+|\-\-))"; # DEBUG
+$n_js_set_left="(?<!\-\-|\+\+)";
 # TODO - need to get rid of js_beginright or something
 # (?<!:[\/])[\/](?![\/]) - this matches a slash ('/') without being a part of
 #                          "://"
@@ -2201,9 +2234,6 @@ $html_formnotpost="(?:(?!method{$g_anyspace}={$g_anyspace}(?:'|\")?post)[^>])";
 
 $js_regexp_arrays=array(
 
-	#array(1,2,"/({$g_operand}){$g_plusjustspace}[\r\n]+/im",'\1'),
-
-
 	# object.attribute parsing (set)
 
 	# prepare for set for +=
@@ -2215,7 +2245,7 @@ $js_regexp_arrays=array(
 		"/{$js_begin}{$js_expr}\.(({$js_varsect}){$g_anyspace}=".
 			"(?:{$g_anyspace}{$js_expr2}{$g_anyspace}=)*{$g_anyspace})".
 			"{$js_expr3}{$l_js_end}/i",
-		'\1'.COOK_PREF.'.setAttr(\2,/\4/,\6)'),
+		'\1\2.\4='.COOK_PREF.'.setAttr(\2,/\4/,\6);'),
 
 
 	# object['attribute'] parsing (set)
@@ -2229,32 +2259,39 @@ $js_regexp_arrays=array(
 		"/{$js_begin}{$js_expr}(\[{$js_expr2}\]{$g_anyspace}=".
 			"(?:{$g_anyspace}{$js_expr3}{$g_anyspace}=)*{$g_anyspace})".
 			"{$js_expr4}{$l_js_end}/i",
-		'\1'.COOK_PREF.'.setAttr(\2,\4,\6)'),
+		'\1\2[\4]='.COOK_PREF.'.setAttr(\2,\4,\6);'),
 
 
 	# get parsing
 
 	array(1,2,
-		"/{$js_beginright}{$js_expr}\[{$js_expr2}\]{$js_end}/i",
+		"/{$js_beginright}{$n_js_set_left}{$js_expr}\[{$js_expr2}\]".
+		"{$n_js_set}{$js_end}/i",
 		'\1'.COOK_PREF.'.getAttr(\2,\3)\4'),
 
 	array(1,2,
-		"/{$js_beginright}{$js_expr}\.({$js_varsect}){$js_end}/i",
+		"/{$js_beginright}{$n_js_set_left}{$js_expr}\.({$js_varsect})".
+		"{$n_js_set}{$js_end}/i",
 		'\1'.COOK_PREF.'.getAttr(\2,/\3/)\4'),
 
 	# get (object['attribute'])
 	array(1,2,
-		"/{$js_beginright}{$js_expr}\[{$js_expr2}\]".
+		"/{$js_beginright}{$n_js_set_left}{$js_expr}\[{$js_expr2}\]".
 			"([^\.=a-z0-9_\[\(\t\r\n]|\.{$js_string_methods}\(|".
-			"\.{$js_string_attrs}{$n_js_varsect})/i",
-		'\1'.COOK_PREF.'.getAttr(\2,\3)\4'),
+			"\.{$js_string_attrs}{$n_js_varsect}){$n_js_set}{$js_end}/i",
+		'\1'.COOK_PREF.'.getAttr(\2,\3)\4\5'),
 
 	# get (object.attribute)
 	array(1,2,
+		"/{$js_beginright}{$n_js_set_left}{$js_expr}\.({$js_varsect})".
+			"(\.{$js_string_methods}\(|\.{$js_string_attrs}".
+			"{$n_js_varsect})?{$n_js_set}{$js_end}/i",
+		'\1'.COOK_PREF.'.getAttr(\2,/\3/)\4\5\6'),
+/*	array(1,2,
 		"/{$js_beginright}{$js_expr}\.({$js_varsect})".
 			"([^\.=a-z0-9_\[\(\t\r\n]|\.{$js_string_methods}\(|".
-			"\.{$js_string_attrs}{$n_js_varsect})/i",
-		'\1'.COOK_PREF.'.getAttr(\2,/\3/)\4'),
+			"\.{$js_string_attrs}{$n_js_varsect}){$n_js_set}/i",
+		'\1'.COOK_PREF.'.getAttr(\2,/\3/)\4\5'), TODO */
 
 
 	# other stuff
@@ -2280,7 +2317,7 @@ $js_regexp_arrays=array(
 		"/{$js_begin}{$js_expr}\.setAttribute{$g_anyspace}\({$g_anyspace}".
 			"{$js_expr2}{$g_anyspace},{$g_anyspace}{$js_expr3}".
 			"{$g_anyspace}\)/i",
-		'\1'.COOK_PREF.'.setAttr(\2,\3,\4)'),
+		'\1\2[\3]='.COOK_PREF.'.setAttr(\2,\3,\4);'),
 
 	# XMLHttpRequest parsing
 	array(1,2,
@@ -2403,7 +2440,7 @@ if(QUERY_STRING=='js_regexps' || QUERY_STRING=='js_regexps_framed'){
 	static_cache();
 ?>//<script type="text/javascript">
 <?php echo(
-	convertarray_to_javascript().
+	convert_array_to_javascript().
 	(
 		$OPTIONS['REMOVE_OBJECTS']?
 		'regexp_arrays["text/html"].push(Array(1,/<[\\\\/]?'.
