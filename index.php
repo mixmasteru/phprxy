@@ -2033,9 +2033,9 @@ function convert_array_to_javascript(){
 	$js='regexp_arrays=new Array('.count($regexp_arrays).");\n";
 	reset($regexp_arrays);
 	while(list($key,$arr)=each($regexp_arrays)){
-		$js.="regexp_arrays[\"$key\"]=new Array(".count($arr).");\n";
+		$js.="regexp_arrays[\"{$key}\"]=new Array(".count($arr).");\n";
 		for($i=0;$i<count($arr);$i++){
-			$js.="regexp_arrays[\"$key\"][$i]=new Array(";
+			$js.="regexp_arrays[\"{$key}\"][{$i}]=new Array(";
 			if($arr[$i][0]==1)
 				$js.=
 					'1,'.escape_regexp(fix_regexp($arr[$i][2])).'g,"'.
@@ -2200,6 +2200,7 @@ $js_newobj:         matches a 'new' clause inside of Javascript
 $html_formnotpost:  matches a form, given it's not of method POST
 */
 
+$l_start_null = '(\\0\\0[^\\0]+)';
 $l_js_end="(?={$g_justspace}(?:[;\}]|{$g_n_operand}[\n\r]))";
 #$n_l_js_end="(?!{$g_justspace}(?:[;\}]|{$g_n_operand}[\n\r]))";
 $js_begin=
@@ -2238,55 +2239,55 @@ $js_regexp_arrays=array(
 
 	# prepare for set for +=
 	array(1,2,
-		"/{$js_begin}{$js_expr}\.({$js_varsect}){$g_anyspace}\+=/i",
-		'\1\2.\3='.COOK_PREF.'.getAttr(\2,/\3/)+'),
+		"/{$js_start_null}{$js_begin}{$js_expr}\.({$js_varsect}){$g_anyspace}\+=/i",
+		'\\0\1\2\3.\4='.COOK_PREF.'.getAttr(\3,/\4/)+\\0\\0'),
 	# set for =
 	array(1,2,
-		"/{$js_begin}{$js_expr}\.(({$js_varsect}){$g_anyspace}=".
+		"/{$js_start_null}{$js_begin}{$js_expr}\.(({$js_varsect}){$g_anyspace}=".
 			"(?:{$g_anyspace}{$js_expr2}{$g_anyspace}=)*{$g_anyspace})".
 			"{$js_expr3}{$l_js_end}/i",
-		'\1\2.\4='.COOK_PREF.'.setAttr(\2,/\4/,\6);'),
+		'\\0\1\2\3.\5='.COOK_PREF.'.setAttr(\3,/\5/,\7);\\0\\0'),
 
 
 	# object['attribute'] parsing (set)
 
 	# set for +=
 	array(1,2,
-		"/{$js_begin}{$js_expr}\[{$js_expr2}\]{$g_anyspace}\+=/i",
-		'\1\2[\3]='.COOK_PREF.'.getAttr(\2,\3)+'),
+		"/{$js_start_null}{$js_begin}{$js_expr}\[{$js_expr2}\]{$g_anyspace}\+=/i",
+		'\\0\1\2\3[\4]='.COOK_PREF.'.getAttr(\3,\4)+\\0\\0'),
 	# set for =
 	array(1,2,
-		"/{$js_begin}{$js_expr}(\[{$js_expr2}\]{$g_anyspace}=".
+		"/{$js_start_null}{$js_begin}{$js_expr}(\[{$js_expr2}\]{$g_anyspace}=".
 			"(?:{$g_anyspace}{$js_expr3}{$g_anyspace}=)*{$g_anyspace})".
 			"{$js_expr4}{$l_js_end}/i",
-		'\1\2[\4]='.COOK_PREF.'.setAttr(\2,\4,\6);'),
+		'\\0\1\2\3[\5]='.COOK_PREF.'.setAttr(\3,\5,\7);\\0\\0'),
 
 
 	# get parsing
 
 	array(1,2,
-		"/{$js_beginright}{$n_js_set_left}{$js_expr}\[{$js_expr2}\]".
+		"/{$js_start_null}{$js_beginright}{$n_js_set_left}{$js_expr}\[{$js_expr2}\]".
 		"{$n_js_set}{$js_end}/i",
-		'\1'.COOK_PREF.'.getAttr(\2,\3)\4'),
+		'\\0\1\2'.COOK_PREF.'.getAttr(\3,\4)\5\\0\\0'),
 
 	array(1,2,
-		"/{$js_beginright}{$n_js_set_left}{$js_expr}\.({$js_varsect})".
+		"/{$js_start_null}{$js_beginright}{$n_js_set_left}{$js_expr}\.({$js_varsect})".
 		"{$n_js_set}{$js_end}/i",
-		'\1'.COOK_PREF.'.getAttr(\2,/\3/)\4'),
+		'\\0\1\2'.COOK_PREF.'.getAttr(\3,/\4/)\5\\0\\0'),
 
 	# get (object['attribute'])
 	array(1,2,
-		"/{$js_beginright}{$n_js_set_left}{$js_expr}\[{$js_expr2}\]".
+		"/{$js_start_null}{$js_beginright}{$n_js_set_left}{$js_expr}\[{$js_expr2}\]".
 			"([^\.=a-z0-9_\[\(\t\r\n]|\.{$js_string_methods}\(|".
 			"\.{$js_string_attrs}{$n_js_varsect}){$n_js_set}{$js_end}/i",
-		'\1'.COOK_PREF.'.getAttr(\2,\3)\4\5'),
+		'\\0\1\2'.COOK_PREF.'.getAttr(\3,\4)\5\6\\0\\0'),
 
 	# get (object.attribute)
 	array(1,2,
-		"/{$js_beginright}{$n_js_set_left}{$js_expr}\.({$js_varsect})".
+		"/{$js_start_null}{$js_beginright}{$n_js_set_left}{$js_expr}\.({$js_varsect})".
 			"(\.{$js_string_methods}\(|\.{$js_string_attrs}".
 			"{$n_js_varsect})?{$n_js_set}{$js_end}/i",
-		'\1'.COOK_PREF.'.getAttr(\2,/\3/)\4\5\6'),
+		'\\0\1\2'.COOK_PREF.'.getAttr(\3,/\4/)\5\6\7\\0\\0'),
 /*	array(1,2,
 		"/{$js_beginright}{$js_expr}\.({$js_varsect})".
 			"([^\.=a-z0-9_\[\(\t\r\n]|\.{$js_string_methods}\(|".
@@ -2298,43 +2299,44 @@ $js_regexp_arrays=array(
 
 	# method parsing
 	array(1,2,
-		"/([^a-z0-9]{$hook_js_methods}{$g_anyspace}\()([^)]*)\)/i",
-		'\1'.COOK_PREF.'.surrogafy_url(\3))'),
+		"/{$js_start_null}([^a-z0-9]{$hook_js_methods}{$g_anyspace}\()([^)]*)\)/i",
+		'\\0\1\2'.COOK_PREF.'.surrogafy_url(\4))\\0\\0'),
 
 	# eval parsing
 	array(1,2,
-		"/([^a-z0-9])eval{$g_anyspace}\(".
+		"/{$js_start_null}([^a-z0-9])eval{$g_anyspace}\(".
 			"(?!".COOK_PREF.")({$g_anyspace}{$js_expr})\)/i",
-		'\1eval('.COOK_PREF.'.parse_all_html(\2,"application/x-javascript"))'),
+		'\\0\1\2eval('.COOK_PREF.
+			'.parse_all_html(\3,"application/x-javascript"))\\0\\0'),
 
 	# action attribute parsing
 	array(1,2,
-		"/{$js_begin}\.action{$g_anyspace}=/i",
-		'\1.'.COOK_PREF.'.value='),
+		"/{$js_start_null}{$js_begin}\.action{$g_anyspace}=/i",
+		'\\0\1\2.'.COOK_PREF.'.value=\\0\\0'),
 
 	# object.setAttribute parsing
 	array(1,2,
-		"/{$js_begin}{$js_expr}\.setAttribute{$g_anyspace}\({$g_anyspace}".
+		"/{$js_start_null}{$js_begin}{$js_expr}\.setAttribute{$g_anyspace}\({$g_anyspace}".
 			"{$js_expr2}{$g_anyspace},{$g_anyspace}{$js_expr3}".
 			"{$g_anyspace}\)/i",
-		'\1\2[\3]='.COOK_PREF.'.setAttr(\2,\3,\4);'),
+		'\\0\1\2\3[\4]='.COOK_PREF.'.setAttr(\3,\4,\5);\\0\\0'),
 
 	# XMLHttpRequest parsing
 	array(1,2,
-		"/{$js_begin}([^\ {>\t\r\n=;]+{$g_anyspace}=)".
-		"({$js_newobj}{$js_xmlhttpreq})/i",
-		'\1\2'.COOK_PREF.'.XMLHttpRequest_wrap(\3)'),
+		"/{$js_start_null}{$js_begin}([^\ {>\t\r\n=;]+{$g_anyspace}=)".
+			"({$js_newobj}{$js_xmlhttpreq})/i",
+		'\\0\1\2\3'.COOK_PREF.'.XMLHttpRequest_wrap(\4)\\0\\0'),
 
 	# XMLHttpRequest in return statement parsing
 	array(1,2,
-		"/{$js_begin}(return{$g_plusspace})({$js_newobj}{$js_xmlhttpreq})/i",
-		'\1\2'.COOK_PREF.'.XMLHttpRequest_wrap(\3)'),
+		"/{$js_start_null}{$js_begin}(return{$g_plusspace})({$js_newobj}{$js_xmlhttpreq})/i",
+		'\\0\1\2\3'.COOK_PREF.'.XMLHttpRequest_wrap(\4)\\0\\0'),
 
 	# form.submit() call parsing
 	($OPTIONS['ENCRYPT_URLS']?array(1,2,
 		"/{$js_begin}((?:[^\) \{\}]*(?:\)\.{0,1}))+)(\.submit{$g_anyspace}\(\)".
 			"){$l_js_end}/i",
-		'\1void((\2.method=="post"?null:\2\3));')
+		'\\0\1\2void((\3.method=="post"?null:\3\4));\\0\\0')
 	:null),
 );
 
@@ -3800,6 +3802,8 @@ elseif(
 # }}}
 
 ## Retrieved, Parsed, All Ready to Output ##
+#echo strlen($body);
+$body=str_replace("\\0",'',$body);
 echo $body;
 
 # BENCHMARK
