@@ -2244,18 +2244,20 @@ $html_formnotpost="(?:(?!method{$g_anyspace}={$g_anyspace}(?:'|\")?post)[^>])";
 # REGEXPS: JAVASCRIPT PARSING {{{
 
 $js_regexp_arrays=array( // TODO: clean up
+	# these require //m for the null split parsing
+
 
 	# object.attribute parsing (set)
 
 	# prepare for set for +=
 	array(1,2,
-		"/{$js_start_null}{$js_begin}{$js_expr}\.({$js_varsect}){$g_anyspace}\+=/i",
+		"/{$js_start_null}{$js_begin}{$js_expr}\.({$js_varsect}){$g_anyspace}\+=/im",
 		'\\\0\1\2\3.\4='.COOK_PREF.'.getAttr(\3,/\4/)+\\\0\\\0'),
 	# set for =
 	array(1,2,
 		"/{$js_start_null}{$js_begin}{$js_expr}\.(({$js_varsect}){$g_anyspace}=".
 			"(?:{$g_anyspace}{$js_expr2}{$g_anyspace}=)*{$g_anyspace})".
-			"{$js_expr3}{$l_js_end}/i",
+			"{$js_expr3}{$l_js_end}/im",
 		'\\\0\1\2\3.\5='.COOK_PREF.'.setAttr(\3,/\5/,\7);\\\0\\\0'),
 
 
@@ -2263,13 +2265,13 @@ $js_regexp_arrays=array( // TODO: clean up
 
 	# set for +=.
 	array(1,2,
-		"/{$js_start_null}{$js_begin}{$js_expr}\[{$js_expr2}\]{$g_anyspace}\+=/i",
+		"/{$js_start_null}{$js_begin}{$js_expr}\[{$js_expr2}\]{$g_anyspace}\+=/im",
 		'\\\0\1\2\3[\4]='.COOK_PREF.'.getAttr(\3,\4)+\\\0\\\0'),
 	# set for =
 	array(1,2,
 		"/{$js_start_null}{$js_begin}{$js_expr}(\[{$js_expr2}\]{$g_anyspace}=".
 			"(?:{$g_anyspace}{$js_expr3}{$g_anyspace}=)*{$g_anyspace})".
-			"{$js_expr4}{$l_js_end}/i",
+			"{$js_expr4}{$l_js_end}/im",
 		'\\\0\1\2\3[\5]='.COOK_PREF.'.setAttr(\3,\5,\7);\\\0\\\0'),
 
 
@@ -2277,31 +2279,31 @@ $js_regexp_arrays=array( // TODO: clean up
 
 	array(1,2,
 		"/{$js_start_null}{$js_beginright}{$n_js_set_left}{$js_expr}\[{$js_expr2}\]".
-		"{$n_js_set}{$js_end}/i",
+		"{$n_js_set}{$js_end}/im",
 		'\\\0\1\2'.COOK_PREF.'.getAttr(\3,\4)\5\\\0\\\0'),
 
 	array(1,2,
 		"/{$js_start_null}{$js_beginright}{$n_js_set_left}{$js_expr}\.({$js_varsect})".
-		"{$n_js_set}{$js_end}/i",
+		"{$n_js_set}{$js_end}/im",
 		'\\\0\1\2'.COOK_PREF.'.getAttr(\3,/\4/)\5\\\0\\\0'),
 
 	# get (object['attribute'])
 	array(1,2,
 		"/{$js_start_null}{$js_beginright}{$n_js_set_left}{$js_expr}\[{$js_expr2}\]".
 			"([^\.=a-z0-9_\[\(\t\r\n]|\.{$js_string_methods}\(|".
-			"\.{$js_string_attrs}{$n_js_varsect}){$n_js_set}{$js_end}/i",
+			"\.{$js_string_attrs}{$n_js_varsect}){$n_js_set}{$js_end}/im",
 		'\\\0\1\2'.COOK_PREF.'.getAttr(\3,\4)\5\6\\\0\\\0'),
 
 	# get (object.attribute)
 	array(1,2,
 		"/{$js_start_null}{$js_beginright}{$n_js_set_left}{$js_expr}\.({$js_varsect})".
 			"(\.{$js_string_methods}\(|\.{$js_string_attrs}".
-			"{$n_js_varsect})?{$n_js_set}{$js_end}/i",
+			"{$n_js_varsect})?{$n_js_set}{$js_end}/im",
 		'\\\0\1\2'.COOK_PREF.'.getAttr(\3,/\4/)\5\6\7\\\0\\\0'),
 /*	array(1,2,
 		"/{$js_beginright}{$js_expr}\.({$js_varsect})".
 			"([^\.=a-z0-9_\[\(\t\r\n]|\.{$js_string_methods}\(|".
-			"\.{$js_string_attrs}{$n_js_varsect}){$n_js_set}/i",
+			"\.{$js_string_attrs}{$n_js_varsect}){$n_js_set}/im",
 		'\1'.COOK_PREF.'.getAttr(\2,/\3/)\4\5'), TODO */
 
 
@@ -2309,26 +2311,26 @@ $js_regexp_arrays=array( // TODO: clean up
 
 	# method parsing
 	array(1,2,
-		"/{$js_start_null}([^a-z0-9]{$hook_js_methods}{$g_anyspace}\()([^)]*)\)/i",
+		"/{$js_start_null}([^a-z0-9]{$hook_js_methods}{$g_anyspace}\()([^)]*)\)/im",
 		'\\\0\1\2'.COOK_PREF.'.surrogafy_url(\4))\\\0\\\0'),
 
 	# eval parsing
 	array(1,2,
 		"/{$js_start_null}([^a-z0-9])eval{$g_anyspace}\(".
-			"(?!".COOK_PREF.")({$g_anyspace}{$js_expr})\)/i",
+			"(?!".COOK_PREF.")({$g_anyspace}{$js_expr})\)/im",
 		'\\\0\1\2eval('.COOK_PREF.
 			'.parse_all_html(\3,"application/x-javascript"))\\\0\\\0'),
 
 	# action attribute parsing
 	array(1,2,
-		"/{$js_start_null}{$js_begin}\.action{$g_anyspace}=/i",
+		"/{$js_start_null}{$js_begin}\.action{$g_anyspace}=/im",
 		'\\\0\1\2.'.COOK_PREF.'.value=\\\0\\\0'),
 
 	# object.setAttribute parsing
 	array(1,2,
 		"/{$js_start_null}{$js_begin}{$js_expr}\.setAttribute{$g_anyspace}\({$g_anyspace}".
 			"{$js_expr2}{$g_anyspace},{$g_anyspace}{$js_expr3}".
-			"{$g_anyspace}\)/i",
+			"{$g_anyspace}\)/im",
 		'\\\0\1\2\3[\4]='.COOK_PREF.'.setAttr(\3,\4,\5);\\\0\\\0'),
 
 	# XMLHttpRequest parsing
@@ -2338,13 +2340,13 @@ $js_regexp_arrays=array( // TODO: clean up
 
 	# XMLHttpRequest in return statement parsing
 	array(1,2,
-		"/{$js_start_null}{$js_begin}(return{$g_plusspace})({$js_newobj}{$js_xmlhttpreq})/i",
+		"/{$js_start_null}{$js_begin}(return{$g_plusspace})({$js_newobj}{$js_xmlhttpreq})/im",
 		'\\\0\1\2\3'.COOK_PREF.'.XMLHttpRequest_wrap(\4)\\\0\\\0'),
 
 	# form.submit() call parsing
 	($OPTIONS['ENCRYPT_URLS']?array(1,2,
 		"/{$js_start_null}{$js_begin}((?:[^\) \{\}]*(?:\)\.{0,1}))+)(\.submit{$g_anyspace}\(\)".
-			"){$l_js_end}/i",
+			"){$l_js_end}/im",
 		'\\\0\1\2void((\3.method=="post"?null:\3\4));\\\0\\\0')
 	:null),
 );
@@ -3734,7 +3736,7 @@ function parse_all_html($html){
 # }}}
 
 //$starttime=microtime(true); # BENCHMARK
-$body=parse_all_html($body);
+$body=parse_all_html("\0\0{$body}");
 //$parsetime=microtime(true)-$starttime; # BENCHMARK
 
 # PROXY EXECUTION: PAGE PARSING: PROXY HEADERS/JAVASCRIPT {{{
