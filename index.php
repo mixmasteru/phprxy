@@ -1971,13 +1971,15 @@ window.open=document.open=function(){
 }
 
 setTimeout=function(){
+	alert(arguments[0] + ":::" + arguments[1]);
 	if(arguments.length<2) return;
-	arguments[0]=<?php echo(COOK_PREF); ?>.parse_all_html(
-		arguments[0],"application/x-javascript");
+	arguments[0]=<?php echo(COOK_PREF); ?>.parse_all_html( // TODO
+		arguments[0],"application/x-javascript"); // TODO
 	return <?php echo(COOK_PREF); ?>.setTimeout.apply(this,arguments);
 }
 
 setInterval=function(){
+	alert(arguments[0] + ":::" + arguments[1]);
 	if(arguments.length<2) return;
 	arguments[0]=<?php echo(COOK_PREF); ?>.parse_all_html(
 		arguments[0],"application/x-javascript");
@@ -2023,9 +2025,16 @@ if(<?php echo(COOK_PREF); ?>.PAGE_FRAMED){
 function bool_to_js($bool){ return ($bool?'true':'false'); }
 function fix_regexp($regexp){
 	global $js_varsect;
+
+	// backreference cleanup
 	$regexp=preg_replace('/\(\?P\<[a-z0-9_]+\>/i','(',$regexp);
 	$regexp=preg_replace('/\(\?P\>[a-z0-9_]+\)/i',$js_varsect,$regexp);
 	$regexp=preg_replace('/\(\?\<\![^\)]+?\)/i',$js_varsect,$regexp);
+
+	// null cleanup
+	#$regexp=str_replace('(\\\0\\\0[^\\\0]+)','()',$regexp); // TODO: rename
+	#$regexp=str_replace('\\\0','',$regexp);
+
 	return $regexp;
 }
 function convert_array_to_javascript(){
@@ -2200,12 +2209,12 @@ $js_newobj:         matches a 'new' clause inside of Javascript
 $html_formnotpost:  matches a form, given it's not of method POST
 */
 
-$l_start_null = '(\\0\\0[^\\0]+)';
+$js_start_null = '(\\\0\\\0[^\\\0]+)'; // TODO: rename
 $l_js_end="(?={$g_justspace}(?:[;\}]|{$g_n_operand}[\n\r]))";
 #$n_l_js_end="(?!{$g_justspace}(?:[;\}]|{$g_n_operand}[\n\r]))";
 $js_begin=
 	"((?:[;\{\}\n\r\(\)\&\!]|[\!=]=)(?!{$g_anyspace}(?:#|\/\*|\/\/)){$g_anyspace})";
-$js_end="({$g_anyspace}[;\)\}\r\n=\'\",\!\|\+\-\/\*\/\%\&])";
+$js_end="({$g_anyspace}[;\)\}\r\n=\'\",\!\|\+\-\/\*\/\%\&])"; // TODO: rename
 $n_js_set="(?!{$g_anyspace}(?:(?:=(?!=))|\+=|\-=|\*=|\/=|\+\+|\-\-))"; # DEBUG
 $n_js_set_left="(?<!\-\-|\+\+)";
 # TODO - need to get rid of js_beginright or something
@@ -2219,12 +2228,11 @@ $js_beginright=
 $js_xmlhttpreq=
 	"(?:XMLHttpRequest{$g_anyspace}(?:\({$g_anyspace}\)|)|".
 	"ActiveXObject{$g_anyspace}\({$g_anyspace}[^\)]+\.XMLHTTP['\"]".
-	"{$g_anyspace}\))".
-	'(?=;)';
+	"{$g_anyspace}\))";
 
 $h_html_noquot='(?:[^"\'\\\\][^> ]*)';
 $html_reg="({$g_quoteseg}|{$h_html_noquot})";
-$js_newobj="(?:{$g_anyspace}new{$g_plusspace}|{$g_anyspace})";
+$js_newobj="(?:{$g_anyspace}new{$g_plusspace})";
 $html_formnotpost="(?:(?!method{$g_anyspace}={$g_anyspace}(?:'|\")?post)[^>])";
 
 # }}}
@@ -2233,34 +2241,34 @@ $html_formnotpost="(?:(?!method{$g_anyspace}={$g_anyspace}(?:'|\")?post)[^>])";
 
 # REGEXPS: JAVASCRIPT PARSING {{{
 
-$js_regexp_arrays=array(
+$js_regexp_arrays=array( // TODO: clean up
 
 	# object.attribute parsing (set)
 
 	# prepare for set for +=
 	array(1,2,
 		"/{$js_start_null}{$js_begin}{$js_expr}\.({$js_varsect}){$g_anyspace}\+=/i",
-		'\\0\1\2\3.\4='.COOK_PREF.'.getAttr(\3,/\4/)+\\0\\0'),
+		'\\\0\1\2\3.\4='.COOK_PREF.'.getAttr(\3,/\4/)+\\\0\\\0'),
 	# set for =
 	array(1,2,
 		"/{$js_start_null}{$js_begin}{$js_expr}\.(({$js_varsect}){$g_anyspace}=".
 			"(?:{$g_anyspace}{$js_expr2}{$g_anyspace}=)*{$g_anyspace})".
 			"{$js_expr3}{$l_js_end}/i",
-		'\\0\1\2\3.\5='.COOK_PREF.'.setAttr(\3,/\5/,\7);\\0\\0'),
+		'\\\0\1\2\3.\5='.COOK_PREF.'.setAttr(\3,/\5/,\7);\\\0\\\0'),
 
 
 	# object['attribute'] parsing (set)
 
-	# set for +=
+	# set for +=.
 	array(1,2,
 		"/{$js_start_null}{$js_begin}{$js_expr}\[{$js_expr2}\]{$g_anyspace}\+=/i",
-		'\\0\1\2\3[\4]='.COOK_PREF.'.getAttr(\3,\4)+\\0\\0'),
+		'\\\0\1\2\3[\4]='.COOK_PREF.'.getAttr(\3,\4)+\\\0\\\0'),
 	# set for =
 	array(1,2,
 		"/{$js_start_null}{$js_begin}{$js_expr}(\[{$js_expr2}\]{$g_anyspace}=".
 			"(?:{$g_anyspace}{$js_expr3}{$g_anyspace}=)*{$g_anyspace})".
 			"{$js_expr4}{$l_js_end}/i",
-		'\\0\1\2\3[\5]='.COOK_PREF.'.setAttr(\3,\5,\7);\\0\\0'),
+		'\\\0\1\2\3[\5]='.COOK_PREF.'.setAttr(\3,\5,\7);\\\0\\\0'),
 
 
 	# get parsing
@@ -2268,26 +2276,26 @@ $js_regexp_arrays=array(
 	array(1,2,
 		"/{$js_start_null}{$js_beginright}{$n_js_set_left}{$js_expr}\[{$js_expr2}\]".
 		"{$n_js_set}{$js_end}/i",
-		'\\0\1\2'.COOK_PREF.'.getAttr(\3,\4)\5\\0\\0'),
+		'\\\0\1\2'.COOK_PREF.'.getAttr(\3,\4)\5\\\0\\\0'),
 
 	array(1,2,
 		"/{$js_start_null}{$js_beginright}{$n_js_set_left}{$js_expr}\.({$js_varsect})".
 		"{$n_js_set}{$js_end}/i",
-		'\\0\1\2'.COOK_PREF.'.getAttr(\3,/\4/)\5\\0\\0'),
+		'\\\0\1\2'.COOK_PREF.'.getAttr(\3,/\4/)\5\\\0\\\0'),
 
 	# get (object['attribute'])
 	array(1,2,
 		"/{$js_start_null}{$js_beginright}{$n_js_set_left}{$js_expr}\[{$js_expr2}\]".
 			"([^\.=a-z0-9_\[\(\t\r\n]|\.{$js_string_methods}\(|".
 			"\.{$js_string_attrs}{$n_js_varsect}){$n_js_set}{$js_end}/i",
-		'\\0\1\2'.COOK_PREF.'.getAttr(\3,\4)\5\6\\0\\0'),
+		'\\\0\1\2'.COOK_PREF.'.getAttr(\3,\4)\5\6\\\0\\\0'),
 
 	# get (object.attribute)
 	array(1,2,
 		"/{$js_start_null}{$js_beginright}{$n_js_set_left}{$js_expr}\.({$js_varsect})".
 			"(\.{$js_string_methods}\(|\.{$js_string_attrs}".
 			"{$n_js_varsect})?{$n_js_set}{$js_end}/i",
-		'\\0\1\2'.COOK_PREF.'.getAttr(\3,/\4/)\5\6\7\\0\\0'),
+		'\\\0\1\2'.COOK_PREF.'.getAttr(\3,/\4/)\5\6\7\\\0\\\0'),
 /*	array(1,2,
 		"/{$js_beginright}{$js_expr}\.({$js_varsect})".
 			"([^\.=a-z0-9_\[\(\t\r\n]|\.{$js_string_methods}\(|".
@@ -2300,43 +2308,42 @@ $js_regexp_arrays=array(
 	# method parsing
 	array(1,2,
 		"/{$js_start_null}([^a-z0-9]{$hook_js_methods}{$g_anyspace}\()([^)]*)\)/i",
-		'\\0\1\2'.COOK_PREF.'.surrogafy_url(\4))\\0\\0'),
+		'\\\0\1\2'.COOK_PREF.'.surrogafy_url(\4))\\\0\\\0'),
 
 	# eval parsing
 	array(1,2,
 		"/{$js_start_null}([^a-z0-9])eval{$g_anyspace}\(".
 			"(?!".COOK_PREF.")({$g_anyspace}{$js_expr})\)/i",
-		'\\0\1\2eval('.COOK_PREF.
-			'.parse_all_html(\3,"application/x-javascript"))\\0\\0'),
+		'\\\0\1\2eval('.COOK_PREF.
+			'.parse_all_html(\3,"application/x-javascript"))\\\0\\\0'),
 
 	# action attribute parsing
 	array(1,2,
 		"/{$js_start_null}{$js_begin}\.action{$g_anyspace}=/i",
-		'\\0\1\2.'.COOK_PREF.'.value=\\0\\0'),
+		'\\\0\1\2.'.COOK_PREF.'.value=\\\0\\\0'),
 
 	# object.setAttribute parsing
 	array(1,2,
 		"/{$js_start_null}{$js_begin}{$js_expr}\.setAttribute{$g_anyspace}\({$g_anyspace}".
 			"{$js_expr2}{$g_anyspace},{$g_anyspace}{$js_expr3}".
 			"{$g_anyspace}\)/i",
-		'\\0\1\2\3[\4]='.COOK_PREF.'.setAttr(\3,\4,\5);\\0\\0'),
+		'\\\0\1\2\3[\4]='.COOK_PREF.'.setAttr(\3,\4,\5);\\\0\\\0'),
 
 	# XMLHttpRequest parsing
 	array(1,2,
-		"/{$js_start_null}{$js_begin}([^\ {>\t\r\n=;]+{$g_anyspace}=)".
-			"({$js_newobj}{$js_xmlhttpreq})/i",
-		'\\0\1\2\3'.COOK_PREF.'.XMLHttpRequest_wrap(\4)\\0\\0'),
+		"/({$js_newobj}{$js_xmlhttpreq})/i",
+		'\\\0'.COOK_PREF.'.XMLHttpRequest_wrap(\1)\\\0\\\0'),
 
 	# XMLHttpRequest in return statement parsing
 	array(1,2,
 		"/{$js_start_null}{$js_begin}(return{$g_plusspace})({$js_newobj}{$js_xmlhttpreq})/i",
-		'\\0\1\2\3'.COOK_PREF.'.XMLHttpRequest_wrap(\4)\\0\\0'),
+		'\\\0\1\2\3'.COOK_PREF.'.XMLHttpRequest_wrap(\4)\\\0\\\0'),
 
 	# form.submit() call parsing
 	($OPTIONS['ENCRYPT_URLS']?array(1,2,
-		"/{$js_begin}((?:[^\) \{\}]*(?:\)\.{0,1}))+)(\.submit{$g_anyspace}\(\)".
+		"/{$js_start_null}{$js_begin}((?:[^\) \{\}]*(?:\)\.{0,1}))+)(\.submit{$g_anyspace}\(\)".
 			"){$l_js_end}/i",
-		'\\0\1\2void((\3.method=="post"?null:\3\4));\\0\\0')
+		'\\\0\1\2void((\3.method=="post"?null:\3\4));\\\0\\\0')
 	:null),
 );
 
@@ -2823,25 +2830,32 @@ function havok($errorno,$arg1=null,$arg2=null,$arg3=null){
 	}
 	$ed.="\n<br /><br />\nURL:&nbsp;{$url}";
 ?>
-<div style="font-family: bitstream vera sans, trebuchet ms">
-<div style="border: 3px solid #FFFFFF; padding: 2px">
-	<div style="
-		float: left; border: 1px solid #602020; padding: 1px;
-		background-color: #FFFFFF">
+<html>
+<head>
+	<title>Proxy Error</title>
+</head>
+<body>
+	<div style="font-family: bitstream vera sans, trebuchet ms">
+	<div style="border: 3px solid #FFFFFF; padding: 2px">
 		<div style="
-			float: left; background-color: #801010; color: #FFFFFF;
-			font-weight: bold; font-size: 54px; padding: 2px;
-			padding-left: 12px; padding-right: 12px"
-		>!</div>
-	</div>
-	<div style="float: left; width: 500px; padding-left: 20px">
-		<div style="
-			border-bottom: 1px solid #000000; font-size: 12pt;
-			text-align: center; font-weight: bold; padding: 2px"
-		>Error: <?php echo($et); ?></div>
-		<div style="padding: 6px"><?php echo($ed); ?></div>
-	</div>
-</div></div>
+			float: left; border: 1px solid #602020; padding: 1px;
+			background-color: #FFFFFF">
+			<div style="
+				float: left; background-color: #801010; color: #FFFFFF;
+				font-weight: bold; font-size: 54px; padding: 2px;
+				padding-left: 12px; padding-right: 12px"
+			>!</div>
+		</div>
+		<div style="float: left; width: 500px; padding-left: 20px">
+			<div style="
+				border-bottom: 1px solid #000000; font-size: 12pt;
+				text-align: center; font-weight: bold; padding: 2px"
+			>Error: <?php echo($et); ?></div>
+			<div style="padding: 6px"><?php echo($ed); ?></div>
+		</div>
+	</div></div>
+</body>
+</html>
 <?php finish(); }
 
 # }}}
@@ -3300,7 +3314,7 @@ function getpage($url){
 
 	if(
 		substr($headers['content-type'][0],0,4)=='text' ||
-		substr($headers['content-type'][0],0,24)=='application/javascript' ||
+		substr($headers['content-type'][0],0,22)=='application/javascript' ||
 		substr($headers['content-type'][0],0,24)=='application/x-javascript'
 	){
 		$justoutput=false;
@@ -3365,8 +3379,14 @@ function getpage($url){
 
 	# GZIP, output, and return {{{
 
-	if($CONFIG['GZIP_PROXY_SERVER'] && $headers['content-encoding'][0]=='gzip')
-		$body=gzinflate(substr($body,10));
+	if($headers['content-encoding'][0]=='gzip'){
+		# http://us2.php.net/manual/en/function.gzdecode.php
+		$temp=tempnam('/tmp','ff');
+		@file_put_contents($temp,$body);
+		ob_start();
+		readgzfile($temp);
+		$body=ob_get_clean();
+	}
 	if($justoutput){
 		if(!$justoutputnow) echo $body;
 		finish();
@@ -3802,8 +3822,7 @@ elseif(
 # }}}
 
 ## Retrieved, Parsed, All Ready to Output ##
-#echo strlen($body);
-$body=str_replace("\\0",'',$body);
+$body=str_replace("\\0",'',$body); // TODO: relocate
 echo $body;
 
 # BENCHMARK
