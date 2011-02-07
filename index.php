@@ -1974,7 +1974,7 @@ setTimeout=function(){
 	if(arguments.length<1) return;
 	if(typeof(arguments[0])==typeof("")){
 		arguments[0]=<?php echo(COOK_PREF); ?>.parse_all_html(
-			arguments[0],"application/x-javascript"); // TODO
+			arguments[0],"application/x-javascript");
 	}
 	return <?php echo(COOK_PREF); ?>.setTimeout.apply(this,arguments);
 }
