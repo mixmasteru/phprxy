@@ -1971,18 +1971,20 @@ window.open=document.open=function(){
 }
 
 setTimeout=function(){
-	alert(arguments[0] + ":::" + arguments[1]);
-	if(arguments.length<2) return;
-	arguments[0]=<?php echo(COOK_PREF); ?>.parse_all_html( // TODO
-		arguments[0],"application/x-javascript"); // TODO
+	if(arguments.length<1) return;
+	if(typeof(arguments[0])==typeof("")){
+		arguments[0]=<?php echo(COOK_PREF); ?>.parse_all_html(
+			arguments[0],"application/x-javascript"); // TODO
+	}
 	return <?php echo(COOK_PREF); ?>.setTimeout.apply(this,arguments);
 }
 
 setInterval=function(){
-	alert(arguments[0] + ":::" + arguments[1]);
-	if(arguments.length<2) return;
-	arguments[0]=<?php echo(COOK_PREF); ?>.parse_all_html(
-		arguments[0],"application/x-javascript");
+	if(arguments.length<1) return;
+	if(typeof(arguments[0])==typeof("")){
+		arguments[0]=<?php echo(COOK_PREF); ?>.parse_all_html(
+			arguments[0],"application/x-javascript");
+	}
 	return <?php echo(COOK_PREF); ?>.setInterval.apply(this,arguments);
 }
 
