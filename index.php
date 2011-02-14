@@ -108,7 +108,7 @@ $CONFIG['BLOCKED_ADDRESSES']=array(); # DEBUG
 $CONFIG['MAXIMUM_URL_LENGTH']=500;
 
 # Time limit in seconds for a single request and parse. [10]
-$CONFIG['TIME_LIMIT']=10;
+$CONFIG['TIME_LIMIT']=10; // TODO
 # Time limit in minutes for a DNS entry to be kept in the cache. [10]
 $CONFIG['DNS_CACHE_EXPIRE']=10;
 
@@ -1596,7 +1596,7 @@ parse_html:function(regexp,partoparse,html,addproxy,framify){
 	return html;
 },
 
-parse_all_html:function(){
+parse_all:function(){
 	if(arguments[0]==null) return;
 	var html=arguments[0].toString();
 	var key;
@@ -1653,7 +1653,7 @@ setAttr:function(obj,attr,val){
 	}
 
 	if(attr=="innerHTML"){
-		obj[attr]=this.parse_all_html(val);
+		obj[attr]=this.parse_all(val);
 		return obj[attr];
 	}
 
@@ -1927,7 +1927,7 @@ document_write_queue:"",
 purge:function(){
 	thehtml=this.document_write_queue;
 	if(thehtml=="") return;
-	thehtml=this.parse_all_html(thehtml);
+	thehtml=this.parse_all(thehtml);
 	this.document_write_queue="";
 	document.write_<?php echo(COOK_PREF); ?>(thehtml);
 },
@@ -1973,7 +1973,7 @@ window.open=document.open=function(){
 setTimeout=function(){
 	if(arguments.length<1) return;
 	if(typeof(arguments[0])==typeof("")){
-		arguments[0]=<?php echo(COOK_PREF); ?>.parse_all_html(
+		arguments[0]=<?php echo(COOK_PREF); ?>.parse_all(
 			arguments[0],"application/x-javascript");
 	}
 	return <?php echo(COOK_PREF); ?>.setTimeout.apply(this,arguments);
@@ -1982,7 +1982,7 @@ setTimeout=function(){
 setInterval=function(){
 	if(arguments.length<1) return;
 	if(typeof(arguments[0])==typeof("")){
-		arguments[0]=<?php echo(COOK_PREF); ?>.parse_all_html(
+		arguments[0]=<?php echo(COOK_PREF); ?>.parse_all(
 			arguments[0],"application/x-javascript");
 	}
 	return <?php echo(COOK_PREF); ?>.setInterval.apply(this,arguments);
@@ -1993,7 +1993,7 @@ setInterval=function(){
 /*eval_<?php echo(COOK_PREF); ?>=eval;
 eval=function(){
 	if(arguments.length<1) return;
-	arguments[0]=<?php echo(COOK_PREF); ?>.parse_all_html(
+	arguments[0]=<?php echo(COOK_PREF); ?>.parse_all(
 		arguments[0],"application/x-javascript");
 	return eval_<?php echo(COOK_PREF); ?>.apply(this.caller,arguments);
 }*/
@@ -2034,8 +2034,8 @@ function fix_regexp($regexp){
 	$regexp=preg_replace('/\(\?\<\![^\)]+?\)/i',$js_varsect,$regexp);
 
 	// null cleanup
-	#$regexp=str_replace('(\\\0\\\0[^\\\0]+)','()',$regexp); // TODO: rename
-	#$regexp=str_replace('\\\0','',$regexp);
+	#$regexp=str_replace('([^]+)','()',$regexp); // TODO: rename
+	#$regexp=str_replace('','',$regexp);
 
 	return $regexp;
 }
@@ -2211,7 +2211,6 @@ $js_newobj:         matches a 'new' clause inside of Javascript
 $html_formnotpost:  matches a form, given it's not of method POST
 */
 
-$js_start_null = '(\\\0\\\0[^\\\0]+)'; // TODO: rename
 $l_js_end="(?={$g_justspace}(?:[;\}]|{$g_n_operand}[\n\r]))";
 #$n_l_js_end="(?!{$g_justspace}(?:[;\}]|{$g_n_operand}[\n\r]))";
 $js_begin=
@@ -2243,67 +2242,65 @@ $html_formnotpost="(?:(?!method{$g_anyspace}={$g_anyspace}(?:'|\")?post)[^>])";
 
 # REGEXPS: JAVASCRIPT PARSING {{{
 
-$js_regexp_arrays=array( // TODO: clean up
-	# these require //m for the null split parsing
-
+$js_regexp_arrays=array(
 
 	# object.attribute parsing (set)
 
 	# prepare for set for +=
 	array(1,2,
-		"/{$js_start_null}{$js_begin}{$js_expr}\.({$js_varsect}){$g_anyspace}\+=/im",
-		'\\\0\1\2\3.\4='.COOK_PREF.'.getAttr(\3,/\4/)+\\\0\\\0'),
+		"/{$js_begin}{$js_expr}\.({$js_varsect}){$g_anyspace}\+=/i",
+		"\\1\\2.\\3=".COOK_PREF.".getAttr(\\2,/\\3/)+"),
 	# set for =
 	array(1,2,
-		"/{$js_start_null}{$js_begin}{$js_expr}\.(({$js_varsect}){$g_anyspace}=".
+		"/{$js_begin}{$js_expr}\.(({$js_varsect}){$g_anyspace}=".
 			"(?:{$g_anyspace}{$js_expr2}{$g_anyspace}=)*{$g_anyspace})".
-			"{$js_expr3}{$l_js_end}/im",
-		'\\\0\1\2\3.\5='.COOK_PREF.'.setAttr(\3,/\5/,\7);\\\0\\\0'),
+			"{$js_expr3}{$l_js_end}/i",
+		"\\1\\2.\\4=".COOK_PREF.".setAttr(\\2,/\\4/,\\6);"),
 
 
 	# object['attribute'] parsing (set)
 
 	# set for +=.
 	array(1,2,
-		"/{$js_start_null}{$js_begin}{$js_expr}\[{$js_expr2}\]{$g_anyspace}\+=/im",
-		'\\\0\1\2\3[\4]='.COOK_PREF.'.getAttr(\3,\4)+\\\0\\\0'),
+		"/{$js_begin}{$js_expr}\[{$js_expr2}\]{$g_anyspace}\+=/i",
+		"\\1\\2[\\3]=".COOK_PREF.".getAttr(\\2,\\3)+"),
 	# set for =
 	array(1,2,
-		"/{$js_start_null}{$js_begin}{$js_expr}(\[{$js_expr2}\]{$g_anyspace}=".
+		"/{$js_begin}{$js_expr}(\[{$js_expr2}\]{$g_anyspace}=".
 			"(?:{$g_anyspace}{$js_expr3}{$g_anyspace}=)*{$g_anyspace})".
-			"{$js_expr4}{$l_js_end}/im",
-		'\\\0\1\2\3[\5]='.COOK_PREF.'.setAttr(\3,\5,\7);\\\0\\\0'),
+			"{$js_expr4}{$l_js_end}/i",
+		"\\1\\2[\\4]=".COOK_PREF.".setAttr(\\2,\\4,\\6);"),
 
 
 	# get parsing
 
 	array(1,2,
-		"/{$js_start_null}{$js_beginright}{$n_js_set_left}{$js_expr}\[{$js_expr2}\]".
-		"{$n_js_set}{$js_end}/im",
-		'\\\0\1\2'.COOK_PREF.'.getAttr(\3,\4)\5\\\0\\\0'),
+		"/{$js_beginright}{$n_js_set_left}{$js_expr}\[{$js_expr2}\]".
+		"{$n_js_set}{$js_end}/i",
+		"\\1".COOK_PREF.".getAttr(\\2,\\3)\\4"),
 
 	array(1,2,
-		"/{$js_start_null}{$js_beginright}{$n_js_set_left}{$js_expr}\.({$js_varsect})".
-		"{$n_js_set}{$js_end}/im",
-		'\\\0\1\2'.COOK_PREF.'.getAttr(\3,/\4/)\5\\\0\\\0'),
+		"/{$js_beginright}{$n_js_set_left}{$js_expr}\.({$js_varsect})".
+		"{$n_js_set}{$js_end}/i",
+		"\\1".COOK_PREF.".getAttr(\\2,/\\3/)\\4"),
 
 	# get (object['attribute'])
 	array(1,2,
-		"/{$js_start_null}{$js_beginright}{$n_js_set_left}{$js_expr}\[{$js_expr2}\]".
+		"/{$js_beginright}{$n_js_set_left}{$js_expr}\[{$js_expr2}\]".
 			"([^\.=a-z0-9_\[\(\t\r\n]|\.{$js_string_methods}\(|".
-			"\.{$js_string_attrs}{$n_js_varsect}){$n_js_set}{$js_end}/im",
-		'\\\0\1\2'.COOK_PREF.'.getAttr(\3,\4)\5\6\\\0\\\0'),
+			"\.{$js_string_attrs}{$n_js_varsect}){$n_js_set}{$js_end}/i",
+		"\\1".COOK_PREF.".getAttr(\\2,\\3)\\4\\5"),
 
 	# get (object.attribute)
 	array(1,2,
-		"/{$js_start_null}{$js_beginright}{$n_js_set_left}{$js_expr}\.({$js_varsect})".
+		"/{$js_beginright}{$n_js_set_left}{$js_expr}\.({$js_varsect})".
 			"(\.{$js_string_methods}\(|\.{$js_string_attrs}".
-			"{$n_js_varsect})?{$n_js_set}{$js_end}/im",
-		'\\\0\1\2'.COOK_PREF.'.getAttr(\3,/\4/)\5\6\7\\\0\\\0'),
+			"{$n_js_varsect})?{$n_js_set}{$js_end}/i",
+		"\\1".COOK_PREF.".getAttr(\\2,/\\3/)\\4\\5\\6"),
 /*	array(1,2,
 		"/{$js_beginright}{$js_expr}\.({$js_varsect})".
 			"([^\.=a-z0-9_\[\(\t\r\n]|\.{$js_string_methods}\(|".
-			"\.{$js_string_attrs}{$n_js_varsect}){$n_js_set}/im",
+			"\.{$js_string_attrs}{$n_js_varsect}){$n_js_set}/i",
 		'\1'.COOK_PREF.'.getAttr(\2,/\3/)\4\5'), TODO */
 
 
@@ -2311,43 +2308,42 @@ $js_regexp_arrays=array( // TODO: clean up
 
 	# method parsing
 	array(1,2,
-		"/{$js_start_null}([^a-z0-9]{$hook_js_methods}{$g_anyspace}\()([^)]*)\)/im",
-		'\\\0\1\2'.COOK_PREF.'.surrogafy_url(\4))\\\0\\\0'),
+		"/([^a-z0-9]{$hook_js_methods}{$g_anyspace}\()([^)]*)\)/i",
+		"\\1".COOK_PREF.".surrogafy_url(\\3))"),
 
 	# eval parsing
 	array(1,2,
-		"/{$js_start_null}([^a-z0-9])eval{$g_anyspace}\(".
-			"(?!".COOK_PREF.")({$g_anyspace}{$js_expr})\)/im",
-		'\\\0\1\2eval('.COOK_PREF.
-			'.parse_all_html(\3,"application/x-javascript"))\\\0\\\0'),
+		"/([^a-z0-9])eval{$g_anyspace}\(".
+			"(?!".COOK_PREF.")({$g_anyspace}{$js_expr})\)/i",
+		"\\1eval(".COOK_PREF.".parse_all(\\2,\"application/x-javascript\"))"),
 
 	# action attribute parsing
 	array(1,2,
-		"/{$js_start_null}{$js_begin}\.action{$g_anyspace}=/im",
-		'\\\0\1\2.'.COOK_PREF.'.value=\\\0\\\0'),
+		"/{$js_begin}\.action{$g_anyspace}=/i",
+		"\\1.".COOK_PREF.".value="),
 
 	# object.setAttribute parsing
 	array(1,2,
-		"/{$js_start_null}{$js_begin}{$js_expr}\.setAttribute{$g_anyspace}\({$g_anyspace}".
+		"/{$js_begin}{$js_expr}\.setAttribute{$g_anyspace}\({$g_anyspace}".
 			"{$js_expr2}{$g_anyspace},{$g_anyspace}{$js_expr3}".
-			"{$g_anyspace}\)/im",
-		'\\\0\1\2\3[\4]='.COOK_PREF.'.setAttr(\3,\4,\5);\\\0\\\0'),
+			"{$g_anyspace}\)/i",
+		"\\1\\2[\\3]=".COOK_PREF.".setAttr(\\4,\\3,\\4);"),
 
 	# XMLHttpRequest parsing
 	array(1,2,
 		"/({$js_newobj}{$js_xmlhttpreq})/i",
-		'\\\0'.COOK_PREF.'.XMLHttpRequest_wrap(\1)\\\0\\\0'),
+		COOK_PREF.".XMLHttpRequest_wrap(\\1)"),
 
 	# XMLHttpRequest in return statement parsing
 	array(1,2,
-		"/{$js_start_null}{$js_begin}(return{$g_plusspace})({$js_newobj}{$js_xmlhttpreq})/im",
-		'\\\0\1\2\3'.COOK_PREF.'.XMLHttpRequest_wrap(\4)\\\0\\\0'),
+		"/{$js_begin}(return{$g_plusspace})({$js_newobj}{$js_xmlhttpreq})/i",
+		"\\1\\2".COOK_PREF.".XMLHttpRequest_wrap(\\3)"),
 
 	# form.submit() call parsing
 	($OPTIONS['ENCRYPT_URLS']?array(1,2,
-		"/{$js_start_null}{$js_begin}((?:[^\) \{\}]*(?:\)\.{0,1}))+)(\.submit{$g_anyspace}\(\)".
-			"){$l_js_end}/im",
-		'\\\0\1\2void((\3.method=="post"?null:\3\4));\\\0\\\0')
+		"/{$js_begin}((?:[^\) \{\}]*(?:\)\.{0,1}))+)(\.submit{$g_anyspace}\(\)".
+			"){$l_js_end}/i",
+		"\\1void((\\2.method==\"post\"?null:\\2\\3));")
 	:null),
 );
 
@@ -2674,7 +2670,7 @@ class aurl{
 		$url=THIS_SCRIPT."?={$url}".(!empty($label)?"#$label":null);
 		return $url;
 	}
-} 
+}
 
 # }}}
 
@@ -3390,6 +3386,7 @@ function getpage($url){
 		ob_start();
 		readgzfile($temp);
 		$body=ob_get_clean();
+		unlink($temp);
 	}
 	if($justoutput){
 		if(!$justoutputnow) echo $body;
@@ -3529,6 +3526,88 @@ function parse_html($regexp,$partoparse,$html,$addproxy,$framify){
 	return $newhtml;
 }
 
+//function parse_js($regexp,$replace,$js){ # TODO: remove
+//	$js_working=$js;
+//	$offset=0;
+//	//echo "ASD";
+//	while(
+//		$offset!==false &&
+//		preg_match($regexp,$js_working,$matcharr,PREG_OFFSET_CAPTURE,$offset)
+//	){
+//		var_dump($matcharr); // DEBUG
+//		$js_working=preg_replace($regexp,$replace,$js_working,1,$offset);
+//		//echo "\n\n\n\n\n\nJS_WORKING:$js_working\n\n";
+//		//echo "OLDOFFSET:".($offset?'true':'fa;se');
+//		$offset=strpos($js_working,"\0\0",$offset);
+//		//echo "OFFSET:".($offset?'true':'fa;se');
+//		//$offset=($replace_end===false?false:$replace_end+2); // TODO
+//	}
+//	return $js_working;
+//}
+/*function parse_js($regexp,$replace,$js){
+	#$js_working="{$js}";
+	$offset=0;
+	global $js_regexp_arrays; // DEBUG
+	foreach($js_regexp_arrays as $arr){
+		$i++;
+		if($arr[2]==$regexp){
+			echo "}}}}}$i{{{{{\n";
+			$the_regexp=$i;
+		}
+	}
+
+	all($regexp,$js,$matcharr,PREG_SET_ORDER)
+	/*$arr = preg_split($regexp,$js_working,0,PREG_SPLIT_DELIM_CAPTURE);
+	var_dump($arr);
+	die();
+	while(
+		$offset!==false &&
+		preg_match($regexp,$js_working,$matcharr,PREG_OFFSET_CAPTURE,$offset)
+	){
+		var_dump($matcharr);
+		#var_dump($matcharr); // DEBUG
+		#if(++$i==1){
+		#}
+		#echo "111111111111111111111111111111111111111111111111111111111111110";
+		#var_dump($js_working);
+		#echo "1111111111111111111111111111111111111111111111111111111111111-1";
+		#echo substr($js_working,$matcharr[0][1]);
+		#echo "AAAAAAAAAAAAAAAAAAAAAAAAA";
+		var_dump($matcharr);
+		echo "11111111111111111111111111111111111111111111111111111111111110\n";
+		$js_buffer=preg_replace($regexp,$replace,$js_working,1);
+		var_dump($js_buffer);
+		echo "11211111111111111111111111111111111111111111111111111111111110\n";
+		$end_offset=strpos($js_buffer,"\0\0",$matcharr[0][1]);
+		var_dump($end_offset);
+		echo "11311111111111111111111111111111111111111111111111111111111110\n";
+		$js_replacement=substr($js_replacement,$matcharr[0][1],$end_offset);
+		var_dump($js_replacement);
+		#echo "111111111111111111111111111111111111111111111111111111111111110";
+		#$js_working=substr($js_working,0,$matcharr[0][1]).substr($js_replacement,
+		$js_working=substr_replace($js_working,$js_replacement,$matcharr[0][1],$matcharr[0][1]+strlen($matcharr[0][0]));
+		var_dump($js_working);
+		echo "11411111111111111111111111111111111111111111111111111111111110\n";
+		#echo "111111111111111111111111111111111111111111111111111111111111111";
+		#var_dump($matcharr);
+		#echo "111111111111111111111111111111111111111111111111111111111111112";
+		#echo "MMMMMMMMMMMMMMMMMMMMM:::".strpos($js_working,"\0\0",1);
+		#$js_working=str_replace("\0",'NULLLLLLBITCHES',$js_working); # DEBUG
+		#$js_working=substr_replace($js_working,$js_additional,$offset,strlen($js_additional));
+		#var_dump($js_working);
+		#$js_working=substr($js_working,0,$offset).$js_additional.substr
+		#echo "\nLENGTH:".strlen($js_working);
+		#echo "\nOLDOFFSET:".$offset;
+		#echo "\nENDOFFSET:".$end_offset."\n";
+		#echo "\n";
+		$offset=$end_offset;
+		#echo "-------------\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n";
+		#$offset=($replace_end===false?false:$replace_end+2); // TODO
+	}
+	return substr($js_working,2,-2);
+	
+}*/
+
 function regular_express($regexp_array,$thevar){
 	# in benchmarks, this 'optimization' appeared to not do anything at all, or
 	# possibly even slow things down
@@ -3544,7 +3623,7 @@ function regular_express($regexp_array,$thevar){
 	return $newvar;
 }
 
-function parse_all_html($html){
+function parse_all($html){
 	global $OPTIONS, $regexp_arrays;
 
 	if(CONTENT_TYPE!='text/html'){
@@ -3736,7 +3815,7 @@ function parse_all_html($html){
 # }}}
 
 //$starttime=microtime(true); # BENCHMARK
-$body=parse_all_html("\0\0{$body}");
+$body=parse_all($body);
 //$parsetime=microtime(true)-$starttime; # BENCHMARK
 
 # PROXY EXECUTION: PAGE PARSING: PROXY HEADERS/JAVASCRIPT {{{
@@ -3826,7 +3905,6 @@ elseif(
 # }}}
 
 ## Retrieved, Parsed, All Ready to Output ##
-$body=str_replace("\\0",'',$body); // TODO: relocate
 echo $body;
 
 # BENCHMARK
