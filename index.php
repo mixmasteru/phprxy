@@ -695,7 +695,7 @@ $checkbox_array=array(
 );
 
 ?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" 
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 
 <html>
@@ -865,7 +865,7 @@ if(
 	$OPTIONS['URL_FORM'] &&
 	ORIG_URL!=null
 ){ ?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" 
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
@@ -1644,7 +1644,7 @@ form_encrypt:function(form){
 },
 
 setAttr:function(obj,attr,val){
-	if(obj==undefined)
+	if(obj==undefined || val==undefined)
 		return undefined;
 
 	if(typeof(attr)==typeof(/ /)){
@@ -1845,15 +1845,6 @@ getAttr:function(obj,attr){
 
 	if(obj==location && attr=="search") val=val.replace(/^[^?]*/,"");
 	if(obj==document && attr=="domain") val=this.aurl.get_servername();
-	if(this.log < 50){ // DEBUG
-		//console.log("OBJ:"+obj.toString()); // DEBUG
-		//console.log(typeof(obj)); // DEBUG
-		//console.log("ATTR:"+attr.toString()); // DEBUG
-		//console.log(typeof(attr)); // DEBUG
-		//console.log("VAL:"+val.toString()); // DEBUG
-		//console.log(typeof(val)); // DEBUG
-		this.log++; // DEBUG
-	} // DEBUG
 	return val;
 },
 
@@ -2015,6 +2006,8 @@ if(<?php echo(COOK_PREF); ?>.PAGE_FRAMED){
 # }}}
 
 # REGEXPS {{{
+
+// TODO: clean up
 
 # This is where all the parsing is defined.  If a site isn't being
 # parsed properly, the problem is more than likely in this section.
@@ -2182,7 +2175,9 @@ $h_js_expr=
 	"|\{{$g_anyspace}(?:(?P>js_expr)".
 		"(?:{$g_anyspace},{$g_anyspace}(?P>js_expr))*{$g_anyspace})?\}";
 $js_expr=
-	"(?P<js_expr>(?:{$js_exprsect}{$h_js_expr})".
+	'(?P<js_expr>(?!'.COOK_PREF.')'. # this makes sure the COOK_PREF.purse()
+	                                 # doesn't get parsed
+	"(?:{$js_exprsect}{$h_js_expr})".
 	"(?:{$g_anyspace}(?:".
 		"\.{$g_anyspace}(?P>js_expr)".
 		"|\.{$g_anyspace}{$js_exprsect}".
@@ -2194,6 +2189,8 @@ $js_expr=
 $js_expr2=str_replace('js_expr','js_expr2',$js_expr);
 $js_expr3=str_replace('js_expr','js_expr3',$js_expr);
 $js_expr4=str_replace('js_expr','js_expr4',$js_expr);
+$g_js_expr=str_replace('js_expr','g_js_expr',$js_expr);
+$g_js_expr2=str_replace('js_expr','g_js_expr2',$js_expr);
 
 # }}}
 
@@ -2211,13 +2208,16 @@ $js_newobj:         matches a 'new' clause inside of Javascript
 $html_formnotpost:  matches a form, given it's not of method POST
 */
 
-$l_js_end="(?={$g_justspace}(?:[;\}]|{$g_n_operand}[\n\r]))";
+$l_js_end="(?={$g_justspace}(?:[;\)\}\r\n=\!\|\&,]|{$g_n_operand}[\n\r]))";
 #$n_l_js_end="(?!{$g_justspace}(?:[;\}]|{$g_n_operand}[\n\r]))";
 $js_begin=
-	"((?:[;\{\}\n\r\(\)\&\!]|[\!=]=)(?!{$g_anyspace}(?:#|\/\*|\/\/)){$g_anyspace})";
-$js_end="({$g_anyspace}[;\)\}\r\n=\'\",\!\|\+\-\/\*\/\%\&])"; // TODO: rename
+	"((?:[;\{\}\n\r\(\)\&\!]|[\!=]=)(?!{$g_anyspace}(?:#|\/\*|\/\/|'|\")){$g_anyspace})";
+#$js_end="({$g_anyspace}[;\)\}\r\n=\'\",\!\|\+\-\/\*\/\%\&])"; // TODO: rename
+$js_end="((?:{$g_operand}{$g_js_expr})*[;\)\}\r\n=\!\|\&,])"; // TODO: rename
+$n_js_string="(?!(?:[^']*'|[^\"]*\"){$l_js_end})";
 $n_js_set="(?!{$g_anyspace}(?:(?:=(?!=))|\+=|\-=|\*=|\/=|\+\+|\-\-))"; # DEBUG
 $n_js_set_left="(?<!\-\-|\+\+)";
+$wrap_js_end="{$n_js_set}{$n_js_string}{$js_end}";
 # TODO - need to get rid of js_beginright or something
 # (?<!:[\/])[\/](?![\/]) - this matches a slash ('/') without being a part of
 #                          "://"
@@ -2233,7 +2233,7 @@ $js_xmlhttpreq=
 
 $h_html_noquot='(?:[^"\'\\\\][^> ]*)';
 $html_reg="({$g_quoteseg}|{$h_html_noquot})";
-$js_newobj="(?:{$g_anyspace}new{$g_plusspace})";
+$js_newobj="(?:new{$g_plusspace})";
 $html_formnotpost="(?:(?!method{$g_anyspace}={$g_anyspace}(?:'|\")?post)[^>])";
 
 # }}}
@@ -2254,8 +2254,8 @@ $js_regexp_arrays=array(
 	array(1,2,
 		"/{$js_begin}{$js_expr}\.(({$js_varsect}){$g_anyspace}=".
 			"(?:{$g_anyspace}{$js_expr2}{$g_anyspace}=)*{$g_anyspace})".
-			"{$js_expr3}{$l_js_end}/i",
-		"\\1\\2.\\4=".COOK_PREF.".setAttr(\\2,/\\4/,\\6);"),
+			"{$js_expr3}{$wrap_js_end}/i",
+		"\\1\\2.\\4=".COOK_PREF.".setAttr(\\2,/\\4/,\\6)\\7"),
 
 
 	# object['attribute'] parsing (set)
@@ -2268,35 +2268,35 @@ $js_regexp_arrays=array(
 	array(1,2,
 		"/{$js_begin}{$js_expr}(\[{$js_expr2}\]{$g_anyspace}=".
 			"(?:{$g_anyspace}{$js_expr3}{$g_anyspace}=)*{$g_anyspace})".
-			"{$js_expr4}{$l_js_end}/i",
-		"\\1\\2[\\4]=".COOK_PREF.".setAttr(\\2,\\4,\\6);"),
+			"{$js_expr4}{$wrap_js_end}/i",
+		"\\1\\2[\\4]=".COOK_PREF.".setAttr(\\2,\\4,\\6)\\7"),
 
 
 	# get parsing
 
 	array(1,2,
 		"/{$js_beginright}{$n_js_set_left}{$js_expr}\[{$js_expr2}\]".
-		"{$n_js_set}{$js_end}/i",
+		"{$wrap_js_end}/i",
 		"\\1".COOK_PREF.".getAttr(\\2,\\3)\\4"),
 
 	array(1,2,
 		"/{$js_beginright}{$n_js_set_left}{$js_expr}\.({$js_varsect})".
-		"{$n_js_set}{$js_end}/i",
+		"{$wrap_js_end}/i",
 		"\\1".COOK_PREF.".getAttr(\\2,/\\3/)\\4"),
 
 	# get (object['attribute'])
 	array(1,2,
 		"/{$js_beginright}{$n_js_set_left}{$js_expr}\[{$js_expr2}\]".
 			"([^\.=a-z0-9_\[\(\t\r\n]|\.{$js_string_methods}\(|".
-			"\.{$js_string_attrs}{$n_js_varsect}){$n_js_set}{$js_end}/i",
+			"\.{$js_string_attrs}{$n_js_varsect}){$wrap_js_end}/i",
 		"\\1".COOK_PREF.".getAttr(\\2,\\3)\\4\\5"),
 
 	# get (object.attribute)
 	array(1,2,
 		"/{$js_beginright}{$n_js_set_left}{$js_expr}\.({$js_varsect})".
 			"(\.{$js_string_methods}\(|\.{$js_string_attrs}".
-			"{$n_js_varsect})?{$n_js_set}{$js_end}/i",
-		"\\1".COOK_PREF.".getAttr(\\2,/\\3/)\\4\\5\\6"),
+			"{$n_js_varsect})?{$wrap_js_end}/i",
+		"\\1".COOK_PREF.".getAttr(\\2,/\\3/)\\4\\5"),
 /*	array(1,2,
 		"/{$js_beginright}{$js_expr}\.({$js_varsect})".
 			"([^\.=a-z0-9_\[\(\t\r\n]|\.{$js_string_methods}\(|".
@@ -2335,9 +2335,9 @@ $js_regexp_arrays=array(
 		COOK_PREF.".XMLHttpRequest_wrap(\\1)"),
 
 	# XMLHttpRequest in return statement parsing
-	array(1,2,
+	/*array(1,2,
 		"/{$js_begin}(return{$g_plusspace})({$js_newobj}{$js_xmlhttpreq})/i",
-		"\\1\\2".COOK_PREF.".XMLHttpRequest_wrap(\\3)"),
+		"\\1\\2".COOK_PREF.".XMLHttpRequest_wrap(\\3)"),*/
 
 	# form.submit() call parsing
 	($OPTIONS['ENCRYPT_URLS']?array(1,2,
@@ -3605,9 +3605,10 @@ function parse_html($regexp,$partoparse,$html,$addproxy,$framify){
 		#$offset=($replace_end===false?false:$replace_end+2); // TODO
 	}
 	return substr($js_working,2,-2);
-	
+
 }*/
 
+// TODO: try parse_js to include all regexps as 1 array and pass it through preg_replace.  only issue with this is that it assumes JS ends at each newline, which needs to be properly tested (so far, this won't work, but this is a major speed up (I think), so maybe split on ";"?)
 function regular_express($regexp_array,$thevar){
 	# in benchmarks, this 'optimization' appeared to not do anything at all, or
 	# possibly even slow things down
