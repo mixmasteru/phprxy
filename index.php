@@ -1657,6 +1657,10 @@ setAttr:function(obj,attr,val){
 		return obj[attr];
 	}
 
+	if(val=="bottom" || val=="right"){
+		return obj[attr];
+	}
+
 	if(obj==document && attr=="cookie"){
 		var COOK_REG=/^([^=]*)=([^;]*)(?:;[\s\S]*?)?$/i;
 		var realhost=
@@ -1730,9 +1734,9 @@ doSet:function(obj,attr,val){
 
 doEscape:function(val){
 	if(val!==undefined){
-		val=val.replace(/\\/,"\\\\",val);
-		val=val.replace(/\n/,"\\n",val);
-		val=val.replace(/\"/,"\\\"",val);
+		val=val.replace(/\\/g,"\\\\",val);
+		val=val.replace(/\n/g,"\\n",val);
+		val=val.replace(/\"/g,"\\\"",val);
 	}
 	return val;
 },
@@ -1757,13 +1761,13 @@ getAttr:function(obj,attr){
 		var ocookies=this.getCookieArr();
 		var cookies="",ocook;
 		var COOK_REG=
-			/^([\s\S]*)<?php echo(COOKIE_SEPARATOR); ?>([^=]*)=([\s\S]*)(?:; )?$/i;
+			/^([\s\S]*)<?php echo(COOKIE_SEPARATOR); ?>([^=]*)=([\s\S]*)(?:; )?$/ig;
 		for(var key in ocookies){
 			ocook=ocookies[key];
 			if(typeof(ocook)!=typeof("")) continue;
 			if(ocook.match(COOK_REG)==null) continue;
 			var realhost=
-				this.LOCATION_HOSTNAME.replace("/^www/i","").replace(".","_");
+				this.LOCATION_HOSTNAME.replace("/^www/ig","").replace(".","_");
 			var cookhost=ocook.replace(COOK_REG,"\$1");
 			if(cookhost==realhost){
 				if(this.ENCRYPT_COOKIES){
@@ -1781,9 +1785,9 @@ getAttr:function(obj,attr){
 		if(this.USERAGENT=="-1" && (attr!="plugins" && attr!="mimeType"))
 			return undefined;
 		if(this.USERAGENT=="") return obj[attr];
-		var msie=this.USERAGENT.match(/msie/i);
+		var msie=this.USERAGENT.match(/msie/ig);
 		var UA_REG=
-			/^([^\/\(]*)\/?([^ \(]*)[ ]*(\(?([^;\)]*);?([^;\)]*);?([^;\)]*);?([^;\)]*);?([^;\)]*);?[^\)]*\)?)[ ]*([^ \/]*)\/?([^ \/]*).*$/i;
+			/^([^\/\(]*)\/?([^ \(]*)[ ]*(\(?([^;\)]*);?([^;\)]*);?([^;\)]*);?([^;\)]*);?([^;\)]*);?[^\)]*\)?)[ ]*([^ \/]*)\/?([^ \/]*).*$/ig;
 		switch(attr){
 			case "appName":
 				var tempappname=(
@@ -1843,7 +1847,7 @@ getAttr:function(obj,attr){
 	if(is_parse_attr)
 		val=this.de_surrogafy_url(val);
 
-	if(obj==location && attr=="search") val=val.replace(/^[^?]*/,"");
+	if(obj==location && attr=="search") val=val.replace(/^[^?]*/g,"");
 	if(obj==document && attr=="domain") val=this.aurl.get_servername();
 	return val;
 },
@@ -2222,8 +2226,11 @@ $wrap_js_end="{$n_js_set}{$n_js_string}{$js_end}";
 # (?<!:[\/])[\/](?![\/]) - this matches a slash ('/') without being a part of
 #                          "://"
 $js_beginright=
-	"((?:[;\{\(=\+\-\*]|[\}\)]{$g_anyspace};{$g_anyspace}|".
-	"(?<!:[\/])[\/](?![\/])){$g_justspace})";
+	"((?<!:[\/])[\/](?![\/])".
+	"(?:[;\{\(=\+\-\*]|[\}\)]{$g_anyspace};{$g_anyspace}))";
+#$js_beginright=
+#	"((?:[;\{\(=\+\-\*]|[\}\)]{$g_anyspace};{$g_anyspace}|".
+#	"(?<!:[\/])[\/](?![\/])){$g_justspace})";
 #$js_beginright="((?:[;\{\}\(\)=\+\-\*]|(?<!:[\/])[\/](?![\/])){$g_justspace})";
 
 $js_xmlhttpreq=
@@ -2274,7 +2281,7 @@ $js_regexp_arrays=array(
 
 	# get parsing
 
-	array(1,2,
+/*	array(1,2,
 		"/{$js_beginright}{$n_js_set_left}{$js_expr}\[{$js_expr2}\]".
 		"{$wrap_js_end}/i",
 		"\\1".COOK_PREF.".getAttr(\\2,\\3)\\4"),
@@ -2282,9 +2289,9 @@ $js_regexp_arrays=array(
 	array(1,2,
 		"/{$js_beginright}{$n_js_set_left}{$js_expr}\.({$js_varsect})".
 		"{$wrap_js_end}/i",
-		"\\1".COOK_PREF.".getAttr(\\2,/\\3/)\\4"),
+		"\\1".COOK_PREF.".getAttr(\\2,/\\3/)\\4"),*/
 
-	# get (object['attribute'])
+	# get (object['attribute'])*/ // DEBUG
 	array(1,2,
 		"/{$js_beginright}{$n_js_set_left}{$js_expr}\[{$js_expr2}\]".
 			"([^\.=a-z0-9_\[\(\t\r\n]|\.{$js_string_methods}\(|".
@@ -2292,16 +2299,16 @@ $js_regexp_arrays=array(
 		"\\1".COOK_PREF.".getAttr(\\2,\\3)\\4\\5"),
 
 	# get (object.attribute)
-	array(1,2,
+	/*array(1,2,
 		"/{$js_beginright}{$n_js_set_left}{$js_expr}\.({$js_varsect})".
 			"(\.{$js_string_methods}\(|\.{$js_string_attrs}".
 			"{$n_js_varsect})?{$wrap_js_end}/i",
-		"\\1".COOK_PREF.".getAttr(\\2,/\\3/)\\4\\5"),
+		"\\1".COOK_PREF.".getAttr(\\2,/\\3/)\\4\\5"),*/ // DEBUG
 /*	array(1,2,
 		"/{$js_beginright}{$js_expr}\.({$js_varsect})".
 			"([^\.=a-z0-9_\[\(\t\r\n]|\.{$js_string_methods}\(|".
 			"\.{$js_string_attrs}{$n_js_varsect}){$n_js_set}/i",
-		'\1'.COOK_PREF.'.getAttr(\2,/\3/)\4\5'), TODO */
+		'\1'.COOK_PREF.'.getAttr(\2,/\3/)\4\5'), TODO: remove or something */
 
 
 	# other stuff
@@ -3767,7 +3774,7 @@ function parse_all($html){
 					$pos=strpos($splitarr[$i],'>');
 					$l_html=substr($splitarr[$i],0,$pos+1);
 					$l_body=substr($splitarr[$i],$pos+1);
-
+					$ol_body=$l_body; // DEBUG
 					# HTML parses just HTML
 					if($key=='text/html')
 						$l_html=regular_express($regexp_array,$l_html);
@@ -3775,6 +3782,11 @@ function parse_all($html){
 					# javascript, CSS, and such parses just their own
 					else
 						$l_body=regular_express($regexp_array,$l_body);
+
+					if($l_body=='' && $ol_body!=''){ // DEBUG
+						echo 'POOPIE';
+						var_dump($splitarr[$i]);
+					}
 
 					# put humpty-dumpty together again
 					$splitarr[$i]=$l_html.$l_body;
@@ -3786,10 +3798,12 @@ function parse_all($html){
 					!$OPTIONS['REMOVE_SCRIPTS'] &&
 					strtolower(substr($splitarr[$i],-9))=='</script>' &&
 					!preg_match('/^[^>]*src/i',$splitarr[$i])
-				) $splitarr[$i]=
+				){
+					$splitarr[$i]=
 						preg_replace('/'.END_OF_SCRIPT_TAG.'$/i',
 							';'.COOK_PREF.'.purge();//--></script>',
 							$splitarr[$i]);
+				}
 
 			}
 
@@ -3909,11 +3923,11 @@ elseif(
 echo $body;
 
 # BENCHMARK
-//echo
-//	'total time: '.(microtime(true)-$totstarttime).
-//	"<br />parse time: {$parsetime} seconds".
-//	(isset($oparsetime)?"<br />other time 1: {$oparsetime} seconds":null).
-//	(isset($oparsetime2)?"<br />other time 2: {$oparsetime2} seconds":null);
+#echo
+#	'total time: '.(microtime(true)-$totstarttime).
+#	"<br />parse time: {$parsetime} seconds".
+#	(isset($oparsetime)?"<br />other time 1: {$oparsetime} seconds":null).
+#	(isset($oparsetime2)?"<br />other time 2: {$oparsetime2} seconds":null);
 
 # }}}
 
