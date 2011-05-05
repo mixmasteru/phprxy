@@ -145,12 +145,41 @@ function gethtml($name, $succ, $real, $expected){
 		"	{$name}:&nbsp;".($succ?'Success':'Failure').
 		'</a>';
 	if(!$succ){
-		$real=nl2br(htmlentities($real));
-		$expected=nl2br(htmlentities($expected));
+		# line by line comparison
+		$newreal='';
+		$newexpected='';
+		$realarr=explode("\n", htmlentities($real));
+		$expectedarr=explode("\n", htmlentities($expected));
+		for($i=0; $i<count($realarr) && $i<count($expectedarr); $i++){
+			if($i>=count($realarr)){
+				$newreal .=
+					"<span class=\"nomatch\">{$expectedarr[$i]}</span>\n";
+				continue;
+
+			} elseif($i>=count($expectedarr)){
+				$newexpected .=
+					"<span class=\"nomatch\">{$expectedarr[$i]}</span>\n";
+				continue;
+			}
+
+			if($realarr[$i] == $expectedarr[$i]){
+				$newreal .= "<span class=\"match\">{$realarr[$i]}</span>\n";
+				$newexpected .=
+					"<span class=\"match\">{$expectedarr[$i]}</span>\n";
+
+			} else {
+				$newreal .= "<span class=\"nomatch\">{$realarr[$i]}</span>\n";
+				$newexpected .=
+					"<span class=\"nomatch\">{$expectedarr[$i]}</span>\n";
+			}
+		}
+
+		$newreal=nl2br($newreal);
+		$newexpected=nl2br($newexpected);
 		$out.=
 			'<div class="clrb"></div>'.
-			"<div class=\"real\">{$real}</div>".
-			"<div class=\"expected\">{$expected}</div>".
+			"<div class=\"real\">{$newreal}</div>".
+			"<div class=\"expected\">{$newexpected}</div>".
 			'<div class="clrb"></div>';
 	}
 	return $out;
