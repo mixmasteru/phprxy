@@ -150,15 +150,15 @@ function gethtml($name, $succ, $real, $expected){
 		$newexpected='';
 		$realarr=explode("\n", htmlentities($real));
 		$expectedarr=explode("\n", htmlentities($expected));
-		for($i=0; $i<count($realarr) && $i<count($expectedarr); $i++){
+		for($i=0; $i<count($realarr) || $i<count($expectedarr); $i++){
 			if($i>=count($realarr)){
-				$newreal .=
+				$newexpected .=
 					"<span class=\"nomatch\">{$expectedarr[$i]}</span>\n";
 				continue;
 
 			} elseif($i>=count($expectedarr)){
-				$newexpected .=
-					"<span class=\"nomatch\">{$expectedarr[$i]}</span>\n";
+				$newreal .=
+					"<span class=\"nomatch\">{$realarr[$i]}</span>\n";
 				continue;
 			}
 

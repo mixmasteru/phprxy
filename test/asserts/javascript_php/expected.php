@@ -15,8 +15,8 @@ alert("document.location: "+COOKIEuser.getAttr(document,/location/));
 
 COOKIEuser.setAttr(document,/location/,'bcable.net');
 
-//ja=new XMLHttpRequest();
-//return new XMLHttpRequest();
+//ja=COOKIEuser.XMLHttpRequest_wrap(new XMLHttpRequest());
+//return COOKIEuser.XMLHttpRequest_wrap(new XMLHttpRequest());
 
 /*
 ja=COOKIEuser.XMLHttpRequest_wrap(new XMLHttpRequest());
@@ -33,22 +33,22 @@ document.write("<iframe src=\"http://www.google.com/\" />");
 alert("location.search: "+COOKIEuser.getAttr(location,/search/));
 
 if(COOKIEuser.getAttr(location,/search/)!="?asd") COOKIEuser.setAttr(location,/search/,"?asd");
-eval(COOKIEuser.parse_all_html("alert('ja');","application/x-javascript"));
+eval(COOKIEuser.parse_all("alert('ja');","application/x-javascript"));
 
-setTimeout("alert(COOKIEuser.getAttr(location,/href/));",2000);
+setTimeout("alert(location.href);",2000);
 
-eval(COOKIEuser.parse_all_html(l,"application/x-javascript"))
+eval(COOKIEuser.parse_all(l,"application/x-javascript"))
 
-if(eval(COOKIEuser.parse_all_html(l,"application/x-javascript")))
+if(eval(COOKIEuser.parse_all(l,"application/x-javascript")))
 
-if(eval(COOKIEuser.parse_all_html(l+"ASD","application/x-javascript")))
+if(eval(COOKIEuser.parse_all(l+"ASD","application/x-javascript")))
 
-if(eval(COOKIEuser.parse_all_html(l,"application/x-javascript"))) return l
+if(eval(COOKIEuser.parse_all(l,"application/x-javascript"))) return l
 
 COOKIEuser.setAttr(bob,'src','srcthingy');
-COOKIEuser.setAttr(bob,COOKIEuser.getAttr(COOKIEuser.getAttr(COOKIEuser.getAttr(this,/joe/),/suzy/),0),this.joe.suzy[1]);
+COOKIEuser.setAttr(bob,this.joe.suzy[0],this.joe.suzy[1]);
 COOKIEuser.setAttr(document.getElementById('bob'),'src','srcthingy');
-COOKIEuser.setAttr(document.getElementById('bob'),COOKIEuser.getAttr(COOKIEuser.getAttr(COOKIEuser.getAttr(this,/joe/),/suzy/),0),this.joe.suzy[1]);
+COOKIEuser.setAttr(document.getElementById('bob'),this.joe.suzy[0],this.joe.suzy[1]);
 
 COOKIEuser.getAttr(jsjjs,/cookie/) = {
 
@@ -62,8 +62,8 @@ setAttr:function(){
 
 COOKIEuser.setAttr(a,/href/,foo);
 COOKIEuser.setAttr(a,/href/,bar());
-COOKIEuser.getAttr(a,/href/)=function(){};
-COOKIEuser.getAttr(a,/href/)={};
+COOKIEuser.setAttr(a,/href/,function(){});
+COOKIEuser.setAttr(a,/href/,{});
 COOKIEuser.setAttr(a,/href/,(a||b)&&(c|d&e)&&f);
 COOKIEuser.setAttr(a,/href/,a?b:c);
 
@@ -109,14 +109,23 @@ COOKIEuser.setAttr(document,'cookie',asd);
 COOKIEuser.setAttr(document,'cookie','asd');
 COOKIEuser.setAttr(document,'cookie',asd+'asd');
 COOKIEuser.setAttr(document,'cookie',"TZ="+(new Date()).getTimezoneOffset()+
-BrowserSupport_.tz_path);
+COOKIEuser.getAttr(BrowserSupport_,/tz_path/));
 
-COOKIEuser.setAttr(COOKIEuser.getAttr(document,/all/),/style/,"none");
-COOKIEuser.setAttr(COOKIEuser.getAttr(COOKIEuser.getAttr(COOKIEuser.getAttr(COOKIEuser.getAttr(document,/all/),/nr/),/style/),/display/),/fake/,"none");
-COOKIEuser.setAttr(COOKIEuser.getAttr(COOKIEuser.getAttr(COOKIEuser.getAttr(COOKIEuser.getAttr(document,/all/),nr),/style/),/display/),/fake/,"none");
-COOKIEuser.setAttr(COOKIEuser.getAttr(COOKIEuser.getAttr(COOKIEuser.getAttr(document,/all/),nr),/style/),/display/,"none");
-alert(COOKIEuser.getAttr(COOKIEuser.getAttr(COOKIEuser.getAttr(COOKIEuser.getAttr(document,/all/),nr),/style/),/display/));
-COOKIEuser.setAttr(COOKIEuser.getAttr(document.all(nr),/style/),/display/,"none");
-alert(COOKIEuser.getAttr(COOKIEuser.getAttr(document.all(nr),/style/),/display/));
-COOKIEuser.getAttr(document,/all/){nr}.style.display="none";
-alert(COOKIEuser.getAttr(document,/all/){nr}.style.display);;COOKIEuser.purge();//--></script>
+COOKIEuser.setAttr(document.all,/style/,"none");
+COOKIEuser.setAttr(document.all.nr.style.display,/fake/,"none");
+COOKIEuser.setAttr(document.all[nr].style.display,/fake/,"none");
+COOKIEuser.setAttr(document.all[nr].style,/display/,"none");
+alert(COOKIEuser.getAttr(document.all[nr].style,/display/));
+COOKIEuser.setAttr(document.all(nr).style,/display/,"none");
+alert(COOKIEuser.getAttr(document.all(nr).style,/display/));
+COOKIEuser.setAttr(document.all{nr}.style,/display/,"none");
+alert(COOKIEuser.getAttr(document.all{nr}.style,/display/));
+
+asd.qwe++;
+asd.qwe--;
+asd.qwe++;
+COOKIEuser.getAttr(asd,/qwehjklm/);
+alert(COOKIEuser.getAttr(document.all{nr}.style,/display/));
+asd.qwe++;
+COOKIEuser.setAttr(asd,/qwe/,COOKIEuser.getAttr(asd,/qwe/)+1);
+asd.qwe++;;COOKIEuser.purge();//--></script>

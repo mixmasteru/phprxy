@@ -2087,6 +2087,7 @@ $g_anynewline:     any newline characters                0+
 $g_plusnewline:    any newline characters                1+
 $g_n_anynewline:   not any newline characters            0+
 $g_n_plusnewline:  not any newline characters            1+
+$g_bool_operand:   any boolean operand                   1
 $g_operand:        any operand                           1
 $g_n_operand:      anything but an operand               1
 $g_quoteseg:       any quote segment                     2+
@@ -2101,7 +2102,9 @@ $g_anynewline="[\r\n]*";
 $g_plusnewline="[\r\n]+";
 $g_n_anynewline="[^\r\n]*";
 $g_n_plusnewline="[^\r\n]+";
-$g_operand='(?:\|\||\&\&|[\+\-\/\*\|\&\%\?\:]|\>|\>\>|\>\>\>|\<|\<\<|\<\<\<)';
+$g_bool_operand='(?:\|\||\&\&|\!=|==|\>|\<|\<=|\>=)';
+$g_operand=
+	"(?:{$g_bool_operand}|[\+\-\/\*\|\&\%\?\:]|\>|\>\>|\>\>\>|\<|\<\<|\<\<\<)";
 $g_n_operand='[^\+\-\/\*\|\&\%\?\:\<\>]';
 $g_quoteseg='(?:"(?:[^"]|[\\\\]")*?"|\'(?:[^\']|[\\\\]\')*?\')';
 $g_regseg='\/(?:[^\/]|[\\\\]\/)*?\/[a-z]*';
@@ -2132,8 +2135,6 @@ $hook_js_getattrs=
 	"(?:{$hook_js_attrs}|userAgent|platform|appCodeName|appName|appVersion|".
 	'language|oscpu|product|productSub|plugins)';*/
 $hook_js_methods='(location\.(?:replace|assign))';
-// unused? wtf? TODO - figure out why this isn't used and if it should be
-//$js_lochost='(location\.host(?:name){0,1})';
 
 $js_string_methods=
 	'(?:anchor|big|blink|bold|charAt|charCodeAt|concat|fixed|fontcolor|'.
@@ -2168,33 +2169,49 @@ $js_jsvarsect=
 $n_js_varsect='[^a-zA-Z\._\[\]]';
 
 $h_js_exprsect=
-	"(?!function|return|\/\*|\/)".
+	"(?!function[^\(]|return|\/\*|\/\/)".
 	"(?:{$g_quoteseg}|{$g_regseg}|{$js_varsect}|[0-9\.]+)";
 $js_exprsect="(?:{$h_js_exprsect}|\({$h_js_exprsect}\))";
 $h_js_expr=
 	"|\[{$g_anyspace}(?:(?P>js_expr)".
 		"(?:{$g_anyspace},{$g_anyspace}(?P>js_expr))*{$g_anyspace})?\]".
 	"|\({$g_anyspace}(?:(?P>js_expr)".
-		"(?:{$g_anyspace},{$g_anyspace}(?P>js_expr))*{$g_anyspace})?\)";
+		"(?:{$g_anyspace},{$g_anyspace}(?P>js_expr))*{$g_anyspace})?\)".
 	"|\{{$g_anyspace}(?:(?P>js_expr)".
 		"(?:{$g_anyspace},{$g_anyspace}(?P>js_expr))*{$g_anyspace})?\}";
-$js_expr=
-	'(?P<js_expr>(?!'.COOK_PREF.')'. # this makes sure the COOK_PREF.purse()
-	                                 # doesn't get parsed
+$js_expr_get=
+	'(?P<js_expr>(?!'.COOK_PREF.         # this makes sure COOK_PREF.purge()
+		'\.(?:purge|getAttr)\()'.        # doesn't get parsed, and that
+		'(?<!'.COOK_PREF.'\.getAttr\()'. # getAttr() doesn't wrap around another
+		                                 # getAttr(); below, this is replaced
+		                                 # for setAttr() since it needs to wrap
+		                                 # around getAttr()
 	"(?:{$js_exprsect}{$h_js_expr})".
 	"(?:{$g_anyspace}(?:".
-		"\.{$g_anyspace}(?P>js_expr)".
-		"|\.{$g_anyspace}{$js_exprsect}".
-		"|{$g_operand}{$g_anyspace}(?P>js_expr)".
-		"|\?{$g_anyspace}(?P>js_expr){$g_anyspace}".
-			":{$g_anyspace}(?P>js_expr)".
-		$h_js_expr.
+		"\.{$g_anyspace}(?P>js_expr)".               # recursive attribute
+		"|\.{$g_anyspace}{$js_exprsect}".            # attribute
+		"|{$g_operand}{$g_anyspace}(?P>js_expr)".    # any operand
+		"|\?{$g_anyspace}(?P>js_expr){$g_anyspace}". # ternary operator
+			"\:{$g_anyspace}(?P>js_expr)".           #
+		$h_js_expr.                                  # brackets, parens, etc
 	"){$g_anyspace})*)";
-$js_expr2=str_replace('js_expr','js_expr2',$js_expr);
-$js_expr3=str_replace('js_expr','js_expr3',$js_expr);
-$js_expr4=str_replace('js_expr','js_expr4',$js_expr);
-$g_js_expr=str_replace('js_expr','g_js_expr',$js_expr);
-$g_js_expr2=str_replace('js_expr','g_js_expr2',$js_expr);
+
+// for setAttr()
+$js_expr_set=str_replace('getAttr','setAttr',$js_expr_get);
+
+// for global use
+$g_js_expr=str_replace('getAttr','',$js_expr_get);
+$g_js_expr=str_replace('js_expr','g_js_expr',$g_js_expr);
+
+// these should only be produced as required in the code
+// setAttr()
+$js_expr2_set=str_replace('js_expr','js_expr2',$js_expr_set);
+$js_expr3_set=str_replace('js_expr','js_expr3',$js_expr_set);
+$js_expr4_set=str_replace('js_expr','js_expr4',$js_expr_set);
+// getAttr()
+$js_expr2_get=str_replace('js_expr','js_expr2',$js_expr_get);
+// global use
+$g_js_expr2=str_replace('g_js_expr','g_js_expr2',$g_js_expr);
 
 # }}}
 
@@ -2215,25 +2232,35 @@ $html_formnotpost:  matches a form, given it's not of method POST
 $l_js_end="(?={$g_justspace}(?:[;\)\}\r\n=\!\|\&,]|{$g_n_operand}[\n\r]))";
 #$n_l_js_end="(?!{$g_justspace}(?:[;\}]|{$g_n_operand}[\n\r]))";
 $js_begin=
-	"((?:[;\{\}\n\r\(\)\&\!]|[\!=]=)(?!{$g_anyspace}(?:#|\/\*|\/\/|'|\")){$g_anyspace})";
+	"((?:[;\{\}\n\r\(\)\&\!]|[\!=]=)(?!{$g_anyspace}(?:#|\/\*|\/\/|'|\"))".
+	"{$g_anyspace})";
 #$js_end="({$g_anyspace}[;\)\}\r\n=\'\",\!\|\+\-\/\*\/\%\&])"; // TODO: rename
-$js_end="((?:{$g_operand}{$g_js_expr})*[;\)\}\r\n=\!\|\&,])"; // TODO: rename
-$n_js_string="(?!(?:[^']*'|[^\"]*\"){$l_js_end})";
-$n_js_set="(?!{$g_anyspace}(?:(?:=(?!=))|\+=|\-=|\*=|\/=|\+\+|\-\-))"; # DEBUG
+$js_end="((?:{$g_operand}{$g_js_expr})*?(?:[;\)\}\r\n=\'\"\!\|\&,]|[\!=]=))";
+$js_begin_strict_end=str_replace('g_js_expr','g_js_expr2',$js_end);
+$js_begin_strict=
+	"({$js_begin_strict_end}".
+	"(?!{$g_anyspace}(?:#|\/\*|\/\/|'|\")){$g_anyspace})";
+$n_js_string="(?!(?:[^\r\n']*'|[^\r\n\"]*\"))";
+$n_js_set="(?!{$g_anyspace}(?:[^=]=[^=]|\+=|\-=|\*=|\/=|\+\+|\-\-))"; # DEBUG
 $n_js_set_left="(?<!\-\-|\+\+)";
-$wrap_js_end="{$n_js_set}{$n_js_string}{$js_end}";
+$wrap_js_end=
+	"({$n_js_set}{$n_js_string}{$js_end}|".
+		"(?={$g_anyspace}(?:{$g_bool_operand}|=)))";
 # TODO - need to get rid of js_beginright or something
 # (?<!:[\/])[\/](?![\/]) - this matches a slash ('/') without being a part of
 #                          "://"
 $js_beginright=
-	"((?<!:[\/])[\/](?![\/])".
-	"(?:[;\{\(=\+\-\*]|[\}\)]{$g_anyspace};{$g_anyspace}))";
+	"((?:".
+		"(?<!:[\/])[\/](?![\/])|[;\{\(=\+\-\*]|".
+		"[\}\)]{$g_anyspace};{$g_anyspace})".
+	"{$g_anyspace})";
 #$js_beginright=
 #	"((?:[;\{\(=\+\-\*]|[\}\)]{$g_anyspace};{$g_anyspace}|".
 #	"(?<!:[\/])[\/](?![\/])){$g_justspace})";
 #$js_beginright="((?:[;\{\}\(\)=\+\-\*]|(?<!:[\/])[\/](?![\/])){$g_justspace})";
 
 $js_xmlhttpreq=
+	"(?<!XMLHttpRequest_wrap\(new )".
 	"(?:XMLHttpRequest{$g_anyspace}(?:\({$g_anyspace}\)|)|".
 	"ActiveXObject{$g_anyspace}\({$g_anyspace}[^\)]+\.XMLHTTP['\"]".
 	"{$g_anyspace}\))";
@@ -2249,63 +2276,76 @@ $html_formnotpost="(?:(?!method{$g_anyspace}={$g_anyspace}(?:'|\")?post)[^>])";
 
 # REGEXPS: JAVASCRIPT PARSING {{{
 
-$js_regexp_arrays=array(
+$js_regexp_arrays=array( // TODO: clean up
 
 	# object.attribute parsing (set)
 
 	# prepare for set for +=
 	array(1,2,
-		"/{$js_begin}{$js_expr}\.({$js_varsect}){$g_anyspace}\+=/i",
+		"/{$js_begin}{$js_expr_get}\.({$js_varsect}){$g_anyspace}\+=/im",
 		"\\1\\2.\\3=".COOK_PREF.".getAttr(\\2,/\\3/)+"),
 	# set for =
 	array(1,2,
-		"/{$js_begin}{$js_expr}\.(({$js_varsect}){$g_anyspace}=".
-			"(?:{$g_anyspace}{$js_expr2}{$g_anyspace}=)*{$g_anyspace})".
-			"{$js_expr3}{$wrap_js_end}/i",
-		"\\1\\2.\\4=".COOK_PREF.".setAttr(\\2,/\\4/,\\6)\\7"),
+		"/{$js_begin_strict}{$js_expr_set}\.(({$js_varsect}){$g_anyspace}=".
+			"(?:{$g_anyspace}{$js_expr2_set}{$g_anyspace}=)*{$g_anyspace})".
+			"{$js_expr3_set}{$wrap_js_end}/im",
+		#"\\1\\4.\\6=".COOK_PREF.".setAttr(\\4,/\\6/,\\8)\\9"), #TODO: new way?
+		"\\1".COOK_PREF.".setAttr(\\4,/\\6/,\\8)\\9"),
 
 
 	# object['attribute'] parsing (set)
 
-	# set for +=.
+	# prepare for set for +=
 	array(1,2,
-		"/{$js_begin}{$js_expr}\[{$js_expr2}\]{$g_anyspace}\+=/i",
+		"/{$js_begin}{$js_expr_get}\[{$js_expr2_get}\]{$g_anyspace}\+=/im",
 		"\\1\\2[\\3]=".COOK_PREF.".getAttr(\\2,\\3)+"),
 	# set for =
 	array(1,2,
-		"/{$js_begin}{$js_expr}(\[{$js_expr2}\]{$g_anyspace}=".
-			"(?:{$g_anyspace}{$js_expr3}{$g_anyspace}=)*{$g_anyspace})".
-			"{$js_expr4}{$wrap_js_end}/i",
-		"\\1\\2[\\4]=".COOK_PREF.".setAttr(\\2,\\4,\\6)\\7"),
+		"/{$js_begin_strict}{$js_expr_set}(\[{$js_expr2_set}\]{$g_anyspace}=".
+			"(?:{$g_anyspace}{$js_expr3_set}{$g_anyspace}=)*{$g_anyspace})".
+			"{$js_expr4_set}{$wrap_js_end}/im",
+		//"\\1\\4[\\6]=".COOK_PREF.".setAttr(\\4,\\6,\\8)\\9"),
+		"\\1".COOK_PREF.".setAttr(\\4,\\6,\\8)\\9"),
+
+
+	# object.setAttribute parsing
+	array(1,2,
+		"/{$js_begin_strict}{$js_expr_set}\.setAttribute{$g_anyspace}\(".
+			"{$g_anyspace}{$js_expr2_set}{$g_anyspace},{$g_anyspace}".
+			"{$js_expr3_set}{$g_anyspace}\)/im",
+		#"\\1\\4[\\5]=".COOK_PREF.".setAttr(\\4,\\5,\\6)"), #TODO: new way?
+		"\\1".COOK_PREF.".setAttr(\\4,\\5,\\6)"),
 
 
 	# get parsing
 
-/*	array(1,2,
-		"/{$js_beginright}{$n_js_set_left}{$js_expr}\[{$js_expr2}\]".
-		"{$wrap_js_end}/i",
+	# get: object[attribute]
+	array(1,2,
+		"/{$js_beginright}{$n_js_set_left}{$js_expr_get}\[{$js_expr2_get}\]".
+		"{$wrap_js_end}/im",
 		"\\1".COOK_PREF.".getAttr(\\2,\\3)\\4"),
 
+	# get: object.attribute
 	array(1,2,
-		"/{$js_beginright}{$n_js_set_left}{$js_expr}\.({$js_varsect})".
-		"{$wrap_js_end}/i",
-		"\\1".COOK_PREF.".getAttr(\\2,/\\3/)\\4"),*/
+		"/{$js_beginright}{$n_js_set_left}{$js_expr_get}\.({$js_varsect})".
+		"{$wrap_js_end}/im",
+		"\\1".COOK_PREF.".getAttr(\\2,/\\3/)\\4"),
 
-	# get (object['attribute'])*/ // DEBUG
-	array(1,2,
-		"/{$js_beginright}{$n_js_set_left}{$js_expr}\[{$js_expr2}\]".
+	# get (object['attribute'])
+	/*array(1,2,
+		"/{$js_beginright}{$n_js_set_left}{$js_expr_get}\[{$js_expr2_get}\]".
 			"([^\.=a-z0-9_\[\(\t\r\n]|\.{$js_string_methods}\(|".
-			"\.{$js_string_attrs}{$n_js_varsect}){$wrap_js_end}/i",
-		"\\1".COOK_PREF.".getAttr(\\2,\\3)\\4\\5"),
+			"\.{$js_string_attrs}{$n_js_varsect}){$wrap_js_end}/im",
+		"\\1".COOK_PREF.".getAttr(\\2,\\3)\\4\\5"),*/
 
 	# get (object.attribute)
 	/*array(1,2,
-		"/{$js_beginright}{$n_js_set_left}{$js_expr}\.({$js_varsect})".
+		"/{$js_beginright}{$n_js_set_left}{$js_expr_get}\.({$js_varsect})".
 			"(\.{$js_string_methods}\(|\.{$js_string_attrs}".
-			"{$n_js_varsect})?{$wrap_js_end}/i",
-		"\\1".COOK_PREF.".getAttr(\\2,/\\3/)\\4\\5"),*/ // DEBUG
+			"{$n_js_varsect})?{$wrap_js_end}/im",
+		"\\1".COOK_PREF.".getAttr(\\2,/\\3/)\\4\\5"),*/
 /*	array(1,2,
-		"/{$js_beginright}{$js_expr}\.({$js_varsect})".
+		"/{$js_beginright}{$js_expr_get}\.({$js_varsect})".
 			"([^\.=a-z0-9_\[\(\t\r\n]|\.{$js_string_methods}\(|".
 			"\.{$js_string_attrs}{$n_js_varsect}){$n_js_set}/i",
 		'\1'.COOK_PREF.'.getAttr(\2,/\3/)\4\5'), TODO: remove or something */
@@ -2315,43 +2355,37 @@ $js_regexp_arrays=array(
 
 	# method parsing
 	array(1,2,
-		"/([^a-z0-9]{$hook_js_methods}{$g_anyspace}\()([^)]*)\)/i",
+		"/([^a-z0-9]{$hook_js_methods}{$g_anyspace}\()([^)]*)\)/im",
 		"\\1".COOK_PREF.".surrogafy_url(\\3))"),
 
 	# eval parsing
 	array(1,2,
 		"/([^a-z0-9])eval{$g_anyspace}\(".
-			"(?!".COOK_PREF.")({$g_anyspace}{$js_expr})\)/i",
+			"(?!".COOK_PREF.")({$g_anyspace}{$g_js_expr})\)/im",
 		"\\1eval(".COOK_PREF.".parse_all(\\2,\"application/x-javascript\"))"),
 
 	# action attribute parsing
 	array(1,2,
-		"/{$js_begin}\.action{$g_anyspace}=/i",
+		"/{$js_begin}\.action{$g_anyspace}=/im",
 		"\\1.".COOK_PREF.".value="),
-
-	# object.setAttribute parsing
-	array(1,2,
-		"/{$js_begin}{$js_expr}\.setAttribute{$g_anyspace}\({$g_anyspace}".
-			"{$js_expr2}{$g_anyspace},{$g_anyspace}{$js_expr3}".
-			"{$g_anyspace}\)/i",
-		"\\1\\2[\\3]=".COOK_PREF.".setAttr(\\4,\\3,\\4);"),
 
 	# XMLHttpRequest parsing
 	array(1,2,
-		"/({$js_newobj}{$js_xmlhttpreq})/i",
+		"/({$js_newobj}{$js_xmlhttpreq})/im",
 		COOK_PREF.".XMLHttpRequest_wrap(\\1)"),
 
 	# XMLHttpRequest in return statement parsing
 	/*array(1,2,
-		"/{$js_begin}(return{$g_plusspace})({$js_newobj}{$js_xmlhttpreq})/i",
+		"/{$js_begin}(return{$g_plusspace})({$js_newobj}{$js_xmlhttpreq})/im",
 		"\\1\\2".COOK_PREF.".XMLHttpRequest_wrap(\\3)"),*/
 
 	# form.submit() call parsing
 	($OPTIONS['ENCRYPT_URLS']?array(1,2,
 		"/{$js_begin}((?:[^\) \{\}]*(?:\)\.{0,1}))+)(\.submit{$g_anyspace}\(\)".
-			"){$l_js_end}/i",
+			"){$l_js_end}/im",
 		"\\1void((\\2.method==\"post\"?null:\\2\\3));")
 	:null),
+
 );
 
 # }}}
@@ -2365,12 +2399,12 @@ $regexp_arrays=array(
 			"/(<[a-z][^>]*{$g_anyspace}) target{$g_anyspace}={$g_anyspace}".
 				"(?:{$html_frametargets}|('){$html_frametargets}'|(\")".
 				"{$html_frametargets}\")".
-				"/i",
+				"/im",
 			'\1')
 		:null),
 		(PAGETYPE_ID===PAGETYPE_FRAMED_CHILD?array(1,1,
 			"/(<[a-z][^>]*{$g_anyspace} target{$g_anyspace}={$g_anyspace})".
-				"(?:_top|(')_top'|(\")_top\")/i",
+				"(?:_top|(')_top'|(\")_top\")/im",
 			'\1\2\3'.COOK_PREF.'_top\2\3')
 		:null),
 
@@ -2378,52 +2412,52 @@ $regexp_arrays=array(
 		array(1,1,
 			"/(<form{$html_formnotpost}*?)".
 				"(?:{$g_plusspace}action{$g_anyspace}={$g_anyspace}{$html_reg}".
-				")({$html_formnotpost}*)>/i",
+				")({$html_formnotpost}*)>/im",
 			'\1\3><input type="hidden" name="" class="'.COOK_PREF.'" value=\2'.
 			' />'),
 		array(2,1,
 			"/<input type=\"hidden\" name=\"\" class=\"".COOK_PREF."\"".
-				" value{$g_anyspace}={$g_anyspace}{$html_reg} \/>/i",
+				" value{$g_anyspace}={$g_anyspace}{$html_reg} \/>/im",
 			1,false),
 		array(1,1,
-			'/(<form[^>]*?)>/i',
+			'/(<form[^>]*?)>/im',
 			'\1 target="_self"'.
 				($OPTIONS['ENCRYPT_URLS']?
 				 ' onsubmit="return '.COOK_PREF.'.form_encrypt(this);">':'>')),
 		array(1,1,
-			"/(<form{$html_formnotpost}+)>(?!<!--".COOK_PREF.'-->)/i',
+			"/(<form{$html_formnotpost}+)>(?!<!--".COOK_PREF.'-->)/im',
 			'\1 target="_parent"><!--'.COOK_PREF.
 				'--><input type="hidden" name="" value="_">'),
 
 		# deal with the form button for encrypted URLs
 		($OPTIONS['ENCRYPT_URLS']?array(1,1,
 			"/(<input[^>]*? type{$g_anyspace}={$g_anyspace}".
-				"(?:\"submit\"|'submit'|submit)[^>]*?[^\/])((?:[ ]?[\/])?>)/i",
+				"(?:\"submit\"|'submit'|submit)[^>]*?[^\/])((?:[ ]?[\/])?>)/im",
 			'\1 onclick="'.COOK_PREF.'_form_button=this.name;"\2')
 		:null),
 
 		# parse all the other tags
 		array(2,1,
 			"/<[a-z][^>]*{$g_plusspace}{$hook_html_attrs}{$g_anyspace}=".
-				"{$g_anyspace}{$html_reg}/i",
+				"{$g_anyspace}{$html_reg}/im",
 			2),
 		array(2,1,
 			"/<param[^>]*{$g_plusspace}name{$g_anyspace}={$g_anyspace}[\"']?".
 				"movie[^>]*{$g_plusspace}value{$g_anyspace}={$g_anyspace}".
-				"{$html_reg}/i",
+				"{$html_reg}/im",
 			1),
 		array(2,2,
 			"/<script[^>]*?{$g_plusspace}src{$g_anyspace}={$g_anyspace}([\"'])".
-				"{$g_anyspace}(.*?[^\\\\])\\1[^>]*>{$g_anyspace}<\/script>/i",
+				"{$g_anyspace}(.*?[^\\\\])\\1[^>]*>{$g_anyspace}<\/script>/im",
 			2),
 		($OPTIONS['URL_FORM'] && PAGE_FRAMED?array(2,1,
 			"/<a(?:rea)?{$g_plusspace}[^>]*href{$g_anyspace}={$g_anyspace}".
-				"{$html_reg}/i",
+				"{$html_reg}/im",
 			1,false,NEW_PAGETYPE_FRAME_TOP)
 		:null),
 		($OPTIONS['URL_FORM'] && PAGE_FRAMED?array(2,1,
 			"/<[i]?frame{$g_plusspace}[^>]*src{$g_anyspace}={$g_anyspace}".
-			"{$html_reg}/i",
+			"{$html_reg}/im",
 			1,false,PAGETYPE_FRAMED_CHILD)
 		:null)
 	),
@@ -2431,15 +2465,15 @@ $regexp_arrays=array(
 	'text/css' => array(
 		array(2,1,
 			"/[^a-z]url\({$g_anyspace}(&(?:quot|#(?:3[49]));|\"|')(.*?[^\\\\])".
-				"(\\1){$g_anyspace}\)/i",
+				"(\\1){$g_anyspace}\)/im",
 			2),
 		array(2,1,
 			"/[^a-z]url\({$g_anyspace}((?!&(?:quot|#(?:3[49]));)[^\"'\\\\].*?".
-				"[^\\\\]){$g_anyspace}\)/i",
+				"[^\\\\]){$g_anyspace}\)/im",
 			1),
 		array(2,1,
 			"/@import{$g_plusspace}(&(?:quot|#(?:3[49]));|\"|')(.*?[^\\\\])".
-				"(\\1);/i",
+				"(\\1);/im",
 			2)
 	),
 
@@ -2508,7 +2542,10 @@ unset(
 	$js_varsect, $js_jsvarsect, $n_js_varsect, $h_js_exprsect, $js_exprsect,
 	$js_expr, $js_expr2, $js_expr3, $js_expr4,
 
-	$l_js_end, $n_l_js_end, $js_begin, $js_beginright, $js_xmlhttpreq,
+	$l_js_end, $n_l_js_end, $js_begin, $js_end, $js_begin_strict_end,
+	$js_begin_strict, $n_js_string, $n_js_set, $n_js_set_left, $wrap_js_end,
+	$js_beginright, $js_xmlhttpreq,
+
 	$h_html_noquot, $html_reg, $js_newobj, $html_formnotpost,
 
 	$js_regexp_arrays
@@ -3490,7 +3527,7 @@ unset($tbody);
 
 $curr_url=$pagestuff[1];
 define('PAGECOOK_PREFIX',$pagestuff[2]);
-unset($pagestuff);
+//unset($pagestuff); // DEBUG (should be uncommented)
 define('CONTENT_TYPE',
 	preg_replace('/^([a-z0-9\-\/]+).*$/i','\1',$headers['content-type'][0])); #*
 
@@ -3615,7 +3652,7 @@ function parse_html($regexp,$partoparse,$html,$addproxy,$framify){
 
 }*/
 
-// TODO: try parse_js to include all regexps as 1 array and pass it through preg_replace.  only issue with this is that it assumes JS ends at each newline, which needs to be properly tested (so far, this won't work, but this is a major speed up (I think), so maybe split on ";"?)
+// TODO: try parse_js to include all regexps as 1 array and pass it through preg_replace.  only issue with this is that it assumes JS ends at each newline, which needs to be properly tested (so far, this won't work, but this is a major speed up (I think), so maybe split on ";"? NO: ";" is optional in Javascript >:( )
 function regular_express($regexp_array,$thevar){
 	# in benchmarks, this 'optimization' appeared to not do anything at all, or
 	# possibly even slow things down
@@ -3774,7 +3811,7 @@ function parse_all($html){
 					$pos=strpos($splitarr[$i],'>');
 					$l_html=substr($splitarr[$i],0,$pos+1);
 					$l_body=substr($splitarr[$i],$pos+1);
-					$ol_body=$l_body; // DEBUG
+					#$ol_body=$l_body; // DEBUG
 					# HTML parses just HTML
 					if($key=='text/html')
 						$l_html=regular_express($regexp_array,$l_html);
@@ -3783,10 +3820,12 @@ function parse_all($html){
 					else
 						$l_body=regular_express($regexp_array,$l_body);
 
-					if($l_body=='' && $ol_body!=''){ // DEBUG
+					/*if($l_body=='' && $ol_body!=''){ // DEBUG
 						echo 'POOPIE';
+						var_dump($regexp_array[2]);
+						echo 'EIPOOP';
 						var_dump($splitarr[$i]);
-					}
+					}*/
 
 					# put humpty-dumpty together again
 					$splitarr[$i]=$l_html.$l_body;
@@ -3920,6 +3959,10 @@ elseif(
 # }}}
 
 ## Retrieved, Parsed, All Ready to Output ##
+#$body=str_replace('}var l=', '}var l=]]]]}}}}'.$curr_url, $body); // DEBUG
+#$body=str_replace("]]]]}}}}http://localhost/amazon_files",'',$body); // DEBUG
+#var_dump($body);
+#var_dump($pagestuff); // DEBUG
 echo $body;
 
 # BENCHMARK
