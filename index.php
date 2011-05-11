@@ -91,7 +91,7 @@ Default Value: '10/8','172/8','192.168/16','127/8','169.254/16'
 
 $CONFIG['BLOCKED_ADDRESSES']=
 	array('10/8','172/8','192.168/16','127/8','169.254/16');
-$CONFIG['BLOCKED_ADDRESSES']=array(); # DEBUG
+#$CONFIG['BLOCKED_ADDRESSES']=array(); # DEBUG
 
 # }}}
 
@@ -108,7 +108,7 @@ $CONFIG['BLOCKED_ADDRESSES']=array(); # DEBUG
 $CONFIG['MAXIMUM_URL_LENGTH']=500;
 
 # Time limit in seconds for a single request and parse. [10]
-$CONFIG['TIME_LIMIT']=10; // TODO
+$CONFIG['TIME_LIMIT']=10;
 # Time limit in minutes for a DNS entry to be kept in the cache. [10]
 $CONFIG['DNS_CACHE_EXPIRE']=10;
 
@@ -2011,8 +2011,6 @@ if(<?php echo(COOK_PREF); ?>.PAGE_FRAMED){
 
 # REGEXPS {{{
 
-// TODO: clean up
-
 # This is where all the parsing is defined.  If a site isn't being
 # parsed properly, the problem is more than likely in this section.
 # The rest of the code is just there to set up this wonderful bunch
@@ -2029,10 +2027,6 @@ function fix_regexp($regexp){
 	$regexp=preg_replace('/\(\?P\<[a-z0-9_]+\>/i','(',$regexp);
 	$regexp=preg_replace('/\(\?P\>[a-z0-9_]+\)/i',$js_varsect,$regexp);
 	$regexp=preg_replace('/\(\?\<\![^\)]+?\)/i',$js_varsect,$regexp);
-
-	// null cleanup
-	#$regexp=str_replace('([^]+)','()',$regexp); // TODO: rename
-	#$regexp=str_replace('','',$regexp);
 
 	return $regexp;
 }
@@ -2234,7 +2228,6 @@ $l_js_end="(?={$g_justspace}(?:[;\)\}\r\n=\!\|\&,]|{$g_n_operand}[\n\r]))";
 $js_begin=
 	"((?:[;\{\}\n\r\(\)\&\!]|[\!=]=)(?!{$g_anyspace}(?:#|\/\*|\/\/|'|\"))".
 	"{$g_anyspace})";
-#$js_end="({$g_anyspace}[;\)\}\r\n=\'\",\!\|\+\-\/\*\/\%\&])"; // TODO: rename
 $js_end="((?:{$g_operand}{$g_js_expr})*?(?:[;\)\}\r\n=\'\"\!\|\&,]|[\!=]=))";
 $js_begin_strict_end=str_replace('g_js_expr','g_js_expr2',$js_end);
 $js_begin_strict=
@@ -2246,7 +2239,6 @@ $n_js_set_left="(?<!\-\-|\+\+)";
 $wrap_js_end=
 	"({$n_js_set}{$n_js_string}{$js_end}|".
 		"(?={$g_anyspace}(?:{$g_bool_operand}|=)))";
-# TODO - need to get rid of js_beginright or something
 # (?<!:[\/])[\/](?![\/]) - this matches a slash ('/') without being a part of
 #                          "://"
 $js_beginright=
@@ -2276,7 +2268,7 @@ $html_formnotpost="(?:(?!method{$g_anyspace}={$g_anyspace}(?:'|\")?post)[^>])";
 
 # REGEXPS: JAVASCRIPT PARSING {{{
 
-$js_regexp_arrays=array( // TODO: clean up
+$js_regexp_arrays=array(
 
 	# object.attribute parsing (set)
 
@@ -2304,7 +2296,7 @@ $js_regexp_arrays=array( // TODO: clean up
 		"/{$js_begin_strict}{$js_expr_set}(\[{$js_expr2_set}\]{$g_anyspace}=".
 			"(?:{$g_anyspace}{$js_expr3_set}{$g_anyspace}=)*{$g_anyspace})".
 			"{$js_expr4_set}{$wrap_js_end}/im",
-		//"\\1\\4[\\6]=".COOK_PREF.".setAttr(\\4,\\6,\\8)\\9"),
+		//"\\1\\4[\\6]=".COOK_PREF.".setAttr(\\4,\\6,\\8)\\9"), #TODO: new way?
 		"\\1".COOK_PREF.".setAttr(\\4,\\6,\\8)\\9"),
 
 
@@ -2331,25 +2323,6 @@ $js_regexp_arrays=array( // TODO: clean up
 		"{$wrap_js_end}/im",
 		"\\1".COOK_PREF.".getAttr(\\2,/\\3/)\\4"),
 
-	# get (object['attribute'])
-	/*array(1,2,
-		"/{$js_beginright}{$n_js_set_left}{$js_expr_get}\[{$js_expr2_get}\]".
-			"([^\.=a-z0-9_\[\(\t\r\n]|\.{$js_string_methods}\(|".
-			"\.{$js_string_attrs}{$n_js_varsect}){$wrap_js_end}/im",
-		"\\1".COOK_PREF.".getAttr(\\2,\\3)\\4\\5"),*/
-
-	# get (object.attribute)
-	/*array(1,2,
-		"/{$js_beginright}{$n_js_set_left}{$js_expr_get}\.({$js_varsect})".
-			"(\.{$js_string_methods}\(|\.{$js_string_attrs}".
-			"{$n_js_varsect})?{$wrap_js_end}/im",
-		"\\1".COOK_PREF.".getAttr(\\2,/\\3/)\\4\\5"),*/
-/*	array(1,2,
-		"/{$js_beginright}{$js_expr_get}\.({$js_varsect})".
-			"([^\.=a-z0-9_\[\(\t\r\n]|\.{$js_string_methods}\(|".
-			"\.{$js_string_attrs}{$n_js_varsect}){$n_js_set}/i",
-		'\1'.COOK_PREF.'.getAttr(\2,/\3/)\4\5'), TODO: remove or something */
-
 
 	# other stuff
 
@@ -2373,11 +2346,6 @@ $js_regexp_arrays=array( // TODO: clean up
 	array(1,2,
 		"/({$js_newobj}{$js_xmlhttpreq})/im",
 		COOK_PREF.".XMLHttpRequest_wrap(\\1)"),
-
-	# XMLHttpRequest in return statement parsing
-	/*array(1,2,
-		"/{$js_begin}(return{$g_plusspace})({$js_newobj}{$js_xmlhttpreq})/im",
-		"\\1\\2".COOK_PREF.".XMLHttpRequest_wrap(\\3)"),*/
 
 	# form.submit() call parsing
 	($OPTIONS['ENCRYPT_URLS']?array(1,2,
@@ -3527,7 +3495,7 @@ unset($tbody);
 
 $curr_url=$pagestuff[1];
 define('PAGECOOK_PREFIX',$pagestuff[2]);
-//unset($pagestuff); // DEBUG (should be uncommented)
+unset($pagestuff);
 define('CONTENT_TYPE',
 	preg_replace('/^([a-z0-9\-\/]+).*$/i','\1',$headers['content-type'][0])); #*
 
@@ -3570,89 +3538,6 @@ function parse_html($regexp,$partoparse,$html,$addproxy,$framify){
 	return $newhtml;
 }
 
-//function parse_js($regexp,$replace,$js){ # TODO: remove
-//	$js_working=$js;
-//	$offset=0;
-//	//echo "ASD";
-//	while(
-//		$offset!==false &&
-//		preg_match($regexp,$js_working,$matcharr,PREG_OFFSET_CAPTURE,$offset)
-//	){
-//		var_dump($matcharr); // DEBUG
-//		$js_working=preg_replace($regexp,$replace,$js_working,1,$offset);
-//		//echo "\n\n\n\n\n\nJS_WORKING:$js_working\n\n";
-//		//echo "OLDOFFSET:".($offset?'true':'fa;se');
-//		$offset=strpos($js_working,"\0\0",$offset);
-//		//echo "OFFSET:".($offset?'true':'fa;se');
-//		//$offset=($replace_end===false?false:$replace_end+2); // TODO
-//	}
-//	return $js_working;
-//}
-/*function parse_js($regexp,$replace,$js){
-	#$js_working="{$js}";
-	$offset=0;
-	global $js_regexp_arrays; // DEBUG
-	foreach($js_regexp_arrays as $arr){
-		$i++;
-		if($arr[2]==$regexp){
-			echo "}}}}}$i{{{{{\n";
-			$the_regexp=$i;
-		}
-	}
-
-	all($regexp,$js,$matcharr,PREG_SET_ORDER)
-	/*$arr = preg_split($regexp,$js_working,0,PREG_SPLIT_DELIM_CAPTURE);
-	var_dump($arr);
-	die();
-	while(
-		$offset!==false &&
-		preg_match($regexp,$js_working,$matcharr,PREG_OFFSET_CAPTURE,$offset)
-	){
-		var_dump($matcharr);
-		#var_dump($matcharr); // DEBUG
-		#if(++$i==1){
-		#}
-		#echo "111111111111111111111111111111111111111111111111111111111111110";
-		#var_dump($js_working);
-		#echo "1111111111111111111111111111111111111111111111111111111111111-1";
-		#echo substr($js_working,$matcharr[0][1]);
-		#echo "AAAAAAAAAAAAAAAAAAAAAAAAA";
-		var_dump($matcharr);
-		echo "11111111111111111111111111111111111111111111111111111111111110\n";
-		$js_buffer=preg_replace($regexp,$replace,$js_working,1);
-		var_dump($js_buffer);
-		echo "11211111111111111111111111111111111111111111111111111111111110\n";
-		$end_offset=strpos($js_buffer,"\0\0",$matcharr[0][1]);
-		var_dump($end_offset);
-		echo "11311111111111111111111111111111111111111111111111111111111110\n";
-		$js_replacement=substr($js_replacement,$matcharr[0][1],$end_offset);
-		var_dump($js_replacement);
-		#echo "111111111111111111111111111111111111111111111111111111111111110";
-		#$js_working=substr($js_working,0,$matcharr[0][1]).substr($js_replacement,
-		$js_working=substr_replace($js_working,$js_replacement,$matcharr[0][1],$matcharr[0][1]+strlen($matcharr[0][0]));
-		var_dump($js_working);
-		echo "11411111111111111111111111111111111111111111111111111111111110\n";
-		#echo "111111111111111111111111111111111111111111111111111111111111111";
-		#var_dump($matcharr);
-		#echo "111111111111111111111111111111111111111111111111111111111111112";
-		#echo "MMMMMMMMMMMMMMMMMMMMM:::".strpos($js_working,"\0\0",1);
-		#$js_working=str_replace("\0",'NULLLLLLBITCHES',$js_working); # DEBUG
-		#$js_working=substr_replace($js_working,$js_additional,$offset,strlen($js_additional));
-		#var_dump($js_working);
-		#$js_working=substr($js_working,0,$offset).$js_additional.substr
-		#echo "\nLENGTH:".strlen($js_working);
-		#echo "\nOLDOFFSET:".$offset;
-		#echo "\nENDOFFSET:".$end_offset."\n";
-		#echo "\n";
-		$offset=$end_offset;
-		#echo "-------------\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n";
-		#$offset=($replace_end===false?false:$replace_end+2); // TODO
-	}
-	return substr($js_working,2,-2);
-
-}*/
-
-// TODO: try parse_js to include all regexps as 1 array and pass it through preg_replace.  only issue with this is that it assumes JS ends at each newline, which needs to be properly tested (so far, this won't work, but this is a major speed up (I think), so maybe split on ";"? NO: ";" is optional in Javascript >:( )
 function regular_express($regexp_array,$thevar){
 	# in benchmarks, this 'optimization' appeared to not do anything at all, or
 	# possibly even slow things down
@@ -3811,7 +3696,6 @@ function parse_all($html){
 					$pos=strpos($splitarr[$i],'>');
 					$l_html=substr($splitarr[$i],0,$pos+1);
 					$l_body=substr($splitarr[$i],$pos+1);
-					#$ol_body=$l_body; // DEBUG
 					# HTML parses just HTML
 					if($key=='text/html')
 						$l_html=regular_express($regexp_array,$l_html);
@@ -3819,13 +3703,6 @@ function parse_all($html){
 					# javascript, CSS, and such parses just their own
 					else
 						$l_body=regular_express($regexp_array,$l_body);
-
-					/*if($l_body=='' && $ol_body!=''){ // DEBUG
-						echo 'POOPIE';
-						var_dump($regexp_array[2]);
-						echo 'EIPOOP';
-						var_dump($splitarr[$i]);
-					}*/
 
 					# put humpty-dumpty together again
 					$splitarr[$i]=$l_html.$l_body;
@@ -3959,10 +3836,6 @@ elseif(
 # }}}
 
 ## Retrieved, Parsed, All Ready to Output ##
-#$body=str_replace('}var l=', '}var l=]]]]}}}}'.$curr_url, $body); // DEBUG
-#$body=str_replace("]]]]}}}}http://localhost/amazon_files",'',$body); // DEBUG
-#var_dump($body);
-#var_dump($pagestuff); // DEBUG
 echo $body;
 
 # BENCHMARK
