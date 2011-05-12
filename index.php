@@ -1,7 +1,7 @@
 <?php
 
 #
-# Surrogafier v1.1-devel
+# Surrogafier v1.9.0b
 #
 # Author: Brad Cable
 # Email: brad@bcable.net
@@ -25,6 +25,13 @@ $CONFIG['SIMPLE_MODE_URLWIDTH']='300px';
 # Disables POST and COOKIES for a much leaner script, at the expense of
 # functionality. [false]
 $CONFIG['DISABLE_POST_COOKIES']=false;
+
+# Header file to include for the proxy main page. []
+$CONFIG['INCLUDE_MAIN_HEADER']='';
+# Footer file to include for the proxy main page. []
+$CONFIG['INCLUDE_MAIN_FOOTER']='';
+# Header file to include for the proxy URL form page. []
+$CONFIG['INCLUDE_URL_HEADER']='';
 
 # Default value for tunnel server. []
 $CONFIG['DEFAULT_TUNNEL_IP']='';
@@ -74,6 +81,11 @@ $CONFIG['DEFAULT_ENCRYPT_COOKIES']=false;
 # Force the default value of the "Encrypt Cookies" field, and disallow user
 # input. [false]
 $CONFIG['FORCE_DEFAULT_ENCRYPT_COOKIES']=false;
+# Default value for "Encode HTML" checkbox. [false]
+$CONFIG['DEFAULT_ENCODE_HTML']=false;
+# Force the default value of the "Encode HTML" field, and disallow user
+# input. [false]
+$CONFIG['FORCE_DEFAULT_ENCODE_HTML']=false;
 
 /*/ Address Blocking Notes \*\
 
@@ -91,7 +103,6 @@ Default Value: '10/8','172/8','192.168/16','127/8','169.254/16'
 
 $CONFIG['BLOCKED_ADDRESSES']=
 	array('10/8','172/8','192.168/16','127/8','169.254/16');
-#$CONFIG['BLOCKED_ADDRESSES']=array(); # DEBUG
 
 # }}}
 
@@ -107,10 +118,12 @@ $CONFIG['BLOCKED_ADDRESSES']=
 # URL anyway? [500]
 $CONFIG['MAXIMUM_URL_LENGTH']=500;
 
-# Time limit in seconds for a single request and parse. [10]
-$CONFIG['TIME_LIMIT']=10;
+# Time limit in seconds for a single request and parse. [30]
+$CONFIG['TIME_LIMIT']=30;
 # Time limit in minutes for a DNS entry to be kept in the cache. [10]
 $CONFIG['DNS_CACHE_EXPIRE']=10;
+# Maximum memory usage, as specified by memory_limit in php.ini. [16M]
+$CONFIG['MEMORY_LIMIT']='16M';
 
 # Use gzip (if possible) to compress the connection between the proxy and the
 # user (less bandwidth, more CPU). [false]
@@ -161,6 +174,8 @@ $LABEL['REMOVE_OBJECTS']='Remove Objects (Flash, Java, etc)';
 $LABEL['ENCRYPT_URLS']='Encrypt URLs';
 # ENCRYPT_COOKIES: text for encrypt cookies checkbox
 $LABEL['ENCRYPT_COOKIES']='Encrypt Cookies';
+# ENCODE_HTML: text for encode HTML checkbox
+$LABEL['ENCODE_HTML']='Encode HTML';
 # SUBMIT_MAIN: text for the main submit button
 $LABEL['SUBMIT_MAIN']='Surrogafy';
 # SUBMIT_SIMPLE: text for the simple submit button
@@ -169,6 +184,13 @@ $LABEL['SUBMIT_SIMPLE']='Surrogafy';
 # }}}
 
 # STYLE {{{
+
+# The $STYLE configuration variable can be used to override CSS for the main
+# page of Surrogafier.  Likewise, the $STYLE_URL_FORM configuration variable can
+# be used to override CSS for the URL form.  EVERY entry is looped through and
+# added as if it were raw CSS.  This is free-form and can do whatever you want,
+# so below are only the default values of this variable.  You can add as many
+# CSS entries as you'd like.
 
 global $STYLE;
 $STYLE=array();
@@ -258,6 +280,9 @@ $STYLE['a#proxy_link_mode']='
 
 # STYLE_URL_FORM {{{
 
+# The default value for $STYLE_URL_FORM is to be completely blank.  Add entries
+# as you please.
+
 global $STYLE_URL_FORM;
 $STYLE_URL_FORM=array();
 
@@ -294,8 +319,9 @@ if(file_exists(CONFIG_FILE))
 # set error level to not display notices
 error_reporting(E_ALL^E_NOTICE);
 
-# set time limit to the defined time limit, if not in safe mode
+# set time and memory limits to their defined values, if not in safe mode
 if(!ini_get('safe_mode')) set_time_limit($CONFIG['TIME_LIMIT']);
+if(!ini_get('safe_mode')) ini_set('memory_limit', $CONFIG['MEMORY_LIMIT']);
 
 # use gzip compression if available and enabled
 if($CONFIG['GZIP_PROXY_USER'] && extension_loaded('zlib') &&
@@ -325,7 +351,7 @@ if(
 # script environment constants
 if($CONFIG['PROTO']===false)
 	$CONFIG['PROTO']=($_SERVER['HTTPS']=='on'?'https':'http');
-define('VERSION','1.1-devel');
+define('VERSION','1.9.0b');
 define('THIS_SCRIPT',
 	$CONFIG['PROTO']."://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}");
 
@@ -517,6 +543,7 @@ register_option(1,'REMOVE_SCRIPTS');
 register_option(1,'REMOVE_OBJECTS');
 register_option(1,'ENCRYPT_URLS');
 register_option(1,'ENCRYPT_COOKIES');
+register_option(1,'ENCODE_HTML');
 
 # register custom defined options
 $OPTIONS['USER_AGENT']=(
@@ -691,7 +718,8 @@ $checkbox_array=array(
 	'REMOVE_SCRIPTS',
 	'REMOVE_OBJECTS',
 	'ENCRYPT_URLS',
-	'ENCRYPT_COOKIES'
+	'ENCRYPT_COOKIES',
+	'ENCODE_HTML'
 );
 
 ?>
@@ -729,6 +757,11 @@ var advanced_mode=<?php echo(($OPTIONS['SIMPLE_MODE']?'false':'true')); ?>;
 </head>
 
 <body>
+
+<? if( // main header include
+	!empty($CONFIG['INCLUDE_MAIN_HEADER']) &&
+	file_exists($CONFIG['INCLUDE_MAIN_HEADER'])
+) include($CONFIG['INCLUDE_MAIN_HEADER']); ?>
 
 <form method="post" id="proxy_form" onsubmit="return main_submit_code();">
 <input type="hidden" name="<?php echo(COOK_PREF); ?>_set_values" value="1" />
@@ -839,6 +872,11 @@ foreach($checkbox_array as $checkbox){
 
 </table>
 </form>
+
+<? if( // main footer include
+	!empty($CONFIG['INCLUDE_MAIN_FOOTER']) &&
+	file_exists($CONFIG['INCLUDE_MAIN_FOOTER'])
+) include($CONFIG['INCLUDE_MAIN_FOOTER']); ?>
 
 <noscript>
 <br />
@@ -963,6 +1001,11 @@ function submit_code(){
 
 </head>
 <body>
+
+<? if( // URL form header include
+	!empty($CONFIG['INCLUDE_URL_HEADER']) &&
+	file_exists($CONFIG['INCLUDE_URL_HEADER'])
+) include($CONFIG['INCLUDE_URL_HEADER']); ?>
 
 <form id="url_form" method="get" onsubmit="return submit_code();">
 <input type="hidden" name="" value="" />
@@ -3786,6 +3829,9 @@ if(CONTENT_TYPE=='text/html'){
 			COOK_PREF.'.ENCRYPT_URLS='.bool_to_js($OPTIONS['ENCRYPT_URLS']).
 				';'.
 
+			COOK_PREF.'.ENCODE_HTML='.bool_to_js($OPTIONS['ENCODE_HTML']).
+				';'.
+
 			COOK_PREF.'.LOCATION_HOSTNAME="'.
 				str_replace('"','\\"',$curr_urlobj->get_servername()).'";'.
 
@@ -3836,7 +3882,28 @@ elseif(
 # }}}
 
 ## Retrieved, Parsed, All Ready to Output ##
-echo $body;
+
+// encoded output
+if($OPTIONS['ENCODE_HTML']){
+	function parse_letter($letter){
+		$strhex=dechex(ord($letter));
+		while(strlen($strhex)<2){
+			$strhex="0{$strhex}";
+		}
+		return "\\x{$strhex}";
+	}
+
+	$body=utf8_decode($body);
+	echo '<script language="javascript">document.write("';
+	for($i=0; $i<strlen($body); $i++){
+		echo parse_letter(substr($body,$i,1));
+	}
+	echo '");</script>';
+
+// plain output
+} else {
+	echo $body;
+}
 
 # BENCHMARK
 #echo
