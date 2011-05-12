@@ -1,5 +1,5 @@
 
-                         Surrogafier v1.0 Documentation
+                       Surrogafier v1.9.0b Documentation
 --------------------------------------------------------------------------------
 
     Table of Contents
@@ -55,7 +55,7 @@ configuration options are described in detail below.
 As of Surrogafier 1.9.0b, you can create a config file for all the options you
 want.  This file is to be named the same as the file the proxy is stored as,
 with an appended '.conf'.  So if you have it saved as 'index.php', the config
-file is 'index.php.conf'.
+file is 'index.php.conf'.  A good way to start is to copy the proxy over and delete everything after the config portion.
 
 
 I.b.i: Basic Config
