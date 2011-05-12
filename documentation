@@ -11,12 +11,12 @@
     I.a: Installation
 
     I.b: Server Side Configuration
-      I.b.i:   Basic Config
-      I.b.ii:  Advanced Config
-      I.b.iii: Labels
-      I.b.iv:  Style
-        I.b.iv.a: STYLE_URL_FORM
-        I.b.iv.b: STYLE
+     I.b.i:     Basic Config
+     I.b.ii:    Advanced Config
+     I.b.iii:   Labels
+     I.b.iv:    Style
+      I.b.iv.a: STYLE_URL_FORM
+      I.b.iv.b: STYLE
 
     I.c: Using Surrogafier
 
