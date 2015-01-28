@@ -1,0 +1,62 @@
+body{
+	margin: 0px;
+	padding: 0px;
+}
+
+.working {
+	font-weight: bold;
+}
+
+.true {
+	font-weight: bold;
+	color: #20A020;
+	text-decoration: none;
+}
+
+.false {
+	font-weight: bold;
+	color: #A02020;
+}
+
+.h {
+	font-weight: bold;
+}
+
+.real {
+	float: left;
+	width: 50%;
+	border: 1px solid #000000;
+	border-left: 0px;
+	border-right: 0px;
+	padding: 2px 0px 2px 0px;
+	margin: 2px 0px 2px 0px;
+}
+
+.expected {
+	float: right;
+	width: 50%;
+	border: 1px solid #000000;
+	border-left: 0px;
+	border-right: 0px;
+	padding: 2px 0px 2px 0px;
+	margin: 2px 0px 2px 0px;
+}
+
+.match {
+	color: #20A020;
+}
+
+.nomatch {
+	color: #A02020;
+}
+
+.clrb {
+	clear: both;
+}
+
+iframe {
+	border: 0px;
+	height: 14px;
+	width: 100%;
+	overflow: hidden;
+}
