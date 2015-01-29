@@ -362,8 +362,9 @@ function getpage($url){
 	# page redirected, send it back to the user
 	if($response{0}=='3' && $response{1}=='0' && $response{2}!='4'){
 		$urlobj=new aurl($url);
-		$redirurl=framify_url(
-			surrogafy_url($headers['location'][0],$urlobj),
+		$obj_urlparser = new urlparser($urlobj);
+		$redirurl=$obj_urlparser->framify_url(
+			$obj_urlparser->surrogafy_url($headers['location'][0],$urlobj),
 			NEW_PAGETYPE_FRAMED_PAGE
 		);
 

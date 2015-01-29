@@ -1,15 +1,13 @@
 <?php
 /**
- * phprxy
- *
+ * PROXY FUNCTIONS: TCP/IP
+ * 
  * @author Ulrich Pech
  * @link https://github.com/mixmasteru
  *
  * @copyright Surrogafier, Author: Brad Cable, Email: brad@bcable.net
  * @license BSD
  */
-
-# PROXY FUNCTIONS: TCP/IP {{{
 class tcpip
 {
 	/**

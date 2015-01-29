@@ -27,7 +27,8 @@ $proxy_variables=array(
 # PROXY_EXECUTION: REDIRECT IF FORM INPUT {{{
 
 if(IS_FORM_INPUT){
-	$theurl=framify_url(surrogafy_url(ORIG_URL),PAGETYPE_FRAME_TOP);
+	$obj_urlparser = new urlparser(null);
+	$theurl=$obj_urlparser->framify_url($obj_urlparser->surrogafy_url(ORIG_URL),PAGETYPE_FRAME_TOP);
 	header("Location: {$theurl}");
 	finish();
 }
@@ -113,15 +114,17 @@ if(strpos($body,'<base')){
 
 global $curr_urlobj;
 $curr_urlobj=new aurl($curr_url);
+$obj_urlpaser = new urlparser($curr_urlobj);
 
 # PROXY EXECUTION: PAGE PARSING: PARSING FUNCTIONS {{{
 
 function parse_html($regexp,$partoparse,$html,$addproxy,$framify){
 	global $curr_urlobj;
+	global $obj_urlpaser;
 	$newhtml=null;
 	while(preg_match($regexp,$html,$matcharr,PREG_OFFSET_CAPTURE)){
-		$nurl=surrogafy_url($matcharr[$partoparse][0],$curr_urlobj,$addproxy);
-		if($framify) $nurl=framify_url($nurl,$framify);
+		$nurl=$obj_urlpaser->surrogafy_url($matcharr[$partoparse][0],$curr_urlobj,$addproxy);
+		if($framify) $nurl=$obj_urlpaser->framify_url($nurl,$framify);
 		$begin=$matcharr[$partoparse][1];
 		$end=$matcharr[$partoparse][1]+strlen($matcharr[$partoparse][0]);
 		$newhtml.=substr_replace($html,$nurl,$begin);
@@ -350,7 +353,7 @@ $big_headers=
 		($OPTIONS['URL_FORM'] && PAGETYPE_ID===PAGETYPE_FRAMED_PAGE?
 		'<base target="_top">':null).
 		'<link rel="shortcut icon" href="'.
-		surrogafy_url(
+		$obj_urlpaser->surrogafy_url(
 				$curr_urlobj->get_proto().'://'.
 				$curr_urlobj->get_servername().'/favicon.ico').'" />'.
 		(!$CONFIG['REMOVE_SCRIPTS']?

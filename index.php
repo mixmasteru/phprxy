@@ -20,6 +20,7 @@ include 'env.php';
 
 include 'classes/aurl.php';
 include 'classes/tcpip.php';
+include 'classes/urlparser.php';
 
 include 'view/main.php';
 include 'view/frame.php';
@@ -27,7 +28,6 @@ include 'view/css.php';
 include 'view/js.php';
 
 include 'regex.php';
-include 'urlparser.php';
 include 'error.php';
 include 'http.php';
 include 'proxy.php';
