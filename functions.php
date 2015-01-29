@@ -1,4 +1,13 @@
 <?php
+/**
+ * phprxy
+ *
+ * @author Ulrich Pech
+ * @link https://github.com/mixmasteru
+ *
+ * @copyright Surrogafier, Author: Brad Cable, Email: brad@bcable.net
+ * @license BSD
+ */
 # PHP DECODING FUNCTIONS {{{
 
 function my_base64_decode($string){
@@ -63,3 +72,16 @@ function static_cache(){
 }
 
 # }}}
+
+# EXITING {{{
+
+function finish_noexit(){
+	global $dns_cache_array;
+	# save DNS Cache before exiting
+	$_SESSION['DNS_CACHE_ARRAY']=$dns_cache_array;
+}
+
+function finish(){
+	finish_noexit();
+	exit();
+}

@@ -1,4 +1,13 @@
 <?php
+/**
+ * phprxy
+ *
+ * @author Ulrich Pech
+ * @link https://github.com/mixmasteru
+ * 
+ * @copyright Surrogafier, Author: Brad Cable, Email: brad@bcable.net
+ * @license BSD
+ */
 # CONFIG {{{
 
 global $CONFIG;
