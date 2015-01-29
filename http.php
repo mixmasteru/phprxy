@@ -20,7 +20,8 @@ function httpclean($str){
 
 function getpage($url){
 	global $CONFIG,$OPTIONS,$headers,$out,$proxy_variables,$referer;
-
+	
+	$obj_tcpip = new tcpip($CONFIG);
 	# Generate HTTP packet content {{{
 
 	$content=null;
@@ -176,7 +177,7 @@ function getpage($url){
 	# figure out what we are connecting to
 	if($OPTIONS['TUNNEL_IP']!=null && $OPTIONS['TUNNEL_PORT']!=null){
 		$servername=$OPTIONS['TUNNEL_IP'];
-		$ipaddress=get_check($servername);
+		$ipaddress=$obj_tcpip->get_check($servername);
 		$portval=$OPTIONS['TUNNEL_PORT'];
 		$requrl=$urlobj->get_url(false);
 	}
@@ -188,7 +189,7 @@ function getpage($url){
 				'ssl://':
 				null
 			).
-			get_check($servername);
+			$obj_tcpip->get_check($servername);
 		$portval=$urlobj->get_portval();
 	}
 
