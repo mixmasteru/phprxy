@@ -2,7 +2,7 @@
 # STYLE {{{
 
 # The $STYLE configuration variable can be used to override CSS for the main
-# page of Surrogafier.  Likewise, the $STYLE_URL_FORM configuration variable can
+# page of phprxy.  Likewise, the $STYLE_URL_FORM configuration variable can
 # be used to override CSS for the URL form.  EVERY entry is looped through and
 # added as if it were raw CSS.  This is free-form and can do whatever you want,
 # so below are only the default values of this variable.  You can add as many

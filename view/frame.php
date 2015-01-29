@@ -117,7 +117,7 @@ function submit_code(){
 <tr>
 	<td>
 		<a href="<?php echo(THIS_SCRIPT.'?=-&='.OENC_URL); ?>"
-		   id="url_link">Surrogafier
+		   id="url_link">phprxy
 		</a>
 	</td>
 	<td>&nbsp;</td>

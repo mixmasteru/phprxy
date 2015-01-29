@@ -44,7 +44,7 @@ ini_get('magic_quotes_sybase')==1 ||
 # script environment constants
 if($CONFIG['PROTO']===false)
 	$CONFIG['PROTO']=($_SERVER['HTTPS']=='on'?'https':'http');
-	define('VERSION','1.9.0b');
+	define('VERSION','0.1');
 	define('THIS_SCRIPT',
 	$CONFIG['PROTO']."://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}");
 

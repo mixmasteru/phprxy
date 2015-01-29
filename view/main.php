@@ -267,7 +267,7 @@ foreach($checkbox_array as $checkbox){
 <tr>
 	<td colspan="2" id="proxy_links_td">
 		<a id="proxy_link_author" class="proxy_link" href="http://bcable.net/">
-			Surrogafier&nbsp;v<?php echo(VERSION); ?>
+			phprxy&nbsp;v<?php echo(VERSION); ?>
 			<b>&middot;</b>&nbsp;Brad&nbsp;Cable
 		</a>
 		<a id="proxy_link_mode" class="proxy_link" href="#"
@@ -288,10 +288,10 @@ foreach($checkbox_array as $checkbox){
 
 <noscript>
 <br />
-<b>**</b> Surrogafier has detected that your browser does not have Javascript
+<b>**</b> phprxy has detected that your browser does not have Javascript
 enabled. <b>**</b>
 <br />
-<b>**</b> Surrogafier requires Javascript in order to function to its full
+<b>**</b> phprxy requires Javascript in order to function to its full
 potential. It is highly recommended that you have Javascript enabled for
 privacy and security reasons. <b>**</b>
 </noscript>

@@ -148,7 +148,7 @@ global $LABEL;
 $LABEL=array();
 
 # TITLE: title text above form
-$LABEL['TITLE']='Surrogafier';
+$LABEL['TITLE']='phprxy';
 # URL: text for URL text field
 $LABEL['URL']='URL:';
 # TUNNEL: text for tunnel proxy text fields
