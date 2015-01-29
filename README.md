@@ -10,8 +10,8 @@ The goal is to refactore this nice tool into a modern, unit tested program in oo
 # Todos:
 * ~~splitup code in serveral files~~
 * get code in classes
-* use Framework for view
 * unit test it
+* use Framework for view
 
 # License
 BSD license.
