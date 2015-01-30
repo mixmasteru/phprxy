@@ -12,25 +12,25 @@ error_reporting(E_ALL ^ E_NOTICE);
 ini_set('display_errors', '1');
 define('THIS_FILE',"{$_SERVER['DOCUMENT_ROOT']}{$_SERVER['PHP_SELF']}");
 
-include 'conf.php';
-include 'view/styles.php';
-include 'session.php';
-include 'functions.php';
-include 'env.php';
+include 'src/conf.php';
+include 'src/view/styles.php';
+include 'src/session.php';
+include 'src/functions.php';
+include 'src/env.php';
 
-include 'classes/aurl.php';
-include 'classes/tcpip.php';
-include 'classes/urlparser.php';
-include 'classes/http.php';
+include 'src/classes/aurl.php';
+include 'src/classes/tcpip.php';
+include 'src/classes/urlparser.php';
+include 'src/classes/http.php';
 
-include 'view/main.php';
-include 'view/frame.php';
-include 'view/css.php';
-include 'view/js.php';
+include 'src/view/main.php';
+include 'src/view/frame.php';
+include 'src/view/css.php';
+include 'src/view/js.php';
 
-include 'regex.php';
-include 'error.php';
-include 'proxy.php';
+include 'src/regex.php';
+include 'src/error.php';
+include 'src/proxy.php';
 
 
 # BENCHMARK

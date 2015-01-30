@@ -43,3 +43,5 @@ Thumbs.db
 .metadata
 *.iml
 *.ipr
+
+vendor

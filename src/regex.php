@@ -1,6 +1,6 @@
 <?php
 /**
- * phprxy
+ * regex
  *
  * @author Ulrich Pech
  * @link https://github.com/mixmasteru
@@ -243,206 +243,206 @@ $wrap_js_end=
 $js_beginright=
 "((?:".
 "(?<!:[\/])[\/](?![\/])|[;\{\(=\+\-\*]|".
-		"[\}\)]{$g_anyspace};{$g_anyspace})".
-		"{$g_anyspace})";
-		#$js_beginright=
-		#	"((?:[;\{\(=\+\-\*]|[\}\)]{$g_anyspace};{$g_anyspace}|".
-		#	"(?<!:[\/])[\/](?![\/])){$g_justspace})";
-		#$js_beginright="((?:[;\{\}\(\)=\+\-\*]|(?<!:[\/])[\/](?![\/])){$g_justspace})";
+"[\}\)]{$g_anyspace};{$g_anyspace})".
+"{$g_anyspace})";
+#$js_beginright=
+#	"((?:[;\{\(=\+\-\*]|[\}\)]{$g_anyspace};{$g_anyspace}|".
+#	"(?<!:[\/])[\/](?![\/])){$g_justspace})";
+#$js_beginright="((?:[;\{\}\(\)=\+\-\*]|(?<!:[\/])[\/](?![\/])){$g_justspace})";
 
-		$js_xmlhttpreq=
-		"(?<!XMLHttpRequest_wrap\(new )".
-		"(?:XMLHttpRequest{$g_anyspace}(?:\({$g_anyspace}\)|)|".
-		"ActiveXObject{$g_anyspace}\({$g_anyspace}[^\)]+\.XMLHTTP['\"]".
-		"{$g_anyspace}\))";
+$js_xmlhttpreq=
+"(?<!XMLHttpRequest_wrap\(new )".
+"(?:XMLHttpRequest{$g_anyspace}(?:\({$g_anyspace}\)|)|".
+"ActiveXObject{$g_anyspace}\({$g_anyspace}[^\)]+\.XMLHTTP['\"]".
+"{$g_anyspace}\))";
 
-		$h_html_noquot='(?:[^"\'\\\\][^> ]*)';
-		$html_reg="({$g_quoteseg}|{$h_html_noquot})";
-		$js_newobj="(?:new{$g_plusspace})";
-		$html_formnotpost="(?:(?!method{$g_anyspace}={$g_anyspace}(?:'|\")?post)[^>])";
+$h_html_noquot='(?:[^"\'\\\\][^> ]*)';
+$html_reg="({$g_quoteseg}|{$h_html_noquot})";
+$js_newobj="(?:new{$g_plusspace})";
+$html_formnotpost="(?:(?!method{$g_anyspace}={$g_anyspace}(?:'|\")?post)[^>])";
 
-		# }}}
+# }}}
 
-		# }}}
+# }}}
 
-		# REGEXPS: JAVASCRIPT PARSING {{{
+# REGEXPS: JAVASCRIPT PARSING {{{
 
-		$js_regexp_arrays=array(
+$js_regexp_arrays=array(
 
-		# object.attribute parsing (set)
+# object.attribute parsing (set)
 
-		# prepare for set for +=
+# prepare for set for +=
+array(1,2,
+"/{$js_begin}{$js_expr_get}\.({$js_varsect}){$g_anyspace}\+=/im",
+"\\1\\2.\\3=".COOK_PREF.".getAttr(\\2,/\\3/)+"),
+# set for =
+array(1,2,
+	"/{$js_begin_strict}{$js_expr_set}\.(({$js_varsect}){$g_anyspace}=".
+	"(?:{$g_anyspace}{$js_expr2_set}{$g_anyspace}=)*{$g_anyspace})".
+	"{$js_expr3_set}{$wrap_js_end}/im",
+	#"\\1\\4.\\6=".COOK_PREF.".setAttr(\\4,/\\6/,\\8)\\9"), #TODO: new way?
+"\\1".COOK_PREF.".setAttr(\\4,/\\6/,\\8)\\9"),
+
+
+# object['attribute'] parsing (set)
+
+	# prepare for set for +=
 		array(1,2,
-		"/{$js_begin}{$js_expr_get}\.({$js_varsect}){$g_anyspace}\+=/im",
-		"\\1\\2.\\3=".COOK_PREF.".getAttr(\\2,/\\3/)+"),
-		# set for =
+		"/{$js_begin}{$js_expr_get}\[{$js_expr2_get}\]{$g_anyspace}\+=/im",
+"\\1\\2[\\3]=".COOK_PREF.".getAttr(\\2,\\3)+"),
+# set for =
 		array(1,2,
-			"/{$js_begin_strict}{$js_expr_set}\.(({$js_varsect}){$g_anyspace}=".
-			"(?:{$g_anyspace}{$js_expr2_set}{$g_anyspace}=)*{$g_anyspace})".
-			"{$js_expr3_set}{$wrap_js_end}/im",
-			#"\\1\\4.\\6=".COOK_PREF.".setAttr(\\4,/\\6/,\\8)\\9"), #TODO: new way?
-		"\\1".COOK_PREF.".setAttr(\\4,/\\6/,\\8)\\9"),
+		"/{$js_begin_strict}{$js_expr_set}(\[{$js_expr2_set}\]{$g_anyspace}=".
+		"(?:{$g_anyspace}{$js_expr3_set}{$g_anyspace}=)*{$g_anyspace})".
+		"{$js_expr4_set}{$wrap_js_end}/im",
+		//"\\1\\4[\\6]=".COOK_PREF.".setAttr(\\4,\\6,\\8)\\9"), #TODO: new way?
+				"\\1".COOK_PREF.".setAttr(\\4,\\6,\\8)\\9"),
 
 
-		# object['attribute'] parsing (set)
-
-			# prepare for set for +=
+				# object.setAttribute parsing
 				array(1,2,
-				"/{$js_begin}{$js_expr_get}\[{$js_expr2_get}\]{$g_anyspace}\+=/im",
-		"\\1\\2[\\3]=".COOK_PREF.".getAttr(\\2,\\3)+"),
-		# set for =
-				array(1,2,
-				"/{$js_begin_strict}{$js_expr_set}(\[{$js_expr2_set}\]{$g_anyspace}=".
-				"(?:{$g_anyspace}{$js_expr3_set}{$g_anyspace}=)*{$g_anyspace})".
-				"{$js_expr4_set}{$wrap_js_end}/im",
-				//"\\1\\4[\\6]=".COOK_PREF.".setAttr(\\4,\\6,\\8)\\9"), #TODO: new way?
-						"\\1".COOK_PREF.".setAttr(\\4,\\6,\\8)\\9"),
+						"/{$js_begin_strict}{$js_expr_set}\.setAttribute{$g_anyspace}\(".
+						"{$g_anyspace}{$js_expr2_set}{$g_anyspace},{$g_anyspace}".
+						"{$js_expr3_set}{$g_anyspace}\)/im",
+#"\\1\\4[\\5]=".COOK_PREF.".setAttr(\\4,\\5,\\6)"), #TODO: new way?
+"\\1".COOK_PREF.".setAttr(\\4,\\5,\\6)"),
 
 
-						# object.setAttribute parsing
-						array(1,2,
-								"/{$js_begin_strict}{$js_expr_set}\.setAttribute{$g_anyspace}\(".
-								"{$g_anyspace}{$js_expr2_set}{$g_anyspace},{$g_anyspace}".
-								"{$js_expr3_set}{$g_anyspace}\)/im",
-		#"\\1\\4[\\5]=".COOK_PREF.".setAttr(\\4,\\5,\\6)"), #TODO: new way?
-		"\\1".COOK_PREF.".setAttr(\\4,\\5,\\6)"),
+# get parsing
 
+# get: object[attribute]
+array(1,2,
+	"/{$js_beginright}{$n_js_set_left}{$js_expr_get}\[{$js_expr2_get}\]".
+	"{$wrap_js_end}/im",
+	"\\1".COOK_PREF.".getAttr(\\2,\\3)\\4"),
 
-		# get parsing
-
-		# get: object[attribute]
-		array(1,2,
-			"/{$js_beginright}{$n_js_set_left}{$js_expr_get}\[{$js_expr2_get}\]".
+	# get: object.attribute
+	array(1,2,
+	"/{$js_beginright}{$n_js_set_left}{$js_expr_get}\.({$js_varsect})".
 			"{$wrap_js_end}/im",
-			"\\1".COOK_PREF.".getAttr(\\2,\\3)\\4"),
-
-			# get: object.attribute
-			array(1,2,
-			"/{$js_beginright}{$n_js_set_left}{$js_expr_get}\.({$js_varsect})".
-					"{$wrap_js_end}/im",
-					"\\1".COOK_PREF.".getAttr(\\2,/\\3/)\\4"),
+			"\\1".COOK_PREF.".getAttr(\\2,/\\3/)\\4"),
 
 
-					# other stuff
+			# other stuff
 
-					# method parsing
+			# method parsing
+array(1,2,
+	"/([^a-z0-9]{$hook_js_methods}{$g_anyspace}\()([^)]*)\)/im",
+	"\\1".COOK_PREF.".surrogafy_url(\\3))"),
+
+	# eval parsing
 	array(1,2,
-		"/([^a-z0-9]{$hook_js_methods}{$g_anyspace}\()([^)]*)\)/im",
-		"\\1".COOK_PREF.".surrogafy_url(\\3))"),
+	"/([^a-z0-9])eval{$g_anyspace}\(".
+		"(?!".COOK_PREF.")({$g_anyspace}{$g_js_expr})\)/im",
+		"\\1eval(".COOK_PREF.".parse_all(\\2,\"application/x-javascript\"))"),
 
-		# eval parsing
+		# action attribute parsing
 		array(1,2,
-		"/([^a-z0-9])eval{$g_anyspace}\(".
-			"(?!".COOK_PREF.")({$g_anyspace}{$g_js_expr})\)/im",
-			"\\1eval(".COOK_PREF.".parse_all(\\2,\"application/x-javascript\"))"),
+		"/{$js_begin}\.action{$g_anyspace}=/im",
+		"\\1.".COOK_PREF.".value="),
 
-			# action attribute parsing
-			array(1,2,
-			"/{$js_begin}\.action{$g_anyspace}=/im",
-			"\\1.".COOK_PREF.".value="),
+# XMLHttpRequest parsing
+array(1,2,
+		"/({$js_newobj}{$js_xmlhttpreq})/im",
+		COOK_PREF.".XMLHttpRequest_wrap(\\1)"),
 
-	# XMLHttpRequest parsing
-	array(1,2,
-			"/({$js_newobj}{$js_xmlhttpreq})/im",
-			COOK_PREF.".XMLHttpRequest_wrap(\\1)"),
+		# form.submit() call parsing
+		($OPTIONS['ENCRYPT_URLS']?array(1,2,
+	"/{$js_begin}((?:[^\) \{\}]*(?:\)\.{0,1}))+)(\.submit{$g_anyspace}\(\)".
+		"){$l_js_end}/im",
+		"\\1void((\\2.method==\"post\"?null:\\2\\3));")
+		:null),
 
-			# form.submit() call parsing
-			($OPTIONS['ENCRYPT_URLS']?array(1,2,
-		"/{$js_begin}((?:[^\) \{\}]*(?:\)\.{0,1}))+)(\.submit{$g_anyspace}\(\)".
-			"){$l_js_end}/im",
-			"\\1void((\\2.method==\"post\"?null:\\2\\3));")
-			:null),
+		);
 
-			);
+		# }}}
 
-			# }}}
+		# REGEXPS: HTML/CSS PARSING {{{
 
-			# REGEXPS: HTML/CSS PARSING {{{
+		$regexp_arrays=array(
+		'text/html' => array(
+		# target attr
+		(PAGETYPE_ID===PAGETYPE_FRAMED_PAGE?array(1,1,
+		"/(<[a-z][^>]*{$g_anyspace}) target{$g_anyspace}={$g_anyspace}".
+		"(?:{$html_frametargets}|('){$html_frametargets}'|(\")".
+		"{$html_frametargets}\")".
+		"/im",
+		'\1')
+		:null),
+	(PAGETYPE_ID===PAGETYPE_FRAMED_CHILD?array(1,1,
+		"/(<[a-z][^>]*{$g_anyspace} target{$g_anyspace}={$g_anyspace})".
+		"(?:_top|(')_top'|(\")_top\")/im",
+		'\1\2\3'.COOK_PREF.'_top\2\3')
+		:null),
 
-			$regexp_arrays=array(
-			'text/html' => array(
-			# target attr
-			(PAGETYPE_ID===PAGETYPE_FRAMED_PAGE?array(1,1,
-			"/(<[a-z][^>]*{$g_anyspace}) target{$g_anyspace}={$g_anyspace}".
-			"(?:{$html_frametargets}|('){$html_frametargets}'|(\")".
-			"{$html_frametargets}\")".
-			"/im",
-			'\1')
-			:null),
-		(PAGETYPE_ID===PAGETYPE_FRAMED_CHILD?array(1,1,
-			"/(<[a-z][^>]*{$g_anyspace} target{$g_anyspace}={$g_anyspace})".
-			"(?:_top|(')_top'|(\")_top\")/im",
-			'\1\2\3'.COOK_PREF.'_top\2\3')
-			:null),
-
-			# deal with <form>s
-			array(1,1,
-			"/(<form{$html_formnotpost}*?)".
-				"(?:{$g_plusspace}action{$g_anyspace}={$g_anyspace}{$html_reg}".
-				")({$html_formnotpost}*)>/im",
-			'\1\3><input type="hidden" name="" class="'.COOK_PREF.'" value=\2'.
-			' />'),
-			array(2,1,
-					"/<input type=\"hidden\" name=\"\" class=\"".COOK_PREF."\"".
-					" value{$g_anyspace}={$g_anyspace}{$html_reg} \/>/im",
-					1,false),
+		# deal with <form>s
 		array(1,1,
-					'/(<form[^>]*?)>/im',
-					'\1 target="_self"'.
-					($OPTIONS['ENCRYPT_URLS']?
-							' onsubmit="return '.COOK_PREF.'.form_encrypt(this);">':'>')),
-		array(1,1,
-			"/(<form{$html_formnotpost}+)>(?!<!--".COOK_PREF.'-->)/im',
-							'\1 target="_parent"><!--'.COOK_PREF.
-							'--><input type="hidden" name="" value="_">'),
+		"/(<form{$html_formnotpost}*?)".
+			"(?:{$g_plusspace}action{$g_anyspace}={$g_anyspace}{$html_reg}".
+			")({$html_formnotpost}*)>/im",
+		'\1\3><input type="hidden" name="" class="'.COOK_PREF.'" value=\2'.
+		' />'),
+		array(2,1,
+				"/<input type=\"hidden\" name=\"\" class=\"".COOK_PREF."\"".
+				" value{$g_anyspace}={$g_anyspace}{$html_reg} \/>/im",
+				1,false),
+	array(1,1,
+				'/(<form[^>]*?)>/im',
+				'\1 target="_self"'.
+				($OPTIONS['ENCRYPT_URLS']?
+						' onsubmit="return '.COOK_PREF.'.form_encrypt(this);">':'>')),
+	array(1,1,
+		"/(<form{$html_formnotpost}+)>(?!<!--".COOK_PREF.'-->)/im',
+						'\1 target="_parent"><!--'.COOK_PREF.
+						'--><input type="hidden" name="" value="_">'),
 
-		# deal with the form button for encrypted URLs
-		($OPTIONS['ENCRYPT_URLS']?array(1,1,
-			"/(<input[^>]*? type{$g_anyspace}={$g_anyspace}".
-			"(?:\"submit\"|'submit'|submit)[^>]*?[^\/])((?:[ ]?[\/])?>)/im",
-			'\1 onclick="'.COOK_PREF.'_form_button=this.name;"\2')
-			:null),
+	# deal with the form button for encrypted URLs
+	($OPTIONS['ENCRYPT_URLS']?array(1,1,
+		"/(<input[^>]*? type{$g_anyspace}={$g_anyspace}".
+		"(?:\"submit\"|'submit'|submit)[^>]*?[^\/])((?:[ ]?[\/])?>)/im",
+		'\1 onclick="'.COOK_PREF.'_form_button=this.name;"\2')
+		:null),
 
-			# parse all the other tags
-			array(2,1,
-			"/<[a-z][^>]*{$g_plusspace}{$hook_html_attrs}{$g_anyspace}=".
-			"{$g_anyspace}{$html_reg}/im",
-			2),
-			array(2,1,
-			"/<param[^>]*{$g_plusspace}name{$g_anyspace}={$g_anyspace}[\"']?".
-			"movie[^>]*{$g_plusspace}value{$g_anyspace}={$g_anyspace}".
-			"{$html_reg}/im",
-			1),
-			array(2,2,
-					"/<script[^>]*?{$g_plusspace}src{$g_anyspace}={$g_anyspace}([\"'])".
-			"{$g_anyspace}(.*?[^\\\\])\\1[^>]*>{$g_anyspace}<\/script>/im",
-			2),
-			($OPTIONS['URL_FORM'] && PAGE_FRAMED?array(2,1,
-					"/<a(?:rea)?{$g_plusspace}[^>]*href{$g_anyspace}={$g_anyspace}".
-					"{$html_reg}/im",
-					1,false,NEW_PAGETYPE_FRAME_TOP)
-					:null),
-					($OPTIONS['URL_FORM'] && PAGE_FRAMED?array(2,1,
-							"/<[i]?frame{$g_plusspace}[^>]*src{$g_anyspace}={$g_anyspace}".
-							"{$html_reg}/im",
-							1,false,PAGETYPE_FRAMED_CHILD)
-							:null)
-					),
+		# parse all the other tags
+		array(2,1,
+		"/<[a-z][^>]*{$g_plusspace}{$hook_html_attrs}{$g_anyspace}=".
+		"{$g_anyspace}{$html_reg}/im",
+		2),
+		array(2,1,
+		"/<param[^>]*{$g_plusspace}name{$g_anyspace}={$g_anyspace}[\"']?".
+		"movie[^>]*{$g_plusspace}value{$g_anyspace}={$g_anyspace}".
+		"{$html_reg}/im",
+		1),
+		array(2,2,
+				"/<script[^>]*?{$g_plusspace}src{$g_anyspace}={$g_anyspace}([\"'])".
+		"{$g_anyspace}(.*?[^\\\\])\\1[^>]*>{$g_anyspace}<\/script>/im",
+		2),
+		($OPTIONS['URL_FORM'] && PAGE_FRAMED?array(2,1,
+				"/<a(?:rea)?{$g_plusspace}[^>]*href{$g_anyspace}={$g_anyspace}".
+				"{$html_reg}/im",
+				1,false,NEW_PAGETYPE_FRAME_TOP)
+				:null),
+				($OPTIONS['URL_FORM'] && PAGE_FRAMED?array(2,1,
+						"/<[i]?frame{$g_plusspace}[^>]*src{$g_anyspace}={$g_anyspace}".
+						"{$html_reg}/im",
+						1,false,PAGETYPE_FRAMED_CHILD)
+						:null)
+				),
 
-					'text/css' => array(
-					array(2,1,
-					"/[^a-z]url\({$g_anyspace}(&(?:quot|#(?:3[49]));|\"|')(.*?[^\\\\])".
-					"(\\1){$g_anyspace}\)/im",
-					2),
-					array(2,1,
-					"/[^a-z]url\({$g_anyspace}((?!&(?:quot|#(?:3[49]));)[^\"'\\\\].*?".
-					"[^\\\\]){$g_anyspace}\)/im",
-					1),
-					array(2,1,
-			"/@import{$g_plusspace}(&(?:quot|#(?:3[49]));|\"|')(.*?[^\\\\])".
-							"(\\1);/im",
-							2)
-							),
+				'text/css' => array(
+				array(2,1,
+				"/[^a-z]url\({$g_anyspace}(&(?:quot|#(?:3[49]));|\"|')(.*?[^\\\\])".
+				"(\\1){$g_anyspace}\)/im",
+				2),
+				array(2,1,
+				"/[^a-z]url\({$g_anyspace}((?!&(?:quot|#(?:3[49]));)[^\"'\\\\].*?".
+				"[^\\\\]){$g_anyspace}\)/im",
+				1),
+				array(2,1,
+		"/@import{$g_plusspace}(&(?:quot|#(?:3[49]));|\"|')(.*?[^\\\\])".
+						"(\\1);/im",
+						2)
+						),
 
 	'application/javascript' => $js_regexp_arrays,
 	'application/x-javascript' => $js_regexp_arrays,

@@ -47,13 +47,14 @@ class tcpip
 	 * @return boolean
 	 */
 	protected function ipcompare($iprange,$ip)
-	{
+	{		
 		$iprarr=explode('/',$iprange);
 		$ipaddr=$iprarr[0];
 		$mask=$iprarr[1];
 		$maskbits=str_repeat('1',$mask).str_repeat('0',$mask);
 		$ipbits= $this->ipbitter($ipaddr);
 		$ipbits2= $this->ipbitter($ip);
+
 		return (($ipbits & $maskbits)==($ipbits2 & $maskbits));
 	}
 	
@@ -63,10 +64,10 @@ class tcpip
 	 * @param string $mask
 	 * @return number
 	 */
-	protected function ip_check($ip,$mask=false){
+	protected function ip_check($ip,$mask=false)
+	{
 		$ipseg='(?:[01]?[0-9]{1,2}|2(?:5[0-5]|[0-4][0-9]))';
-		return preg_match("/^(?:$ipseg\.){0,3}$ipseg".($mask?'\/[0-9]{1,2}':null).
-				'$/i',$ip); #*
+		return preg_match("/^(?:$ipseg\.){0,3}$ipseg".($mask?'\/[0-9]{1,2}':null).'$/i',$ip); #*
 	}
 	
 	/**
@@ -74,7 +75,8 @@ class tcpip
 	 * @param string $address
 	 * @return string
 	 */
-	protected function gethostbyname_cacheit($address){
+	protected function gethostbyname_cacheit($address)
+	{
 		global $dns_cache_array;
 		$ipaddr=gethostbyname($address);
 		$dns_cache_array[$address]=array('time'=>time(), 'ipaddr'=>$ipaddr);
@@ -86,7 +88,8 @@ class tcpip
 	 * @param string $address
 	 * @return string
 	 */
-	protected function gethostbyname_cached($address){
+	protected function gethostbyname_cached($address)
+	{
 		global $dns_cache_array;
 		if(isset($dns_cache_array[$address]))
 			return $dns_cache_array[$address]['ipaddr'];
@@ -105,6 +108,7 @@ class tcpip
 			$address=substr(strrchr($address,'/'),1);
 		}
 		$ipc = $this->ip_check($address);
+
 		
 		$addressip=($this->ip_check($address)?$address:$this->gethostbyname_cached($address));
 		
@@ -139,4 +143,3 @@ class tcpip
 		return $addressip;
 	}
 }
-# }}}
