@@ -1,13 +1,25 @@
 <?php
-# PROXY FUNCTIONS: AURL CLASS {{{
-
-# class for URL
+/**
+ * class for URL
+ *
+ * @author Ulrich Pech
+ * @link https://github.com/mixmasteru
+ *
+ * @copyright Surrogafier, Author: Brad Cable, Email: brad@bcable.net
+ * @license BSD
+ */
 class aurl
 {
 	var $url,$topurl,$locked,$force_unlocked;
 	var $proto,$userpass,$servername,$portval,$path,$file,$query,$label;
 	
-	
+	/**
+	 * 
+	 * @param string $url
+	 * @param string $topurl
+	 * @param string $force_unlocked
+	 * @return void|string
+	 */
 	function aurl($url,$topurl=null,$force_unlocked=false)
 	{
 		global $CONFIG;

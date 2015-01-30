@@ -1,6 +1,6 @@
 <?php
 /**
- * phprxy
+ * proxy
  *
  * @author Ulrich Pech
  * @link https://github.com/mixmasteru
@@ -12,15 +12,13 @@
 
 # PROXY EXECUTION: COOKIE VARIABLES {{{
 
-global $proxy_variables;
-$proxy_variables=array(
-		'user', COOK_PREF, COOK_PREF.'_set_values',
-		COOK_PREF.'_tunnel_ip',COOK_PREF.'_tunnel_port',
-		COOK_PREF.'_useragent',COOK_PREF.'_useragent_custom',
-		COOK_PREF.'_url_form',
-		COOK_PREF.'_remove_cookies',COOK_PREF.'_remove_referer',
-		COOK_PREF.'_remove_scripts',COOK_PREF.'_remove_objects',
-		COOK_PREF.'_encrypt_urls',COOK_PREF.'_encrypt_cookies');
+$arr_proxy_variable = array('user', COOK_PREF, COOK_PREF.'_set_values',
+							COOK_PREF.'_tunnel_ip',COOK_PREF.'_tunnel_port',
+							COOK_PREF.'_useragent',COOK_PREF.'_useragent_custom',
+							COOK_PREF.'_url_form',
+							COOK_PREF.'_remove_cookies',COOK_PREF.'_remove_referer',
+							COOK_PREF.'_remove_scripts',COOK_PREF.'_remove_objects',
+							COOK_PREF.'_encrypt_urls',COOK_PREF.'_encrypt_cookies');
 
 # }}}
 
@@ -37,19 +35,18 @@ if(IS_FORM_INPUT){
 
 # PROXY EXECUTION: REFERER {{{
 
-global $referer;
+$referer = null;
 if($_SERVER['HTTP_REFERER']!=null && !$OPTIONS['REMOVE_REFERER']){
-	$refurlobj=new aurl($_SERVER['HTTP_REFERER'], null, true);
+	$refurlobj = new aurl($_SERVER['HTTP_REFERER'], null, true);
 	$referer=proxdec(preg_replace(
 			'/^=(?:\&=|_\&=|\.\&=)?([^\&]*)[\s\S]*$/i','\1',
 			$refurlobj->get_query()
 	));
 }
-else $referer=null;
 
 #$getkeys=array_keys($_GET);
 #foreach($getkeys as $getvar){
-#	if(!in_array($getvar,$proxy_variables)){
+#	if(!in_array($getvar,$arr_proxy_variable)){
 #		$curr_url.=
 #			(strpos($curr_url,'?')===false?'?':'&').
 #			"$getvar=".urlencode($_GET[$getvar]);
@@ -73,8 +70,8 @@ while(list($key,$entry)=each($dns_cache_array)){
 
 # PROXY EXECUTION: PAGE RETRIEVAL {{{
 
-global $headers;
-$pagestuff=getpage($curr_url);
+$obj_http = new http($CONFIG, $OPTIONS, $arr_proxy_variable, $referer);
+$pagestuff= $obj_http->getpage($curr_url);
 $body=$pagestuff[0];
 
 $tbody=trim($body);
@@ -87,11 +84,11 @@ if(
 }
 unset($tbody);
 
-$curr_url=$pagestuff[1];
+$curr_url	 = $pagestuff[1];
+$arr_headers = $obj_http->getHeaders();
 define('PAGECOOK_PREFIX',$pagestuff[2]);
 unset($pagestuff);
-define('CONTENT_TYPE',
-preg_replace('/^([a-z0-9\-\/]+).*$/i','\1',$headers['content-type'][0])); #*
+define('CONTENT_TYPE',preg_replace('/^([a-z0-9\-\/]+).*$/i','\1',$arr_headers['content-type'][0])); #*
 
 # }}}
 
