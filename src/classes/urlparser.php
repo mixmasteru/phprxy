@@ -16,11 +16,22 @@ class urlparser
 	 */
 	protected $obj_aurl;
 	
+	/**
+	 * 
+	 * @param aurl $obj_aurl
+	 */
 	public function __construct($obj_aurl)
 	{
 		$this->obj_aurl = $obj_aurl;
 	}
 	
+	/**
+	 * 
+	 * @param string $url
+	 * @param string $topurl
+	 * @param boolean $addproxy
+	 * @return Ambigous <string, NULL, mixed>
+	 */
 	public function surrogafy_url($url,$topurl=false,$addproxy=true)
 	{
 		//if(preg_match('/^(["\']).*\1$/is',$url)>0){
@@ -69,6 +80,11 @@ class urlparser
 		return $url;
 	}
 	
+	/**
+	 * 
+	 * @param string $url
+	 * @return string
+	 */
 	public function proxenc($url)
 	{
 		if($url{0}=='~' || strtolower(substr($url,0,3))=='%7e') return $url;

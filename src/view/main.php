@@ -268,7 +268,7 @@ foreach($checkbox_array as $checkbox){
 	<td colspan="2" id="proxy_links_td">
 		<a id="proxy_link_author" class="proxy_link" href="http://bcable.net/">
 			phprxy&nbsp;v<?php echo(VERSION); ?>
-			<b>&middot;</b>&nbsp;Brad&nbsp;Cable
+			<b>&middot;</b>
 		</a>
 		<a id="proxy_link_mode" class="proxy_link" href="#"
 		   onclick="toggle_mode();">

@@ -21,6 +21,7 @@ include 'src/env.php';
 include 'src/classes/aurl.php';
 include 'src/classes/tcpip.php';
 include 'src/classes/urlparser.php';
+include 'src/classes/pageparser.php';
 include 'src/classes/http.php';
 
 include 'src/view/main.php';
