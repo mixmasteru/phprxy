@@ -23,6 +23,7 @@ include 'src/classes/tcpip.php';
 include 'src/classes/urlparser.php';
 include 'src/classes/pageparser.php';
 include 'src/classes/http.php';
+include 'src/classes/regex.php';
 
 include 'src/view/main.php';
 include 'src/view/frame.php';

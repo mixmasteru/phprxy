@@ -42,20 +42,27 @@ class pageparser
 	
 	/**
 	 * 
+	 * @var regex
+	 */
+	protected $obj_regex;
+	
+	/**
+	 * 
 	 * @param array $arr_config
 	 * @param array $arr_option
 	 * @param array $arr_regexp
 	 * @param aurl $obj_aurl
 	 * @param urlparser $obj_urlparser
 	 */
-	public function __construct(array $arr_config, array $arr_option, array $arr_regexp, $obj_aurl, $obj_urlparser)
+	public function __construct(array $arr_config, array $arr_option, $obj_regex, $obj_aurl, $obj_urlparser)
 	{
 		$this->arr_config 	= $arr_config;
 		$this->arr_option 	= $arr_option;
-		$this->arr_regexp	= $arr_regexp;
 		
 		$this->obj_aurl 	= $obj_aurl;
 		$this->obj_urlparser= $obj_urlparser;	
+		$this->obj_regex	= $obj_regex;
+		$this->arr_regexp	= $this->obj_regex->getRegexes();
 	}
 	
 	/**
@@ -112,6 +119,28 @@ class pageparser
 	
 	/**
 	 * 
+	 * @param string $body
+	 */
+	public static function checkForBase($body)
+	{
+		$base = null;
+		if(strpos($body,'<base'))
+		{
+			$base=preg_replace('/^.*'.$this->obj_regex->getBaseRegex().'.*$/is','\1',$body);
+			if(!empty($base) && $base!=$body && !empty($base{100}))
+			{
+				$body = preg_replace('/'.$this->obj_regex->getBaseRegex().'/i',null,$body);
+		
+				//preg_match('/^(["\']).*\1$/i',$base)>0
+				if(($base{0}=='"' && substr($base,-1)=='"') || ($base{0}=='\'' && substr($base,-1)=='\'')) 
+					$base=substr($base,1,strlen($base)-2); #*
+			}
+		}
+		return $base;
+	}
+	
+	/**
+	 * 
 	 * @param string $html
 	 * @return string
 	 */
@@ -130,7 +159,7 @@ class pageparser
 		$firstrun	= true;
 		$firstjsrun	= true;
 		
-		for(reset($this->arr_regexp);list($key,$arr)=each($this->arr_regexp);)
+		foreach ($this->arr_regexp as $key => $arr) 
 		{
 			if($key=='text/javascript') continue;
 	
@@ -147,7 +176,7 @@ class pageparser
 				$splitarr2=array();
 				for($i=0;$i<count($splitarr);$i+=2){
 					$splitarr2[$i]=preg_split(
-							'/'.REGEXP_SCRIPT_ONEVENT.'/is',$splitarr[$i],-1,
+							'/'.$this->obj_regex->getScriptOnEventRegex().'/is',$splitarr[$i],-1,
 							PREG_SPLIT_DELIM_CAPTURE);
 				}
 			}
@@ -162,7 +191,7 @@ class pageparser
 				for($i=0;$i<count($splitarr);$i+=2){
 					if($this->arr_option['REMOVE_SCRIPTS'])
 						$splitarr[$i]=preg_replace(
-								'/(?:'.REGEXP_SCRIPT_ONEVENT.'|<.?noscript>)/is',null,
+								'/(?:'.$this->obj_regex->getScriptOnEventRegex().'|<.?noscript>)/is',null,
 								$splitarr[$i]);
 					if($this->arr_option['REMOVE_OBJECTS'])
 						$splitarr[$i]=preg_replace(
@@ -276,7 +305,7 @@ class pageparser
 						!preg_match('/^[^>]*src/i',$splitarr[$i])
 									){
 									$splitarr[$i]=
-									preg_replace('/'.END_OF_SCRIPT_TAG.'$/i',
+									preg_replace('/'.$this->obj_regex->getEndOfScriptTag().'$/i',
 											';'.COOK_PREF.'.purge();//--></script>',
 											$splitarr[$i]);
 				}

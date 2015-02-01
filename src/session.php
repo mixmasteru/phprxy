@@ -44,51 +44,52 @@ ini_get('magic_quotes_sybase')==1 ||
 # script environment constants
 if($CONFIG['PROTO']===false)
 	$CONFIG['PROTO']=($_SERVER['HTTPS']=='on'?'https':'http');
-	define('VERSION','0.1');
-	define('THIS_SCRIPT',
-	$CONFIG['PROTO']."://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}");
+	
+define('VERSION','0.1');
+define('THIS_SCRIPT',
+$CONFIG['PROTO']."://{$_SERVER['HTTP_HOST']}{$_SERVER['PHP_SELF']}");
 
-	# randomized cookie prefixes
-	function gen_randstr($len){
-		$chars=null;
-		for($i=0;$i<$len;$i++){
-			$char=rand(0,25);
-			$char=chr($char+97);
-			$chars.=$char;
-		}
-		return $chars;
+# randomized cookie prefixes
+function gen_randstr($len){
+	$chars=null;
+	for($i=0;$i<$len;$i++){
+		$char=rand(0,25);
+		$char=chr($char+97);
+		$chars.=$char;
 	}
+	return $chars;
+}
 
-	function dosetcookie($cookname,$cookval,$expire=null){
-		$_COOKIE[$cookname]=$cookval;
-		if($expire===null) setcookie($cookname,$cookval);
-		else setcookie($cookname,$cookval,$expire);
-	}
+function dosetcookie($cookname,$cookval,$expire=null){
+	$_COOKIE[$cookname]=$cookval;
+	if($expire===null) setcookie($cookname,$cookval);
+	else setcookie($cookname,$cookval,$expire);
+}
 
-	if(!isset($_SESSION)) session_start();
+if(!isset($_SESSION)) session_start();
 
-	if(empty($_SESSION['sesspref'])){
-		$sesspref=gen_randstr(30);
-		$_SESSION['sesspref']=$sesspref;
-	}
-	else $sesspref=$_SESSION['sesspref'];
+if(empty($_SESSION['sesspref'])){
+	$sesspref=gen_randstr(30);
+	$_SESSION['sesspref']=$sesspref;
+}
+else $sesspref=$_SESSION['sesspref'];
 
-	if(empty($_COOKIE['user'])){
-		$cookpref=gen_randstr(12);
-		dosetcookie('user',$cookpref);
-	}
-	else $cookpref=$_COOKIE['user'];
+if(empty($_COOKIE['user'])){
+	$cookpref=gen_randstr(12);
+	dosetcookie('user',$cookpref);
+}
+else $cookpref=$_COOKIE['user'];
 
-	define('SESS_PREF',$sesspref);
-	define('COOK_PREF',$cookpref);
-	define('COOKIE_SEPARATOR','__'.COOK_PREF.'__');
-	unset($sesspref,$cookpref);
+define('SESS_PREF',$sesspref);
+define('COOK_PREF',$cookpref);
+define('COOKIE_SEPARATOR','__'.COOK_PREF.'__');
+unset($sesspref,$cookpref);
 
-	# ssl domains array handling
-	if(!empty($_GET[COOK_PREF.'_ssl_domain'])){
-		if(!is_array($_SESSION['ssl_domains'])) $_SESSION['ssl_domains']=array();
-		$_SESSION['ssl_domains'][]=$_GET[COOK_PREF.'_ssl_domain'];
-		exit();
-	}
+# ssl domains array handling
+if(!empty($_GET[COOK_PREF.'_ssl_domain'])){
+	if(!is_array($_SESSION['ssl_domains'])) $_SESSION['ssl_domains']=array();
+	$_SESSION['ssl_domains'][]=$_GET[COOK_PREF.'_ssl_domain'];
+	exit();
+}
 
-	# }}}
+# }}}

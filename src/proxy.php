@@ -70,15 +70,14 @@ while(list($key,$entry)=each($dns_cache_array)){
 
 # PROXY EXECUTION: PAGE RETRIEVAL {{{
 
-$obj_http = new http($CONFIG, $OPTIONS, $arr_proxy_variable, $referer);
-$pagestuff= $obj_http->getpage($curr_url);
-$body=$pagestuff[0];
+$obj_regex 	= new regex($OPTIONS);
+$obj_http 	= new http($CONFIG, $OPTIONS, $arr_proxy_variable, $referer);
+$pagestuff	= $obj_http->getpage($curr_url);
+$body		= $pagestuff[0];
 
 $tbody=trim($body);
-if(
-		($tbody{0}=='"' && substr($tbody,-1)=='"') ||
-		($tbody{0}=='\'' && substr($tbody,-1)=='\'')
-){
+if(($tbody{0}=='"' && substr($tbody,-1)=='"') || ($tbody{0}=='\'' && substr($tbody,-1)=='\''))
+{
 	echo $body;
 	finish();
 }
@@ -93,37 +92,27 @@ define('CONTENT_TYPE',preg_replace('/^([a-z0-9\-\/]+).*$/i','\1',$arr_headers['c
 # }}}
 
 # PROXY EXECUTION: PAGE PARSING {{{
-
-if(strpos($body,'<base')){
-	$base=preg_replace('/^.*'.BASE_REGEXP.'.*$/is','\1',$body);
-	if(!empty($base) && $base!=$body && !empty($base{100})){
-		$body=preg_replace('/'.BASE_REGEXP.'/i',null,$body);
-
-		//preg_match('/^(["\']).*\1$/i',$base)>0
-		if(
-				($base{0}=='"' && substr($base,-1)=='"') ||
-				($base{0}=='\'' && substr($base,-1)=='\'')
-		) $base=substr($base,1,strlen($base)-2); #*
-		$curr_url=$base;
-	}
-	unset($base);
+$base = pageparser::checkForBase($body);
+if(!empty($base))
+{
+	$curr_url=$base;
 }
 
-global $curr_urlobj;
-$curr_urlobj=new aurl($curr_url);
+$curr_urlobj	=new aurl($curr_url);
 $obj_urlparser = new urlparser($curr_urlobj);
-$obj_pageparser= new pageparser($CONFIG, $OPTIONS, $regexp_arrays, $curr_urlobj, $obj_urlparser);
+$obj_pageparser= new pageparser($CONFIG, $OPTIONS, $obj_regex, $curr_urlobj, $obj_urlparser);
 
 # }}}
 
 //$starttime=microtime(true); # BENCHMARK
-$body=$obj_pageparser->parse_all($body);
+$body = $obj_pageparser->parse_all($body);
 //$parsetime=microtime(true)-$starttime; # BENCHMARK
 
 # PROXY EXECUTION: PAGE PARSING: PROXY HEADERS/JAVASCRIPT {{{
 
-if(CONTENT_TYPE=='text/html'){
-$big_headers=
+if(CONTENT_TYPE=='text/html')
+{
+	$big_headers=
 		'<meta name="robots" content="noindex, nofollow" />'.
 		($OPTIONS['URL_FORM'] && PAGETYPE_ID===PAGETYPE_FRAMED_PAGE?
 		'<base target="_top">':null).
@@ -152,12 +141,12 @@ $big_headers=
 											null).'";'.
 
 			COOK_PREF.'.ENCRYPT_COOKIES='.
-									bool_to_js($OPTIONS['ENCRYPT_COOKIES']).';'.
+									$obj_regex->bool_to_js($OPTIONS['ENCRYPT_COOKIES']).';'.
 
-											COOK_PREF.'.ENCRYPT_URLS='.bool_to_js($OPTIONS['ENCRYPT_URLS']).
+											COOK_PREF.'.ENCRYPT_URLS='.$obj_regex->bool_to_js($OPTIONS['ENCRYPT_URLS']).
 				';'.
 
-													COOK_PREF.'.ENCODE_HTML='.bool_to_js($OPTIONS['ENCODE_HTML']).
+													COOK_PREF.'.ENCODE_HTML='.$obj_regex->bool_to_js($OPTIONS['ENCODE_HTML']).
 													';'.
 
 													COOK_PREF.'.LOCATION_HOSTNAME="'.
@@ -174,12 +163,12 @@ $big_headers=
 
 															COOK_PREF.'.NEW_PAGETYPE_FRAME_TOP='.NEW_PAGETYPE_FRAME_TOP.';'.
 
-															COOK_PREF.'.PAGE_FRAMED='.bool_to_js(PAGE_FRAMED).';'.
+															COOK_PREF.'.PAGE_FRAMED='.$obj_regex->bool_to_js(PAGE_FRAMED).';'.
 
 															COOK_PREF.'.REMOVE_OBJECTS='.
-															bool_to_js($OPTIONS['REMOVE_OBJECTS']).';'.
+															$obj_regex->bool_to_js($OPTIONS['REMOVE_OBJECTS']).';'.
 
-			COOK_PREF.'.URL_FORM='.bool_to_js($OPTIONS['URL_FORM']).';'.
+			COOK_PREF.'.URL_FORM='.$obj_regex->bool_to_js($OPTIONS['URL_FORM']).';'.
 
 			COOK_PREF.".USERAGENT=\"{$useragent}\";".
 			(
